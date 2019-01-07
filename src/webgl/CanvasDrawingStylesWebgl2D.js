@@ -8,6 +8,7 @@ let _textAlign = Symbol('文字对齐,"start", "end", "left", "right", "center" 
 let _textBaseline = Symbol('文字纵向对齐，"top", "hanging", "middle", "alphabetic", "ideographic", "bottom" (默认: "alphabetic")');
 export default class CanvasDrawingStylesWebgl2D {
     constructor() {
+        'test'
         this[_lineWidth] = 1;
         this[_lineCap] = "butt";
         this[_lineJoin] = "miter";
