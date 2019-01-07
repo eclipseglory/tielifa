@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <script src="../tielifa.min.js"></script>
+    <title>动画测试</title>
+</head>
+<body>
+<canvas id="webgl" width=500 height=300 style="background-color: black">
+
+</canvas>
+<canvas id="canvas" width=500 height=300 style="background-color: black">
+
+</canvas>
+</body>
+<script>
+    let c =  new tielifa.WebGL2D(webgl);
+    let ctx = c;
+    let ctx2 = canvas.getContext('2d');
+    var deltaX = 1;
+    var deltaR = 2;
+    function repeat(){
+        fillTest(ctx);
+        fillTest(ctx2);
+        deltaX++;
+        deltaR++;
+        requestAnimationFrame(repeat);
+    }
+    function fillTest(ctx) {
+        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        ctx.save();
+        ctx.beginPath();
+        ctx.strokeStyle = 'red';
+        ctx.fillStyle = 'white';
+        ctx.translate(deltaX, 0);
+        ctx.translate(50,50);
+        ctx.rotate(deltaR * Math.PI / 180);
+        ctx.translate(-50,-50);
+        ctx.fillRect(0,0,100,100);
+        ctx.restore();
+
+        ctx.save();
+        // ctx.translate(0, deltaX);
+        ctx.translate(60,60);
+        // ctx.rotate(deltaR * Math.PI / 180);
+        if(ctx.rotateX){
+            ctx.rotateX(deltaR * Math.PI / 180);
+        }
+        ctx.translate(-60,-60);
+        ctx.drawImage(img,0,0,120,120);
+        ctx.restore();
+        if (ctx.draw) {
+            ctx.draw();
+        }
+    }
+    let img = new Image();
+    img.onload = function(evt){
+        repeat();
+    }
+    img.src = "images/background.png";
+</script>
+</html>
