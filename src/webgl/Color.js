@@ -1,4 +1,14 @@
-const colorKeywords = {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var colorKeywords = {
     aliceblue: "#f0f8ff",
     antiquewhite: "#faebd7",
     aqua: "#00ffff",
@@ -142,73 +152,90 @@ const colorKeywords = {
     yellowgreen: "#9acd32"
 };
 
-let _instance;
-export default class Color {
-    constructor() {
+var _instance = void 0;
+
+var Color = function () {
+    function Color() {
+        _classCallCheck(this, Color);
+
         if (_instance) {
             return _instance;
         }
         _instance = this;
         this.colorMap = {};
-        for (let key in colorKeywords) {
-            let v = colorKeywords[key];
-            let vec3 = this.convertHEXToVet3(v);
+        for (var key in colorKeywords) {
+            var v = colorKeywords[key];
+            var vec3 = this.convertHEXToVet3(v);
             this.colorMap[v] = vec3;
         }
     }
 
-    static getInstance() {
-        if (!_instance) {
-            _instance = new Color();
-        }
-        return _instance;
-    }
-
-    convertStringToColor(string) {
-        string = string.toLowerCase();
-        if (Color.isHEXString(string)) {
-            let vec3 = this.colorMap[string];
-            if (vec3 != undefined) return vec3;
-            vec3 = this.convertHEXToVet3(string);
-            this.colorMap[string] = vec3;
-            return vec3;
-        }
-        return this.convertKeywordToVet3(string);
-    }
-
-    convertKeywordToVet3(keyword) {
-        let value = Color.ColorMap[keyword];
-        if (value) {
-            let vec3 = this.colorMap[value];
-            if (vec3 != undefined) return vec3;
-            vec3 = this.convertHEXToVet3(value);
-            this.colorMap[value] = vec3;
-            return vec3;
-        }
-        return [0, 0, 0];
-    }
-
-    static isHEXString(string) {
-        if (string) {
-            if (string.length == 7 && string.indexOf('#') == 0) {
-                return true;
+    _createClass(Color, [{
+        key: "convertStringToColor",
+        value: function convertStringToColor(string) {
+            string = string.toLowerCase();
+            if (Color.isHEXString(string)) {
+                var vec3 = this.colorMap[string];
+                if (vec3 != undefined) return vec3;
+                vec3 = this.convertHEXToVet3(string);
+                this.colorMap[string] = vec3;
+                return vec3;
             }
+            return this.convertKeywordToVet3(string);
         }
-        return false;
-    }
+    }, {
+        key: "convertKeywordToVet3",
+        value: function convertKeywordToVet3(keyword) {
+            var value = Color.ColorMap[keyword];
+            if (value) {
+                var vec3 = this.colorMap[value];
+                if (vec3 != undefined) return vec3;
+                vec3 = this.convertHEXToVet3(value);
+                this.colorMap[value] = vec3;
+                return vec3;
+            }
+            return [0, 0, 0];
+        }
+    }, {
+        key: "convertHEXToVet3",
+        value: function convertHEXToVet3(hex) {
+            var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            var r = parseInt(result[1], 16);
+            var g = parseInt(result[2], 16);
+            var b = parseInt(result[3], 16);
+            return [r, g, b];
+        }
 
-    convertHEXToVet3(hex) {
-        let result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-        let r = parseInt(result[1], 16);
-        let g = parseInt(result[2], 16);
-        let b = parseInt(result[3], 16);
-        return [r, g, b];
-    }
+        /**
+         * '文字颜色对应的颜色值表，抄自webgl-2d :)'
+         */
 
-    /**
-     * '文字颜色对应的颜色值表，抄自webgl-2d :)'
-     */
-    static get ColorMap() {
-        return colorKeywords;
-    }
-}
+    }], [{
+        key: "getInstance",
+        value: function getInstance() {
+            if (!_instance) {
+                _instance = new Color();
+            }
+            return _instance;
+        }
+    }, {
+        key: "isHEXString",
+        value: function isHEXString(string) {
+            if (string) {
+                if (string.length == 7 && string.indexOf('#') == 0) {
+                    return true;
+                }
+            }
+            return false;
+        }
+    }, {
+        key: "ColorMap",
+        get: function get() {
+            return colorKeywords;
+        }
+    }]);
+
+    return Color;
+}();
+
+exports.default = Color;
