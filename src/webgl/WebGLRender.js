@@ -23,10 +23,8 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 var SINGLE_DATA_BYTE_LENGTH = 32;
-var fsSource = "\n  // \u7247\u65AD\u7740\u8272\u5668\u6CA1\u6709\u9ED8\u8BA4\u7CBE\u5EA6\uFF0C\u6240\u4EE5\u6211\u4EEC\u9700\u8981\u8BBE\u7F6E\u4E00\u4E2A\u7CBE\u5EA6\n  // mediump\u4EE3\u8868\u201Cmedium precision\u201D\uFF08\u4E2D\u7B49\u7CBE\u5EA6\uFF09\n  precision mediump float;\n  varying vec4 currentColor;\n  varying vec2 v_texcoord;\n  varying vec3 normal;\n  uniform vec2 singleCanvas;\n  uniform vec3 u_lightPosition;\n  uniform sampler2D u_texture;\n  void main() {\n        vec2 coord = vec2(v_texcoord.x / singleCanvas.x , v_texcoord.y/singleCanvas.y);\n        vec4 color = currentColor;\n        vec3 r_normal = normalize(normal);    \n        vec3 lightLocation = normalize(u_lightPosition);    \n        gl_FragColor = color * texture2D(u_texture,coord);\n        gl_FragColor.rgb *= abs(dot(r_normal,u_lightPosition));\n  }\n  ";
+var fsSource = "\n  precision mediump float;\n  varying vec4 currentColor;\n  varying vec2 v_texcoord;\n  varying vec3 normal;\n  uniform vec2 singleCanvas;\n  uniform vec3 u_lightPosition;\n  uniform sampler2D u_texture;\n  void main() {\n        vec2 coord = vec2(v_texcoord.x / singleCanvas.x , v_texcoord.y/singleCanvas.y);\n        vec4 color = currentColor;\n        vec3 r_normal = normalize(normal);    \n        vec3 lightLocation = normalize(u_lightPosition);    \n        gl_FragColor = color * texture2D(u_texture,coord);\n        gl_FragColor.rgb *= abs(dot(r_normal,lightLocation));\n  }\n  ";
 /**
- // 片断着色器没有默认精度，所以我们需要设置一个精度
- // mediump代表“medium precision”（中等精度）
  precision mediump float;
  varying vec4 currentColor;
  varying vec2 v_texcoord;
@@ -508,7 +506,6 @@ var WebGLRender = function () {
          uniform mat4 transform_matrix_array[transformMatrixCount];
          void main() {
                 // v_texcoord = u_texCoord;
-                // 切换坐标系到投影坐标系中
                 vec4 new_position = transform_matrix_array[0] * a_position;
                 vec4 finalPosition = perspective_matrix* new_position;
                 currentColor = vec4 (color.xyz/255.0,color.w/100.0);
@@ -521,7 +518,7 @@ var WebGLRender = function () {
     }, {
         key: "getVertexShaderSource",
         value: function getVertexShaderSource(transformMatrixCount) {
-            var vsSource = ' attribute vec4 color;\n' + '     attribute vec4 a_position;\n' + '     attribute vec2 u_texCoord;\n' + '     attribute float transform_matrix_index;\n' + '     varying vec2 v_texcoord;\n' + '     varying vec4 currentColor;\n' + '     varying vec3 normal;\n' + '     uniform mat4 perspective_matrix;\n' + '     uniform mat4 transform_matrix_array[' + transformMatrixCount + '];\n' + '     void main() {\n' + '             normal = vec3(0,0,1);\n' + '             v_texcoord = u_texCoord;\n' + '            // 切换坐标系到投影坐标系中\n' + '            vec4 new_position = transform_matrix_array[int(transform_matrix_index)] * a_position;\n' + '            normal = mat3(transform_matrix_array[int(transform_matrix_index)]) * normal;\n' + '            vec4 finalPosition = perspective_matrix* new_position;\n' + '            currentColor = vec4 (color.xyz/255.0,color.w/100.0);\n' + '            gl_Position = finalPosition;\n' + '    }';
+            var vsSource = ' attribute vec4 color;\n' + '     attribute vec4 a_position;\n' + '     attribute vec2 u_texCoord;\n' + '     attribute float transform_matrix_index;\n' + '     varying vec2 v_texcoord;\n' + '     varying vec4 currentColor;\n' + '     varying vec3 normal;\n' + '     uniform mat4 perspective_matrix;\n' + '     uniform mat4 transform_matrix_array[' + transformMatrixCount + '];\n' + '     void main() {\n' + '             normal = vec3(0,0,1);\n' + '             vec4 yuandian = vec4(0,0,0,1);\n' + '             v_texcoord = u_texCoord;\n' + '            vec4 new_position = transform_matrix_array[int(transform_matrix_index)] * a_position;\n' + '            vec4 n_y = transform_matrix_array[int(transform_matrix_index)] * yuandian;\n' + '            vec4 n_n = transform_matrix_array[int(transform_matrix_index)] * vec4(normal,1);\n' + '            normal = vec3(n_n.x-n_y.x,n_n.y-n_y.y,n_n.z-n_y.z);\n' + '            vec4 finalPosition = perspective_matrix* new_position;\n' + '            currentColor = vec4 (color.xyz/255.0,color.w/100.0);\n' + '            gl_Position = finalPosition;\n' + '    }';
             return vsSource;
         }
     }, {

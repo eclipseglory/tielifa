@@ -26,7 +26,7 @@ var _SubPath3D = require("./SubPath3D.js");
 
 var _SubPath3D2 = _interopRequireDefault(_SubPath3D);
 
-var _Color = require("./Color.js");
+var _Color = require("../utils/Color.js");
 
 var _Color2 = _interopRequireDefault(_Color);
 

@@ -205,6 +205,11 @@ var Color = function () {
             var b = parseInt(result[3], 16);
             return [r, g, b];
         }
+
+        /**
+         * '文字颜色对应的颜色值表，抄自webgl-2d :)'
+         */
+
     }], [{
         key: "getInstance",
         value: function getInstance() {
