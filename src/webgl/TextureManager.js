@@ -28,6 +28,8 @@ var TextureManager = function () {
         this[_textCatch] = [];
         this.imageDataArray = new Array(this.maxTextureNum);
         this.textureArray = new Array(this.maxTextureNum);
+        this.singleTexture = undefined;
+        this.lastImageData = undefined;
         this.space = space || 3;
     }
 

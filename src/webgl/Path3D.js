@@ -23,7 +23,7 @@ var Path3D = function () {
     }, {
         key: "clean",
         value: function clean() {
-            this.subPathArray = [];
+            this.subPathArray.length = 0;
         }
     }, {
         key: "subPathNumber",

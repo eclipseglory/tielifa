@@ -23,7 +23,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 var SINGLE_DATA_BYTE_LENGTH = 32;
-var fsSource = "\n  // \u7247\u65AD\u7740\u8272\u5668\u6CA1\u6709\u9ED8\u8BA4\u7CBE\u5EA6\uFF0C\u6240\u4EE5\u6211\u4EEC\u9700\u8981\u8BBE\u7F6E\u4E00\u4E2A\u7CBE\u5EA6\n  // mediump\u4EE3\u8868\u201Cmedium precision\u201D\uFF08\u4E2D\u7B49\u7CBE\u5EA6\uFF09\n  precision mediump float;\n  varying vec4 currentColor;\n  varying vec2 v_texcoord;\n  varying vec3 normal;\n  uniform vec2 singleCanvas;\n  uniform vec3 u_lightPosition;\n  uniform sampler2D u_texture;\n  void main() {\n        vec3 r_normal = normalize(normal);\n        vec2 coord = vec2(v_texcoord.x / singleCanvas.x , v_texcoord.y/singleCanvas.y);\n        vec4 color = currentColor;    \n        vec3 r_lightLocation = normalize(u_lightPosition);    \n        gl_FragColor = color * texture2D(u_texture,coord);\n        gl_FragColor.rgb *= abs(dot(r_normal,r_lightLocation));\n  }\n  ";
+var fsSource = "\n  // \u7247\u65AD\u7740\u8272\u5668\u6CA1\u6709\u9ED8\u8BA4\u7CBE\u5EA6\uFF0C\u6240\u4EE5\u6211\u4EEC\u9700\u8981\u8BBE\u7F6E\u4E00\u4E2A\u7CBE\u5EA6\n  // mediump\u4EE3\u8868\u201Cmedium precision\u201D\uFF08\u4E2D\u7B49\u7CBE\u5EA6\uFF09\n  precision mediump float;\n  varying vec4 currentColor;\n  varying vec2 v_texcoord;\n  varying vec3 normal;\n  uniform vec2 singleCanvas;\n  uniform sampler2D u_texture;\n  void main() {\n        vec2 coord = vec2(v_texcoord.x / singleCanvas.x , v_texcoord.y/singleCanvas.y);\n        vec4 color = currentColor;    \n        vec3 lightLocation = vec3(0.5,0.7,1);    \n        gl_FragColor = color * texture2D(u_texture,coord);\n        gl_FragColor.rgb *= abs(dot(normal,lightLocation));\n  }\n  ";
 /**
  // 片断着色器没有默认精度，所以我们需要设置一个精度
  // mediump代表“medium precision”（中等精度）
@@ -51,11 +51,10 @@ var WebGLRender = function () {
         this.DEBUG_DRAW_COUNT = 0;
         this.configured = false;
         var maxVectors = gl.getParameter(gl.MAX_VERTEX_UNIFORM_VECTORS);
-        // 顶点作色器里已经用了一个mat4了和一个vec3，就是7个vector,减去这4个然后除以4就得到可以定义的最大mat4数组
-        this[_maxTransformMatrixNum] = Math.floor((maxVectors - 7) / 4);
+        // 顶点作色器里已经用了一个mat4了，就是4个vector,减去这4个然后除以4就得到可以定义的最大mat4数组
+        this[_maxTransformMatrixNum] = Math.floor((maxVectors - 4) / 4);
         this[_maxTransformMatrixNum] = 10; // 测试设置
         this.textureManager = null;
-        this.lightPosition = [0, 0, 1];
         this.init();
     }
 
@@ -76,7 +75,6 @@ var WebGLRender = function () {
         key: "rendVertexArray",
         value: function rendVertexArray(type, vertexDataArray, firstVerticesStart, lastVerticesEnd, textureIndex) {
             var gl = this.gl;
-            this.setLightPosition(this.lightPosition);
             switch (type) {
                 case _RenderAction2.default.ACTION_FILL:
                     this.fillRendVertexArray(vertexDataArray, firstVerticesStart, lastVerticesEnd, textureIndex);
@@ -162,7 +160,7 @@ var WebGLRender = function () {
                     if (lastAction != currentAction && lastAction != undefined) {
                         this.rendVertexArray(lastAction.type, vertexDataArray, undefined, undefined, lastAction.textureIndex);
                     }
-                    vertexDataArray = [];
+                    vertexDataArray.length = 0;
                     vertexDataArray.push(currentAction.vertexData);
                     matrixIndex = 1;
                     matrixMap = {};
@@ -170,7 +168,7 @@ var WebGLRender = function () {
                     for (var k = 0; k < currentAction.vertexData.vertexNumber; k++) {
                         var mid = currentAction.vertexData.getMatrixIndex(k);
                         var sid = currentAction.vertexData.getContextStateIndex(k);
-                        var key = sid + "-" + mid;
+                        var key = sid.toString() + '-' + mid.toString();
                         var currentMatrixIndex = matrixMap[key];
                         if (currentMatrixIndex == undefined) {
                             currentMatrixIndex = matrixIndex;
@@ -194,7 +192,7 @@ var WebGLRender = function () {
                     }
                     this.rendVertexArray(currentAction.type, vertexDataArray);
                     matrixMap = {};
-                    vertexDataArray = [];
+                    vertexDataArray.length = 0;
                     matrixIndex = 1;
                     continue;
                 } else {
@@ -203,7 +201,7 @@ var WebGLRender = function () {
                         // 同个Fill绘制可以进行叠加统一绘制
                         if (currentAction.textureIndex != lastAction.textureIndex && currentAction.textureIndex != -1 && lastAction.textureIndex != -1) {
                             this.rendVertexArray(lastAction.type, vertexDataArray, undefined, undefined, lastAction.textureIndex);
-                            vertexDataArray = [];
+                            vertexDataArray.length = 0;
                             lastAction = currentAction;
                             matrixIndex = 1;
                             matrixMap = {};
@@ -218,7 +216,7 @@ var WebGLRender = function () {
                         matrixIndex = 1;
                         i--;
                         lastAction = undefined;
-                        vertexDataArray = [];
+                        vertexDataArray.length = 0;
                         continue;
                     }
                 }
@@ -227,7 +225,7 @@ var WebGLRender = function () {
                 for (var _k = 0; _k < currentAction.vertexData.vertexNumber; _k++) {
                     var _mid = currentAction.vertexData.getMatrixIndex(_k);
                     var _sid = currentAction.vertexData.getContextStateIndex(_k);
-                    var _key = _sid + "-" + _mid;
+                    var _key = _sid.toString() + '-' + _mid.toString();
                     var _currentMatrixIndex = matrixMap[_key];
                     if (_currentMatrixIndex == undefined) {
                         _currentMatrixIndex = matrixIndex;
@@ -238,7 +236,7 @@ var WebGLRender = function () {
                                 this.rendVertexArray(lastAction.type, vertexDataArray, undefined, undefined, lastAction.textureIndex);
                                 matrixMap = {};
                                 matrixIndex = 1;
-                                vertexDataArray = [];
+                                vertexDataArray.length = 0;
                                 lastAction = undefined;
                                 i--;
                                 break;
@@ -342,10 +340,8 @@ var WebGLRender = function () {
             gl.vertexAttribPointer(shaderInfo.transformMatrixIndex, size, type, false, stripe, offset);
         }
     }, {
-        key: "setLightPosition",
-        value: function setLightPosition(position) {
-            this.gl.uniform3f(this.shaderInformation.lightPosition, position[0], position[1], position[2]);
-        }
+        key: "registerTexture",
+        value: function registerTexture(image) {}
     }, {
         key: "createShaderProgram",
         value: function createShaderProgram() {
@@ -378,12 +374,37 @@ var WebGLRender = function () {
             var program = this[_program];
             this.shaderInformation = this.initShaderInformation(program);
             this.textureManager = new _TextureManager2.default(801, 801, 10, 4);
-            this.textureManager.maxHeight = gl.getParameter(this.gl.MAX_TEXTURE_SIZE);
-            this.textureManager.maxWidth = this.textureManager.maxHeight;
-            // 设置正射投影矩阵
+            // this.textureManager.maxHeight = gl.getParameter(this.gl.MAX_TEXTURE_SIZE);
+            // this.textureManager.maxWidth = this.textureManager.maxHeight;
+            // 设置透视矩阵
             var aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
-            var m1 = _Mat2.default.orthoProjection(0, 0, gl.canvas.width, gl.canvas.height, -1000, 1000);
+            // let m2 = MyMat4.perspective(60 * Math.PI / 180, aspect, 1, 2000);
+            var m1 = _Mat2.default.projection(gl.canvas.width, gl.canvas.height, 2000);
+            m1 = _Mat2.default.orthoProjection(0, 0, gl.canvas.width, gl.canvas.height, -1000, 1000);
+            // m1 = Mat4.perspective(60 * Math.PI / 180, aspect, 1, 100)
+            // let test = [0,0,-90,1];
+            // test = Mat4.multiplyWithVertex(m1,test);
+            // console.log(test[0]/test[3],test[1]/test[3],test[2]/test[3]);
+            //
+            // test = [100,0,-90,1];
+            // test = Mat4.multiplyWithVertex(m1,test);
+            // console.log(test[0]/test[3],test[1]/test[3],test[2]/test[3]);
+            //
+            // test = [100,100,-90,1];
+            // test = Mat4.multiplyWithVertex(m1,test);
+            // console.log(test[0]/test[3],test[1]/test[3],test[2]/test[3]);
+            //
+            // test = [0,100,-90,1];
+            // test = Mat4.multiplyWithVertex(m1,test);
+            // console.log(test[0]/test[3],test[1]/test[3],test[2]/test[3]);
+            // if (this.perspectiveType == PERSPECTIVE) {
+            //     // 如果是透视类型就设置透视矩阵(3d)
+            //     gl.uniformMatrix4fv(this.shaderInformation.perspectiveMatrix, false, m2);
+            // }
+            // if (this.perspectiveType == PROJECTION) {
+            // 如果是投影类型就设置投影矩阵 (2d)
             gl.uniformMatrix4fv(this.shaderInformation.perspectiveMatrix, false, m1);
+            // }
         }
     }, {
         key: "initShaderInformation",
@@ -410,7 +431,6 @@ var WebGLRender = function () {
             }
             gl.uniformMatrix4fv(transformMatrixArray[0], false, _Mat2.default.identity());
             var singleCanvas = gl.getUniformLocation(program, "singleCanvas");
-            var lightPosition = gl.getUniformLocation(program, "u_lightPosition");
             var textureLocation = gl.getUniformLocation(program, "u_texture");
 
             // 创建数据缓存
@@ -422,7 +442,6 @@ var WebGLRender = function () {
             gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, blackPixel);
             gl.bindTexture(gl.TEXTURE_2D, null);
             return {
-                lightPosition: lightPosition,
                 vertexAttribute: vertexAttribute,
                 colorAttribute: colorAttribute,
                 textureCoordAttribute: textureCoordAttribute,
