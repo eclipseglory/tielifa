@@ -483,19 +483,50 @@ var CanvasRenderingContextWebgl2D = function () {
         //******************** 扩展接口 *****************************//
 
     }, {
-        key: "fillEllipse",
-        value: function fillEllipse() {}
+        key: "fillOrStroke",
+        value: function fillOrStroke(fillColor, strokeColor) {
+            if (fillColor != undefined) {
+                this.fillStyle = fillColor;
+                this.fill();
+            }
+            if (strokeColor != undefined) {
+                this.strokeStyle = strokeColor;
+                this.stroke();
+            }
+        }
     }, {
-        key: "fillCircle",
-        value: function fillCircle(x, y, radius) {}
+        key: "drawRectangle",
+        value: function drawRectangle(x, y, w, h, fillColor, strokeColor) {
+            this.save();
+            this.beginPath();
+            this.rect(x, y, w, h);
+            this.fillOrStroke(fillColor, strokeColor);
+            this.restore();
+        }
+    }, {
+        key: "drawEllipse",
+        value: function drawEllipse(x, y, r1, r2, fillColor, strokeColor, rotation) {
+            this.save();
+            this.beginPath();
+            this.ellipse(x, y, r1, r2, rotation, 0, _Tools2.default.PI2, false);
+            this.closePath();
+            this.fillOrStroke(fillColor, strokeColor);
+            this.restore();
+        }
+    }, {
+        key: "drawCircle",
+        value: function drawCircle(x, y, r, fillColor, strokeColor) {
+            this.drawEllipse(x, y, r, r, fillColor, strokeColor, 0);
+        }
     }, {
         key: "draw",
         value: function draw() {
             this.webglRender.initRending();
             this.webglRender.executeRenderAction(this[_renderActionList], this[_stateArray]);
-            this[_renderActionList].length = 0;
+            this[_renderActionList] = [];
+            this[_stateArray] = [];
             // debug:
-            console.log("绘制调用次数：", this.webglRender.DEBUG_DRAW_COUNT);
+            // console.log("绘制调用次数：", this.webglRender.DEBUG_DRAW_COUNT);
         }
     }, {
         key: "currentContextState",

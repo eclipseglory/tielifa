@@ -23,7 +23,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 var SINGLE_DATA_BYTE_LENGTH = 32;
-var fsSource = "\n  // \u7247\u65AD\u7740\u8272\u5668\u6CA1\u6709\u9ED8\u8BA4\u7CBE\u5EA6\uFF0C\u6240\u4EE5\u6211\u4EEC\u9700\u8981\u8BBE\u7F6E\u4E00\u4E2A\u7CBE\u5EA6\n  // mediump\u4EE3\u8868\u201Cmedium precision\u201D\uFF08\u4E2D\u7B49\u7CBE\u5EA6\uFF09\n  precision mediump float;\n  varying vec4 currentColor;\n  varying vec2 v_texcoord;\n  varying vec3 normal;\n  uniform vec2 singleCanvas;\n  uniform sampler2D u_texture;\n  void main() {\n        vec2 coord = vec2(v_texcoord.x / singleCanvas.x , v_texcoord.y/singleCanvas.y);\n        vec4 color = currentColor;    \n        vec3 lightLocation = vec3(0.5,0.7,1);    \n        gl_FragColor = color * texture2D(u_texture,coord);\n        gl_FragColor.rgb *= abs(dot(normal,lightLocation));\n  }\n  ";
+var fsSource = "\n  // \u7247\u65AD\u7740\u8272\u5668\u6CA1\u6709\u9ED8\u8BA4\u7CBE\u5EA6\uFF0C\u6240\u4EE5\u6211\u4EEC\u9700\u8981\u8BBE\u7F6E\u4E00\u4E2A\u7CBE\u5EA6\n  // mediump\u4EE3\u8868\u201Cmedium precision\u201D\uFF08\u4E2D\u7B49\u7CBE\u5EA6\uFF09\n  precision mediump float;\n  varying vec4 currentColor;\n  varying vec2 v_texcoord;\n  varying vec3 normal;\n  uniform vec2 singleCanvas;\n  uniform vec3 u_lightPosition;\n  uniform sampler2D u_texture;\n  void main() {\n        vec2 coord = vec2(v_texcoord.x / singleCanvas.x , v_texcoord.y/singleCanvas.y);\n        vec4 color = currentColor;\n        vec3 r_normal = normalize(normal);    \n        vec3 lightLocation = normalize(u_lightPosition);    \n        gl_FragColor = color * texture2D(u_texture,coord);\n        gl_FragColor.rgb *= abs(dot(r_normal,u_lightPosition));\n  }\n  ";
 /**
  // 片断着色器没有默认精度，所以我们需要设置一个精度
  // mediump代表“medium precision”（中等精度）
@@ -55,6 +55,10 @@ var WebGLRender = function () {
         this[_maxTransformMatrixNum] = Math.floor((maxVectors - 4) / 4);
         this[_maxTransformMatrixNum] = 10; // 测试设置
         this.textureManager = null;
+        this.lightPosition = new Float32Array(3);
+        this.lightPosition[0] = 0;
+        this.lightPosition[1] = 0;
+        this.lightPosition[2] = 1;
         this.init();
     }
 
@@ -75,6 +79,7 @@ var WebGLRender = function () {
         key: "rendVertexArray",
         value: function rendVertexArray(type, vertexDataArray, firstVerticesStart, lastVerticesEnd, textureIndex) {
             var gl = this.gl;
+            this.gl.uniform3f(this.shaderInformation.lightPosition, this.lightPosition[0], this.lightPosition[1], this.lightPosition[2]);
             switch (type) {
                 case _RenderAction2.default.ACTION_FILL:
                     this.fillRendVertexArray(vertexDataArray, firstVerticesStart, lastVerticesEnd, textureIndex);
@@ -160,7 +165,7 @@ var WebGLRender = function () {
                     if (lastAction != currentAction && lastAction != undefined) {
                         this.rendVertexArray(lastAction.type, vertexDataArray, undefined, undefined, lastAction.textureIndex);
                     }
-                    vertexDataArray.length = 0;
+                    vertexDataArray = [];
                     vertexDataArray.push(currentAction.vertexData);
                     matrixIndex = 1;
                     matrixMap = {};
@@ -192,7 +197,7 @@ var WebGLRender = function () {
                     }
                     this.rendVertexArray(currentAction.type, vertexDataArray);
                     matrixMap = {};
-                    vertexDataArray.length = 0;
+                    vertexDataArray = [];
                     matrixIndex = 1;
                     continue;
                 } else {
@@ -201,7 +206,7 @@ var WebGLRender = function () {
                         // 同个Fill绘制可以进行叠加统一绘制
                         if (currentAction.textureIndex != lastAction.textureIndex && currentAction.textureIndex != -1 && lastAction.textureIndex != -1) {
                             this.rendVertexArray(lastAction.type, vertexDataArray, undefined, undefined, lastAction.textureIndex);
-                            vertexDataArray.length = 0;
+                            vertexDataArray = [];
                             lastAction = currentAction;
                             matrixIndex = 1;
                             matrixMap = {};
@@ -216,7 +221,7 @@ var WebGLRender = function () {
                         matrixIndex = 1;
                         i--;
                         lastAction = undefined;
-                        vertexDataArray.length = 0;
+                        vertexDataArray = [];
                         continue;
                     }
                 }
@@ -236,7 +241,7 @@ var WebGLRender = function () {
                                 this.rendVertexArray(lastAction.type, vertexDataArray, undefined, undefined, lastAction.textureIndex);
                                 matrixMap = {};
                                 matrixIndex = 1;
-                                vertexDataArray.length = 0;
+                                vertexDataArray = [];
                                 lastAction = undefined;
                                 i--;
                                 break;
@@ -264,6 +269,13 @@ var WebGLRender = function () {
             if (vertexDataArray.length != 0 && lastAction != undefined) {
                 this.rendVertexArray(lastAction.type, vertexDataArray, firstVerticesStart, undefined, lastAction.textureIndex);
             }
+        }
+    }, {
+        key: "setLightPosition",
+        value: function setLightPosition(x, y, z) {
+            this.lightPosition[0] = x;
+            this.lightPosition[1] = y;
+            this.lightPosition[2] = z;
         }
     }, {
         key: "configTexture",
@@ -431,6 +443,7 @@ var WebGLRender = function () {
             }
             gl.uniformMatrix4fv(transformMatrixArray[0], false, _Mat2.default.identity());
             var singleCanvas = gl.getUniformLocation(program, "singleCanvas");
+            var lightPosition = gl.getUniformLocation(program, "u_lightPosition");
             var textureLocation = gl.getUniformLocation(program, "u_texture");
 
             // 创建数据缓存
@@ -453,6 +466,7 @@ var WebGLRender = function () {
                 singleCanvas: singleCanvas,
                 textureLocation: textureLocation,
                 blackTexture: blackTexture,
+                lightPosition: lightPosition,
                 webgl: gl
             };
         }
