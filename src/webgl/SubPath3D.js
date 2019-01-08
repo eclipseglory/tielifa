@@ -38,9 +38,9 @@ var SubPath3D = function () {
     }, {
         key: "clean",
         value: function clean() {
-            this.pointsArray.length = 0;
+            this.pointsArray = []; // 这样比length = 0 效率高?
             this.isClosed = false;
-            // this.pointsArray = [];// 这样比length = 0 效率高???!!
+            // this.pointsArray.length = 0;
         }
     }, {
         key: "pushPoint",

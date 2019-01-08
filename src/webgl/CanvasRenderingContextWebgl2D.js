@@ -219,6 +219,7 @@ var CanvasRenderingContextWebgl2D = function () {
     }, {
         key: "ellipse",
         value: function ellipse(x, y, radiusX, radiusY, rotation, startAngle, endAngle, anticlockwise) {
+            if (rotation == undefined) rotation = 0;
             if (radiusX < 0 || radiusY < 0) throw new Error('半径必须不小于0. Radius should not be smaller than zero. BanJing BiXu BuXiaoYu Ling');
             if (radiusX == 0 || radiusY == 0) return;
             if (anticlockwise == undefined) anticlockwise = false;
@@ -483,19 +484,50 @@ var CanvasRenderingContextWebgl2D = function () {
         //******************** 扩展接口 *****************************//
 
     }, {
-        key: "fillEllipse",
-        value: function fillEllipse() {}
+        key: "fillOrStroke",
+        value: function fillOrStroke(fillColor, borderColor) {
+            if (fillColor != undefined) {
+                this.fillStyle = fillColor;
+                this.fill();
+            }
+            if (borderColor != undefined) {
+                this.strokeStyle = borderColor;
+                this.stroke();
+            }
+        }
     }, {
-        key: "fillCircle",
-        value: function fillCircle(x, y, radius) {}
+        key: "drawRectangle",
+        value: function drawRectangle(x, y, width, height, fillColor, borderColor) {
+            this.beginPath();
+            this.rect(x, y, width, height);
+            this.closePath();
+            this.save();
+            this.fillOrStroke(fillColor, borderColor);
+            this.restore();
+        }
+    }, {
+        key: "drawEllipse",
+        value: function drawEllipse(x, y, radiusA, radiusB, fillColor, borderColor, rotate) {
+            this.beginPath();
+            this.ellipse(x, y, radiusA, radiusB, rotate, 0, _Tools2.default.PI2, false);
+            this.closePath();
+            this.save();
+            this.fillOrStroke(fillColor, borderColor);
+            this.restore();
+        }
+    }, {
+        key: "drawCircle",
+        value: function drawCircle(x, y, radius, fillColor, borderColor) {
+            this.drawEllipse(x, y, radius, radius, fillColor, borderColor, 0);
+        }
     }, {
         key: "draw",
-        value: function draw() {
+        value: function draw(x, y, z) {
             this.webglRender.initRending();
             this.webglRender.executeRenderAction(this[_renderActionList], this[_stateArray]);
             this[_renderActionList].length = 0;
             // debug:
-            console.log("绘制调用次数：", this.webglRender.DEBUG_DRAW_COUNT);
+            // console.log("绘制调用次数：", this.webglRender.DEBUG_DRAW_COUNT);
         }
     }, {
         key: "currentContextState",

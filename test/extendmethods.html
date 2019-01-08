@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>扩展接口测试</title>
+    <script src="../tielifa.min.js"></script>
+</head>
+<body>
+<canvas id="webgl" width=500 height=300 style="background-color: black">
+
+</canvas>
+</body>
+<script type="module">
+
+    let c =  new tielifa.WebGL2D(webgl);
+    let ctx = c;
+    var deltaX = 1;
+    var deltaR = 2;
+
+    function repeat() {
+        fillTest(ctx);
+        // fillTest(ctx2);
+        deltaX++;
+        deltaR++;
+        requestAnimationFrame(repeat);
+    }
+
+    function fillTest(ctx) {
+        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        ctx.drawRectangle(10, 10, 100, 100, 'red', 'blue');
+        ctx.drawEllipse(120, 100, 100, 40, 'yellow',undefined,deltaR*Math.PI/180);
+        ctx.drawCircle(220, 120, 100, undefined,'red');
+        ctx.drawRectangle(120, 10, 100, 100);
+        if (ctx.draw) {
+            ctx.draw();
+        }
+    }
+
+    repeat();
+</script>
+</html>
