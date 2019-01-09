@@ -22,19 +22,38 @@ var Mat4 = function () {
     }
 
     _createClass(Mat4, null, [{
+        key: "perspective2",
+        value: function perspective2(left, top, right, bottom, near, far) {
+            return [2 * near / (right - left), 0, 0, 0, 0, 2 * near / (top - bottom), 0, 0, (right + left) / (right - left), (bottom + top) / (top - bottom), (-near - far) / (far - near), -1, 0, 0, -near * far * 2 / (far - near), 0];
+        }
+    }, {
+        key: "perspective3",
+        value: function perspective3(fieldOfViewInRadians, width, height, near, far) {
+            var m = this.perspective(fieldOfViewInRadians, width / height, near, far);
+            var m1 = Mat4.TEMP_MAT4[0];
+            Mat4.translationMatrix(m1, -width / 2, -height / 2, 0);
+            Mat4.multiply(m, m, m1);
+            return m;
+        }
+    }, {
         key: "perspective",
         value: function perspective(fieldOfViewInRadians, aspect, near, far) {
             var f = Math.tan(Math.PI * 0.5 - 0.5 * fieldOfViewInRadians);
             var rangeInv = 1.0 / (near - far);
             var m = this.identity();
             m[0] = f / aspect;
-            m[5] = f;
+            m[5] = -f;
             m[10] = (near + far) * rangeInv;
             m[11] = -1;
             m[14] = near * far * rangeInv * 2;
 
-            return [f / aspect, 0, 0, 0, 0, f, 0, 0, 0, 0, (near + far) * rangeInv, -1, 0, 0, near * far * rangeInv * 2, 0];
-            // return m;
+            // return [
+            //     f / aspect, 0, 0, 0,
+            //     0, f, 0, 0,
+            //     0, 0, (near + far) * rangeInv, -1,
+            //     0, 0, near * far * rangeInv * 2, 0
+            // ];
+            return m;
         }
     }, {
         key: "orthoProjection",

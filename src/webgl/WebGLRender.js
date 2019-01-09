@@ -41,23 +41,28 @@ var _program = Symbol('WebGL的program');
 var _maxTransformMatrixNum = Symbol('转换矩阵变量可用的最大数量');
 
 var WebGLRender = function () {
-    function WebGLRender(gl) {
+    function WebGLRender(gl, maxTransformNum, textureMaxSize, projectionType) {
         _classCallCheck(this, WebGLRender);
 
         this.gl = gl;
         this.firstTIMEDEBUG = true;
         this.DEBUG_DRAW_COUNT = 0;
         this.configured = false;
+        projectionType = projectionType || 0;
+        textureMaxSize = textureMaxSize || gl.getParameter(this.gl.MAX_TEXTURE_SIZE);
         var maxVectors = gl.getParameter(gl.MAX_VERTEX_UNIFORM_VECTORS);
         // 顶点作色器里已经用了一个mat4了，就是4个vector,减去这4个然后除以4就得到可以定义的最大mat4数组
-        this[_maxTransformMatrixNum] = Math.floor((maxVectors - 4) / 4);
-        this[_maxTransformMatrixNum] = 10; // 测试设置
+        maxTransformNum = maxTransformNum || Math.floor((maxVectors - 4) / 4);
+        this[_maxTransformMatrixNum] = maxTransformNum;
+        // this[_maxTransformMatrixNum] = 10; // 测试设置
         this.textureManager = null;
         this.lightPosition = new Float32Array(3);
         this.lightPosition[0] = 0;
         this.lightPosition[1] = 0;
         this.lightPosition[2] = 1;
-        this.init();
+        this.init(projectionType);
+        this.textureManager.maxHeight = textureMaxSize;
+        this.textureManager.maxWidth = this.textureManager.maxHeight;
     }
 
     _createClass(WebGLRender, [{
@@ -375,7 +380,7 @@ var WebGLRender = function () {
         }
     }, {
         key: "init",
-        value: function init() {
+        value: function init(projectionType) {
             var gl = this.gl;
             this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
             this.gl.enable(this.gl.BLEND);
@@ -384,37 +389,26 @@ var WebGLRender = function () {
             var program = this[_program];
             this.shaderInformation = this.initShaderInformation(program);
             this.textureManager = new _TextureManager2.default(801, 801, 10, 4);
-            // this.textureManager.maxHeight = gl.getParameter(this.gl.MAX_TEXTURE_SIZE);
-            // this.textureManager.maxWidth = this.textureManager.maxHeight;
             // 设置透视矩阵
-            var aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
-            // let m2 = MyMat4.perspective(60 * Math.PI / 180, aspect, 1, 2000);
-            var m1 = _Mat2.default.projection(gl.canvas.width, gl.canvas.height, 2000);
-            m1 = _Mat2.default.orthoProjection(0, 0, gl.canvas.width, gl.canvas.height, -1000, 1000);
-            // m1 = Mat4.perspective(60 * Math.PI / 180, aspect, 1, 100)
-            // let test = [0,0,-90,1];
-            // test = Mat4.multiplyWithVertex(m1,test);
-            // console.log(test[0]/test[3],test[1]/test[3],test[2]/test[3]);
-            //
-            // test = [100,0,-90,1];
-            // test = Mat4.multiplyWithVertex(m1,test);
-            // console.log(test[0]/test[3],test[1]/test[3],test[2]/test[3]);
-            //
-            // test = [100,100,-90,1];
-            // test = Mat4.multiplyWithVertex(m1,test);
-            // console.log(test[0]/test[3],test[1]/test[3],test[2]/test[3]);
-            //
-            // test = [0,100,-90,1];
-            // test = Mat4.multiplyWithVertex(m1,test);
-            // console.log(test[0]/test[3],test[1]/test[3],test[2]/test[3]);
-            // if (this.perspectiveType == PERSPECTIVE) {
-            //     // 如果是透视类型就设置透视矩阵(3d)
-            //     gl.uniformMatrix4fv(this.shaderInformation.perspectiveMatrix, false, m2);
-            // }
-            // if (this.perspectiveType == PROJECTION) {
-            // 如果是投影类型就设置投影矩阵 (2d)
+            var m1 = void 0;
+            var near = 1;
+            var defaultDepth = Math.max(gl.canvas.clientWidth, gl.canvas.clientHeight);
+            if (projectionType == 0) {
+                m1 = _Mat2.default.orthoProjection(0, 0, gl.canvas.width, gl.canvas.height, near, defaultDepth * 2);
+            } else {
+                var theta = Math.atan2(gl.canvas.clientHeight / 2, defaultDepth);
+                m1 = _Mat2.default.perspective3(theta * 2, gl.canvas.clientWidth, gl.canvas.clientHeight, near, defaultDepth * 2);
+            }
             gl.uniformMatrix4fv(this.shaderInformation.perspectiveMatrix, false, m1);
-            // }
+        }
+    }, {
+        key: "setPerspective",
+        value: function setPerspective(viewAngel, near, far) {
+            var aspect = this.gl.canvas.clientWidth / this.gl.canvas.clientHeight;
+            var m = _Mat2.default.perspective2(0, 0, this.gl.canvas.clientWidth, this.gl.canvas.clientHeight, near, far);
+            m = _Mat2.default.perspective(viewAngel, aspect, near, far);
+            m = _Mat2.default.perspective3(viewAngel, this.gl.canvas.clientWidth, this.gl.canvas.clientHeight, near, far);
+            this.gl.uniformMatrix4fv(this.shaderInformation.perspectiveMatrix, false, m);
         }
     }, {
         key: "initShaderInformation",
@@ -439,7 +433,10 @@ var WebGLRender = function () {
             for (var i = 0; i < transformMatrixArray.length; i++) {
                 transformMatrixArray[i] = gl.getUniformLocation(program, "transform_matrix_array[" + i + "]");
             }
-            gl.uniformMatrix4fv(transformMatrixArray[0], false, _Mat2.default.identity());
+            var rawMatrix = _Mat2.default.identity();
+            // 为了配合预设的深度
+            _Mat2.default.translationMatrix(rawMatrix, 0, 0, -Math.max(gl.canvas.clientWidth, gl.canvas.clientHeight));
+            gl.uniformMatrix4fv(transformMatrixArray[0], false, rawMatrix);
             var singleCanvas = gl.getUniformLocation(program, "singleCanvas");
             var lightPosition = gl.getUniformLocation(program, "u_lightPosition");
             var textureLocation = gl.getUniformLocation(program, "u_texture");

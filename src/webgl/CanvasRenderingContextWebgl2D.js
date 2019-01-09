@@ -58,32 +58,17 @@ var CanvasRenderingContextWebgl2D = function () {
 
         if (properties == null || properties == undefined) properties = [];
         this[_canvas] = canvas;
-        if (canvas == null || canvas == undefined) throw new Error('TempCanvas can not be undefined or null');
+        if (canvas == null || canvas == undefined) throw new Error('canvas can not be undefined or null');
         this.gl = canvas.getContext('webgl');
         if (this.gl == undefined) throw new Error('Current canvas doesnt support WebGL');
+        this.defaultDepth = -Math.max(canvas.width, canvas.height);
         this[_stateStack] = [];
         this[_stateArray] = [];
         this[_pathList] = [];
         this[_renderActionList] = [];
-        this.webglRender = new _WebGLRender2.default(this.gl);
+        this.webglRender = new _WebGLRender2.default(this.gl, properties['maxTransformNum'], properties['maxTextureSize'], properties['projectionType']);
+        this.translate(0, 0, this.defaultDepth);
     }
-
-    // getRenderAction(type) {
-    //     if (this[_renderActionList].length == 0) {
-    //         let action = new RenderAction(type);
-    //         this[_renderActionList].push(action);
-    //         return action;
-    //     } else {
-    //         let lastRender = this[_renderActionList][this[_renderActionList].length - 1];
-    //         if (lastRender.type == type) {
-    //             return lastRender;
-    //         } else {
-    //             let action = new RenderAction(type);
-    //             this[_renderActionList].push(action);
-    //             return action;
-    //         }
-    //     }
-    // }
 
     _createClass(CanvasRenderingContextWebgl2D, [{
         key: "clean",
@@ -393,7 +378,8 @@ var CanvasRenderingContextWebgl2D = function () {
 
     }, {
         key: "drawImage",
-        value: function drawImage(image, srcX, srcY, srcWidth, srcHeight, dstX, dstY, dstWidth, dstHeight) {
+        value: function drawImage(image, srcX, srcY, srcWidth, srcHeight, dstX, dstY, dstWidth, dstHeight, depth) {
+            depth = depth || 0;
             var texture = this.webglRender.textureManager.getTexture(image, this.gl, true);
             var action = new _RenderAction2.default(_RenderAction2.default.ACTION_FILL);
             action.textureIndex = texture.index;
@@ -416,6 +402,17 @@ var CanvasRenderingContextWebgl2D = function () {
                 ty = texture.y;
                 tb = texture.y + texture.height;
             }
+            if (arguments.length == 4) {
+                left = srcX;
+                top = srcY;
+                right = srcX + image.width;
+                bottom = srcY + image.height;
+                tx = texture.x;
+                tr = texture.x + texture.width;
+                ty = texture.y;
+                tb = texture.y + texture.height;
+                depth = srcWidth;
+            }
             // 有x,y,width,height传入的调用
             if (arguments.length == 5) {
                 left = srcX;
@@ -426,6 +423,17 @@ var CanvasRenderingContextWebgl2D = function () {
                 tr = texture.x + texture.width;
                 ty = texture.y;
                 tb = texture.y + texture.height;
+            }
+            if (arguments.length == 6) {
+                left = srcX;
+                top = srcY;
+                right = srcX + srcWidth;
+                bottom = srcY + srcHeight;
+                tx = texture.x;
+                tr = texture.x + texture.width;
+                ty = texture.y;
+                tb = texture.y + texture.height;
+                depth = dstX;
             }
             // 有9个参数传入的调用，即要调整贴图做镖
             if (arguments.length == 9) {
@@ -439,7 +447,7 @@ var CanvasRenderingContextWebgl2D = function () {
                 tb = texture.y + srcY + srcHeight;
             }
             this.beginPath();
-            this.rect(left, top, right - left, bottom - top);
+            this.rect(left, top, right - left, bottom - top, depth);
 
             var opacity = this.currentContextState.globalAlpha;
             var pathList = this[_pathList];
