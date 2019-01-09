@@ -39,6 +39,7 @@ var Mat4 = function () {
         key: "perspective",
         value: function perspective(fieldOfViewInRadians, aspect, near, far) {
             var f = Math.tan(Math.PI * 0.5 - 0.5 * fieldOfViewInRadians);
+            if (_Tools2.default.equals(f, 1)) f = 1;
             var rangeInv = 1.0 / (near - far);
             var m = this.identity();
             m[0] = f / aspect;

@@ -61,12 +61,15 @@ var CanvasRenderingContextWebgl2D = function () {
         if (canvas == null || canvas == undefined) throw new Error('canvas can not be undefined or null');
         this.gl = canvas.getContext('webgl');
         if (this.gl == undefined) throw new Error('Current canvas doesnt support WebGL');
-        this.defaultDepth = -Math.max(canvas.width, canvas.height);
+        // this.defaultDepth = -canvas.height * 2;
+        var FOV = properties['FOV'] || 20;
+        var t = Math.tan(FOV * Math.PI / 180);
+        this.defaultDepth = -canvas.height / (2 * t);
         this[_stateStack] = [];
         this[_stateArray] = [];
         this[_pathList] = [];
         this[_renderActionList] = [];
-        this.webglRender = new _WebGLRender2.default(this.gl, properties['maxTransformNum'], properties['maxTextureSize'], properties['projectionType']);
+        this.webglRender = new _WebGLRender2.default(this.gl, properties['maxTransformNum'], properties['maxTextureSize'], properties['projectionType'], this.defaultDepth);
         this.translate(0, 0, this.defaultDepth);
     }
 
@@ -490,6 +493,21 @@ var CanvasRenderingContextWebgl2D = function () {
 
         //******************** 扩展接口 *****************************//
 
+    }, {
+        key: "turnOnLight",
+        value: function turnOnLight() {
+            this.webglRender.enableLight(true);
+        }
+    }, {
+        key: "turnOffLight",
+        value: function turnOffLight() {
+            this.webglRender.enableLight(false);
+        }
+    }, {
+        key: "setLightPosition",
+        value: function setLightPosition(x, y, z) {
+            this.webglRender.setLightPosition(x, y, z);
+        }
     }, {
         key: "fillOrStroke",
         value: function fillOrStroke(fillColor, strokeColor) {

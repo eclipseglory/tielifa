@@ -23,7 +23,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 var SINGLE_DATA_BYTE_LENGTH = 32;
-var fsSource = "\n  precision mediump float;\n  varying vec4 currentColor;\n  varying vec2 v_texcoord;\n  varying vec3 normal;\n  uniform vec2 singleCanvas;\n  uniform vec3 u_lightPosition;\n  uniform sampler2D u_texture;\n  void main() {\n        vec2 coord = vec2(v_texcoord.x / singleCanvas.x , v_texcoord.y/singleCanvas.y);\n        vec4 color = currentColor;\n        vec3 r_normal = normalize(normal);    \n        vec3 lightLocation = normalize(u_lightPosition);    \n        gl_FragColor = color * texture2D(u_texture,coord);\n        gl_FragColor.rgb *= abs(dot(r_normal,lightLocation));\n  }\n  ";
+var fsSource = "\n  precision mediump float;\n  varying vec4 currentColor;\n  varying vec2 v_texcoord;\n  varying vec3 normal;\n  varying vec3 v_position;\n  uniform vec2 singleCanvas;\n  uniform vec3 u_lightPosition;\n  uniform float enableLight;\n  uniform sampler2D u_texture;\n  void main() {\n        vec2 coord = vec2(v_texcoord.x / singleCanvas.x , v_texcoord.y/singleCanvas.y);\n        vec4 color = currentColor;\n        vec3 r_normal = normalize(normal);    \n        vec3 forward = u_lightPosition - v_position;\n        vec3 lightLocation = normalize(forward);    \n        gl_FragColor = color * texture2D(u_texture,coord);\n        if(enableLight == 1.0){\n            gl_FragColor.rgb *= abs(dot(r_normal,lightLocation));\n        }\n  }\n  ";
 /**
  precision mediump float;
  varying vec4 currentColor;
@@ -41,7 +41,7 @@ var _program = Symbol('WebGL的program');
 var _maxTransformMatrixNum = Symbol('转换矩阵变量可用的最大数量');
 
 var WebGLRender = function () {
-    function WebGLRender(gl, maxTransformNum, textureMaxSize, projectionType) {
+    function WebGLRender(gl, maxTransformNum, textureMaxSize, projectionType, defaultDepth, enableLight) {
         _classCallCheck(this, WebGLRender);
 
         this.gl = gl;
@@ -57,15 +57,24 @@ var WebGLRender = function () {
         // this[_maxTransformMatrixNum] = 10; // 测试设置
         this.textureManager = null;
         this.lightPosition = new Float32Array(3);
-        this.lightPosition[0] = 0;
-        this.lightPosition[1] = 0;
-        this.lightPosition[2] = 1;
-        this.init(projectionType);
+        this.lightPosition[0] = gl.canvas.clientWidth / 2;
+        this.lightPosition[1] = gl.canvas.clientHeight / 2;
+        this.lightPosition[2] = 0;
+        this.init(projectionType, defaultDepth);
         this.textureManager.maxHeight = textureMaxSize;
         this.textureManager.maxWidth = this.textureManager.maxHeight;
+        enableLight = enableLight || false;
+        this.enableLight(enableLight);
     }
 
     _createClass(WebGLRender, [{
+        key: "enableLight",
+        value: function enableLight(flag) {
+            var value = 0;
+            if (flag) value = 1.0;else value = 0;
+            this.gl.uniform1f(this.shaderInformation.enableLight, value);
+        }
+    }, {
         key: "clean",
         value: function clean() {
             this.DEBUG_DRAW_COUNT = 0;
@@ -380,7 +389,7 @@ var WebGLRender = function () {
         }
     }, {
         key: "init",
-        value: function init(projectionType) {
+        value: function init(projectionType, defaultDepth) {
             var gl = this.gl;
             this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
             this.gl.enable(this.gl.BLEND);
@@ -392,12 +401,11 @@ var WebGLRender = function () {
             // 设置透视矩阵
             var m1 = void 0;
             var near = 1;
-            var defaultDepth = Math.max(gl.canvas.clientWidth, gl.canvas.clientHeight);
             if (projectionType == 0) {
-                m1 = _Mat2.default.orthoProjection(0, 0, gl.canvas.width, gl.canvas.height, near, defaultDepth * 2);
+                m1 = _Mat2.default.orthoProjection(0, 0, gl.canvas.width, gl.canvas.height, near, Math.abs(defaultDepth * 2));
             } else {
-                var theta = Math.atan2(gl.canvas.clientHeight / 2, defaultDepth);
-                m1 = _Mat2.default.perspective3(theta * 2, gl.canvas.clientWidth, gl.canvas.clientHeight, near, defaultDepth * 2);
+                var theta = Math.atan2(gl.canvas.clientHeight / 2, Math.abs(defaultDepth));
+                m1 = _Mat2.default.perspective3(theta * 2, gl.canvas.clientWidth, gl.canvas.clientHeight, near, Math.abs(defaultDepth * 2));
             }
             gl.uniformMatrix4fv(this.shaderInformation.perspectiveMatrix, false, m1);
         }
@@ -439,8 +447,8 @@ var WebGLRender = function () {
             gl.uniformMatrix4fv(transformMatrixArray[0], false, rawMatrix);
             var singleCanvas = gl.getUniformLocation(program, "singleCanvas");
             var lightPosition = gl.getUniformLocation(program, "u_lightPosition");
+            var enableLight = gl.getUniformLocation(program, "enableLight");
             var textureLocation = gl.getUniformLocation(program, "u_texture");
-
             // 创建数据缓存
             var verticesBuffer = gl.createBuffer();
             var matrixIndexBuffer = gl.createBuffer();
@@ -462,6 +470,7 @@ var WebGLRender = function () {
                 textureLocation: textureLocation,
                 blackTexture: blackTexture,
                 lightPosition: lightPosition,
+                enableLight: enableLight,
                 webgl: gl
             };
         }
@@ -515,7 +524,7 @@ var WebGLRender = function () {
     }, {
         key: "getVertexShaderSource",
         value: function getVertexShaderSource(transformMatrixCount) {
-            var vsSource = ' attribute vec4 color;\n' + '     attribute vec4 a_position;\n' + '     attribute vec2 u_texCoord;\n' + '     attribute float transform_matrix_index;\n' + '     varying vec2 v_texcoord;\n' + '     varying vec4 currentColor;\n' + '     varying vec3 normal;\n' + '     uniform mat4 perspective_matrix;\n' + '     uniform mat4 transform_matrix_array[' + transformMatrixCount + '];\n' + '     void main() {\n' + '             normal = vec3(0,0,1);\n' + '             vec4 yuandian = vec4(0,0,0,1);\n' + '             v_texcoord = u_texCoord;\n' + '            vec4 new_position = transform_matrix_array[int(transform_matrix_index)] * a_position;\n' + '            vec4 n_y = transform_matrix_array[int(transform_matrix_index)] * yuandian;\n' + '            vec4 n_n = transform_matrix_array[int(transform_matrix_index)] * vec4(normal,1);\n' + '            normal = vec3(n_n.x-n_y.x,n_n.y-n_y.y,n_n.z-n_y.z);\n' + '            vec4 finalPosition = perspective_matrix* new_position;\n' + '            currentColor = vec4 (color.xyz/255.0,color.w/100.0);\n' + '            gl_Position = finalPosition;\n' + '    }';
+            var vsSource = ' attribute vec4 color;\n' + '     attribute vec4 a_position;\n' + '     attribute vec2 u_texCoord;\n' + '     varying vec3 v_position;\n' + '     attribute float transform_matrix_index;\n' + '     varying vec2 v_texcoord;\n' + '     varying vec4 currentColor;\n' + '     varying vec3 normal;\n' + '     uniform mat4 perspective_matrix;\n' + '     uniform mat4 transform_matrix_array[' + transformMatrixCount + '];\n' + '     void main() {\n' + '             normal = vec3(0,0,1);\n' + '             vec4 yuandian = vec4(0,0,0,1);\n' + '             v_texcoord = u_texCoord;\n' + '            vec4 new_position = transform_matrix_array[int(transform_matrix_index)] * a_position;\n' + '            v_position = vec3(new_position.xyz);\n' + '            vec4 n_y = transform_matrix_array[int(transform_matrix_index)] * yuandian;\n' + '            vec4 n_n = transform_matrix_array[int(transform_matrix_index)] * vec4(normal,1);\n' + '            normal = vec3(n_n.x-n_y.x,n_n.y-n_y.y,n_n.z-n_y.z);\n' + '            vec4 finalPosition = perspective_matrix* new_position;\n' + '            currentColor = vec4 (color.xyz/255.0,color.w/100.0);\n' + '            gl_Position = finalPosition;\n' + '    }';
             return vsSource;
         }
     }, {
