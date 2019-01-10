@@ -53,6 +53,7 @@ var WebGLRender = function () {
         var maxVectors = gl.getParameter(gl.MAX_VERTEX_UNIFORM_VECTORS);
         // 顶点作色器里已经用了一个mat4了，就是4个vector,减去这4个然后除以4就得到可以定义的最大mat4数组
         maxTransformNum = maxTransformNum || Math.floor((maxVectors - 4) / 4);
+        maxTransformNum = 2;
         this[_maxTransformMatrixNum] = maxTransformNum;
         // this[_maxTransformMatrixNum] = 10; // 测试设置
         this.textureManager = null;
@@ -161,6 +162,128 @@ var WebGLRender = function () {
             this.gl.drawArrays(this.gl.LINE_STRIP, 0, vertexNumber);
             this.DEBUG_DRAW_COUNT++;
         }
+
+        // executeRenderAction(actionList, stateArray) {
+        //     let matrixIndex = 1; // 每次绘制都要重新设置矩阵的索引
+        //     let lastAction = undefined;
+        //     let vertexDataArray = [];
+        //     let matrixMap = {}; // 由状态id和状态内矩阵id组合成一个key，value是对应的矩阵索引值
+        //     let firstVerticesStart = 0;
+        //
+        //
+        //     for (let i = 0; i < actionList.length; i++) {
+        //         let currentAction = actionList[i];
+        //         if (lastAction == undefined) lastAction = currentAction;
+        //         if (currentAction.type == RenderAction.ACTION_STROKE) {
+        //             if (lastAction != currentAction && lastAction != undefined) {
+        //                 this.rendVertexArray(lastAction.type, vertexDataArray, undefined, undefined, lastAction.textureIndex);
+        //             }
+        //             vertexDataArray = [];
+        //             vertexDataArray.push(currentAction.vertexData);
+        //             matrixIndex = 1;
+        //             matrixMap = {};
+        //             lastAction = currentAction;
+        //             for (let k = 0; k < currentAction.vertexData.vertexNumber; k++) {
+        //                 let mid = currentAction.vertexData.getMatrixIndex(k);
+        //                 let sid = currentAction.vertexData.getContextStateIndex(k);
+        //                 let key = sid.toString() + '-' + mid.toString();
+        //                 let currentMatrixIndex = matrixMap[key];
+        //                 if (currentMatrixIndex == undefined) {
+        //                     currentMatrixIndex = matrixIndex;
+        //                     if ((currentMatrixIndex + 1) > this.maxTransformMatrixNum) {
+        //                         //为了能让一个绘制动作顺利结束，只能自己计算坐标咯
+        //                         let m = stateArray[sid].matrixArray[mid];
+        //                         let vertex = currentAction.vertexData.dataBuffer.getVertex(k * currentAction.vertexData.dataBuffer.singleDataFragmentByteSize);
+        //                         vertex = Mat4.multiplyWithVertex(m, vertex);
+        //                         currentAction.vertexData.dataBuffer.modifyVertex(vertex, k * currentAction.vertexData.dataBuffer.singleDataFragmentByteSize);
+        //                         currentAction.vertexData.matrixIndexBuffer.put(0);
+        //                     } else {
+        //                         let m = stateArray[sid].matrixArray[mid];
+        //                         matrixMap[key] = currentMatrixIndex;
+        //                         this.setUniformTransformMatrix(m, currentMatrixIndex);
+        //                         currentAction.vertexData.matrixIndexBuffer.put(currentMatrixIndex);
+        //                         matrixIndex++;
+        //                     }
+        //                 } else {
+        //                     currentAction.vertexData.matrixIndexBuffer.put(currentMatrixIndex);
+        //                 }
+        //             }
+        //             this.rendVertexArray(currentAction.type, vertexDataArray);
+        //             matrixMap = {};
+        //             vertexDataArray = [];
+        //             matrixIndex = 1;
+        //             continue;
+        //         } else {
+        //             // 先收集顶点数据，顶点的矩阵在下一步再设置
+        //             if (currentAction.type == lastAction.type) { // 同个Fill绘制可以进行叠加统一绘制
+        //                 if (currentAction.textureIndex != lastAction.textureIndex && currentAction.textureIndex != -1 && lastAction.textureIndex != -1) {
+        //                     this.rendVertexArray(lastAction.type, vertexDataArray, undefined, undefined, lastAction.textureIndex);
+        //                     vertexDataArray = [];
+        //                     lastAction = currentAction;
+        //                     matrixIndex = 1;
+        //                     matrixMap = {};
+        //                 }
+        //                 if (lastAction.textureIndex == -1 && currentAction.textureIndex != -1) {
+        //                     lastAction = currentAction;
+        //                 }
+        //                 vertexDataArray.push(currentAction.vertexData); // 叠加
+        //             } else {
+        //                 // 如果类型不一样，先绘制之前的类型，并且当前的index退回去
+        //                 this.rendVertexArray(lastAction.type, vertexDataArray);
+        //                 matrixIndex = 1;
+        //                 i--;
+        //                 lastAction = undefined;
+        //                 vertexDataArray = [];
+        //                 continue;
+        //             }
+        //         }
+        //
+        //         // 开始设置顶点的变换矩阵
+        //         for (let k = 0; k < currentAction.vertexData.vertexNumber; k++) {
+        //             let mid = currentAction.vertexData.getMatrixIndex(k);
+        //             let sid = currentAction.vertexData.getContextStateIndex(k);
+        //             let key = sid.toString() + '-' + mid.toString();
+        //             let currentMatrixIndex = matrixMap[key];
+        //             if (currentMatrixIndex == undefined) {
+        //                 currentMatrixIndex = matrixIndex;
+        //                 if ((currentMatrixIndex + 1) > this.maxTransformMatrixNum) {
+        //                     // 如果Index已经超过最大限制，就先绘制之前的
+        //                     if (k == 0) {
+        //                         vertexDataArray.pop();
+        //                         this.rendVertexArray(lastAction.type, vertexDataArray, undefined, undefined, lastAction.textureIndex);
+        //                         matrixMap = {};
+        //                         matrixIndex = 1;
+        //                         vertexDataArray = [];
+        //                         lastAction = undefined;
+        //                         i--;
+        //                         break;
+        //                     } else {
+        //                         //为了能让一个绘制动作顺利结束，只能自己计算坐标咯
+        //                         let m = stateArray[sid].matrixArray[mid];
+        //                         let vertex = currentAction.vertexData.dataBuffer.getVertex(k * currentAction.vertexData.dataBuffer.singleDataFragmentByteSize);
+        //                         vertex = Mat4.multiplyWithVertex(m, vertex);
+        //                         currentAction.vertexData.dataBuffer.modifyVertex(vertex, k * currentAction.vertexData.dataBuffer.singleDataFragmentByteSize);
+        //                         currentAction.vertexData.matrixIndexBuffer.put(0);
+        //                     }
+        //                 } else {
+        //                     let m = stateArray[sid].matrixArray[mid];
+        //                     matrixMap[key] = currentMatrixIndex;
+        //                     this.setUniformTransformMatrix(m, currentMatrixIndex);
+        //                     currentAction.vertexData.matrixIndexBuffer.put(currentMatrixIndex);
+        //                     matrixIndex++;
+        //                 }
+        //             } else {
+        //                 currentAction.vertexData.matrixIndexBuffer.put(currentMatrixIndex);
+        //             }
+        //         }
+        //     }
+        //
+        //     if (vertexDataArray.length != 0 && lastAction != undefined) {
+        //         this.rendVertexArray(lastAction.type, vertexDataArray, firstVerticesStart, undefined, lastAction.textureIndex);
+        //     }
+        // }
+
+
     }, {
         key: "executeRenderAction",
         value: function executeRenderAction(actionList, stateArray) {
@@ -175,42 +298,13 @@ var WebGLRender = function () {
                 if (lastAction == undefined) lastAction = currentAction;
                 if (currentAction.type == _RenderAction2.default.ACTION_STROKE) {
                     if (lastAction != currentAction && lastAction != undefined) {
-                        this.rendVertexArray(lastAction.type, vertexDataArray, undefined, undefined, lastAction.textureIndex);
+                        if (lastAction.type != _RenderAction2.default.ACTION_STROKE) this.rendVertexArray(lastAction.type, vertexDataArray, undefined, undefined, lastAction.textureIndex);
                     }
                     vertexDataArray = [];
                     vertexDataArray.push(currentAction.vertexData);
-                    matrixIndex = 1;
-                    matrixMap = {};
                     lastAction = currentAction;
-                    for (var k = 0; k < currentAction.vertexData.vertexNumber; k++) {
-                        var mid = currentAction.vertexData.getMatrixIndex(k);
-                        var sid = currentAction.vertexData.getContextStateIndex(k);
-                        var key = sid.toString() + '-' + mid.toString();
-                        var currentMatrixIndex = matrixMap[key];
-                        if (currentMatrixIndex == undefined) {
-                            currentMatrixIndex = matrixIndex;
-                            if (currentMatrixIndex + 1 > this.maxTransformMatrixNum) {
-                                //为了能让一个绘制动作顺利结束，只能自己计算坐标咯
-                                var m = stateArray[sid].matrixArray[mid];
-                                var vertex = currentAction.vertexData.dataBuffer.getVertex(k * currentAction.vertexData.dataBuffer.singleDataFragmentByteSize);
-                                vertex = _Mat2.default.multiplyWithVertex(m, vertex);
-                                currentAction.vertexData.dataBuffer.modifyVertex(vertex, k * currentAction.vertexData.dataBuffer.singleDataFragmentByteSize);
-                                currentAction.vertexData.matrixIndexBuffer.put(0);
-                            } else {
-                                var _m = stateArray[sid].matrixArray[mid];
-                                matrixMap[key] = currentMatrixIndex;
-                                this.setUniformTransformMatrix(_m, currentMatrixIndex);
-                                currentAction.vertexData.matrixIndexBuffer.put(currentMatrixIndex);
-                                matrixIndex++;
-                            }
-                        } else {
-                            currentAction.vertexData.matrixIndexBuffer.put(currentMatrixIndex);
-                        }
-                    }
                     this.rendVertexArray(currentAction.type, vertexDataArray);
-                    matrixMap = {};
                     vertexDataArray = [];
-                    matrixIndex = 1;
                     continue;
                 } else {
                     // 先收集顶点数据，顶点的矩阵在下一步再设置
@@ -220,8 +314,6 @@ var WebGLRender = function () {
                             this.rendVertexArray(lastAction.type, vertexDataArray, undefined, undefined, lastAction.textureIndex);
                             vertexDataArray = [];
                             lastAction = currentAction;
-                            matrixIndex = 1;
-                            matrixMap = {};
                         }
                         if (lastAction.textureIndex == -1 && currentAction.textureIndex != -1) {
                             lastAction = currentAction;
@@ -230,50 +322,9 @@ var WebGLRender = function () {
                     } else {
                         // 如果类型不一样，先绘制之前的类型，并且当前的index退回去
                         this.rendVertexArray(lastAction.type, vertexDataArray);
-                        matrixIndex = 1;
                         i--;
                         lastAction = undefined;
-                        vertexDataArray = [];
                         continue;
-                    }
-                }
-
-                // 开始设置顶点的变换矩阵
-                for (var _k = 0; _k < currentAction.vertexData.vertexNumber; _k++) {
-                    var _mid = currentAction.vertexData.getMatrixIndex(_k);
-                    var _sid = currentAction.vertexData.getContextStateIndex(_k);
-                    var _key = _sid.toString() + '-' + _mid.toString();
-                    var _currentMatrixIndex = matrixMap[_key];
-                    if (_currentMatrixIndex == undefined) {
-                        _currentMatrixIndex = matrixIndex;
-                        if (_currentMatrixIndex + 1 > this.maxTransformMatrixNum) {
-                            // 如果Index已经超过最大限制，就先绘制之前的
-                            if (_k == 0) {
-                                vertexDataArray.pop();
-                                this.rendVertexArray(lastAction.type, vertexDataArray, undefined, undefined, lastAction.textureIndex);
-                                matrixMap = {};
-                                matrixIndex = 1;
-                                vertexDataArray = [];
-                                lastAction = undefined;
-                                i--;
-                                break;
-                            } else {
-                                //为了能让一个绘制动作顺利结束，只能自己计算坐标咯
-                                var _m2 = stateArray[_sid].matrixArray[_mid];
-                                var _vertex = currentAction.vertexData.dataBuffer.getVertex(_k * currentAction.vertexData.dataBuffer.singleDataFragmentByteSize);
-                                _vertex = _Mat2.default.multiplyWithVertex(_m2, _vertex);
-                                currentAction.vertexData.dataBuffer.modifyVertex(_vertex, _k * currentAction.vertexData.dataBuffer.singleDataFragmentByteSize);
-                                currentAction.vertexData.matrixIndexBuffer.put(0);
-                            }
-                        } else {
-                            var _m3 = stateArray[_sid].matrixArray[_mid];
-                            matrixMap[_key] = _currentMatrixIndex;
-                            this.setUniformTransformMatrix(_m3, _currentMatrixIndex);
-                            currentAction.vertexData.matrixIndexBuffer.put(_currentMatrixIndex);
-                            matrixIndex++;
-                        }
-                    } else {
-                        currentAction.vertexData.matrixIndexBuffer.put(_currentMatrixIndex);
                     }
                 }
             }
@@ -443,7 +494,7 @@ var WebGLRender = function () {
             }
             var rawMatrix = _Mat2.default.identity();
             // 为了配合预设的深度
-            _Mat2.default.translationMatrix(rawMatrix, 0, 0, -Math.max(gl.canvas.clientWidth, gl.canvas.clientHeight));
+            // Mat4.translationMatrix(rawMatrix, 0, 0, -Math.max(gl.canvas.clientWidth, gl.canvas.clientHeight));
             gl.uniformMatrix4fv(transformMatrixArray[0], false, rawMatrix);
             var singleCanvas = gl.getUniformLocation(program, "singleCanvas");
             var lightPosition = gl.getUniformLocation(program, "u_lightPosition");

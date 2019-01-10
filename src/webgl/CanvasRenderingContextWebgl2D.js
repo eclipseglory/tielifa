@@ -42,6 +42,10 @@ var _Tools = require("../utils/Tools.js");
 
 var _Tools2 = _interopRequireDefault(_Tools);
 
+var _Mat = require("../math/Mat4.js");
+
+var _Mat2 = _interopRequireDefault(_Mat);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -146,8 +150,13 @@ var CanvasRenderingContextWebgl2D = function () {
             var currentSubPath = this.currentPath;
             var lastSubPath = currentSubPath.lastSubPath;
             var point = new _Point3D2.default(x, y, z);
-            point.contextStateIndex = currentState.id;
-            point.transformMatrixIndex = currentState.transformMatrixId;
+            var m = currentState.transformMatrix.matrix;
+            var temp = _Mat2.default.multiplyWithVertex(m, point.value);
+            point.x = temp[0];
+            point.y = temp[1];
+            point.z = temp[2];
+            // point.contextStateIndex = currentState.id;
+            // point.transformMatrixIndex = currentState.transformMatrixId;
             currentState.fireDirty();
             lastSubPath.pushPoint(point);
         }
@@ -169,11 +178,15 @@ var CanvasRenderingContextWebgl2D = function () {
         value: function moveTo(x, y, z) {
             if (z == undefined) z = 0;
             var currentState = this.currentContextState;
-
             var currentSubPath = this.currentPath;
             var point = new _Point3D2.default(x, y, z);
-            point.contextStateIndex = currentState.id;
-            point.transformMatrixIndex = currentState.transformMatrixId;
+            var m = currentState.transformMatrix.matrix;
+            var temp = _Mat2.default.multiplyWithVertex(m, point.value);
+            point.x = temp[0];
+            point.y = temp[1];
+            point.z = temp[2];
+            // point.contextStateIndex = currentState.id;
+            // point.transformMatrixIndex = currentState.transformMatrixId;
             currentState.fireDirty();
 
             var subPath = new _SubPath3D2.default(point);
@@ -471,7 +484,7 @@ var CanvasRenderingContextWebgl2D = function () {
             var pathList = this[_pathList];
             var action = new _RenderAction2.default(_RenderAction2.default.ACTION_FILL);
             this[_renderActionList].push(action);
-            action.collectVertexData(pathList, fillColor, opacity, [0, 0]);
+            action.collectVertexData(pathList, fillColor, opacity * fillColor[3], [0, 0]);
         }
     }, {
         key: "fillRect",
@@ -488,7 +501,7 @@ var CanvasRenderingContextWebgl2D = function () {
             var pathList = this[_pathList];
             var action = new _RenderAction2.default(_RenderAction2.default.ACTION_STROKE);
             this[_renderActionList].push(action);
-            action.collectVertexData(pathList, strokeColor, opacity, [0, 0]);
+            action.collectVertexData(pathList, strokeColor, opacity * strokeColor[3], [0, 0]);
         }
 
         //******************** 扩展接口 *****************************//
