@@ -18,10 +18,6 @@ var _Path3D = require("./Path3D.js");
 
 var _Path3D2 = _interopRequireDefault(_Path3D);
 
-var _Point3D = require("./Point3D.js");
-
-var _Point3D2 = _interopRequireDefault(_Point3D);
-
 var _SubPath3D = require("./SubPath3D.js");
 
 var _SubPath3D2 = _interopRequireDefault(_SubPath3D);
@@ -46,6 +42,10 @@ var _Mat = require("../math/Mat4.js");
 
 var _Mat2 = _interopRequireDefault(_Mat);
 
+var _DataBuffer = require("./DataBuffer.js");
+
+var _DataBuffer2 = _interopRequireDefault(_DataBuffer);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -55,6 +55,7 @@ var _stateStack = Symbol('状态栈');
 var _stateArray = Symbol('状态数组，记录全部状态');
 var _pathList = Symbol('路径列表');
 var _renderActionList = Symbol('绘制动作List');
+var _subpathCatch = Symbol('子Path缓存');
 
 var CanvasRenderingContextWebgl2D = function () {
     function CanvasRenderingContextWebgl2D(canvas, properties) {
@@ -73,6 +74,7 @@ var CanvasRenderingContextWebgl2D = function () {
         this[_stateArray] = [];
         this[_pathList] = [];
         this[_renderActionList] = [];
+        this[_subpathCatch] = [];
         this.webglRender = new _WebGLRender2.default(this.gl, properties['maxTransformNum'], properties['maxTextureSize'], properties['projectionType'], this.defaultDepth);
         this.translate(0, 0, this.defaultDepth);
     }
@@ -123,12 +125,26 @@ var CanvasRenderingContextWebgl2D = function () {
     }, {
         key: "closePath",
         value: function closePath() {
+            // let path = this.currentPath;
+            // if (path.subPathNumber == 0) return;
+            // let lastSubPath = path.lastSubPath;
+            // lastSubPath.close();
+            // let firstPoint = lastSubPath.getPoint(0);
+            // let newSubPath = new SubPath3D(firstPoint);
+            // path.addSubPath(newSubPath);
+
             var path = this.currentPath;
             if (path.subPathNumber == 0) return;
             var lastSubPath = path.lastSubPath;
             lastSubPath.close();
-            var firstPoint = lastSubPath.getPoint(0);
-            var newSubPath = new _SubPath3D2.default(firstPoint);
+            var x = lastSubPath.getPointX(0);
+            var y = lastSubPath.getPointX(0);
+            var z = lastSubPath.getPointX(0);
+            var sid = lastSubPath.getPointStateId(0);
+            var mid = lastSubPath.getPointMatrixId(0);
+            // let firstPoint = lastSubPath.getPoint(0);
+            var newSubPath = new _SubPath3D2.default();
+            newSubPath.addPoint(x, y, z, sid, mid);
             path.addSubPath(newSubPath);
         }
 
@@ -149,16 +165,28 @@ var CanvasRenderingContextWebgl2D = function () {
             var currentState = this.currentContextState;
             var currentSubPath = this.currentPath;
             var lastSubPath = currentSubPath.lastSubPath;
-            var point = new _Point3D2.default(x, y, z);
+            // let point = new Point3D(x, y, z);
+            // let m = currentState.transformMatrix.matrix;
+            // let temp = Mat4.multiplyWithVertex(m, point.value);
+            // point.x = temp[0];
+            // point.y = temp[1];
+            // point.z = temp[2];
+            // // point.contextStateIndex = currentState.id;
+            // // point.transformMatrixIndex = currentState.transformMatrixId;
+            // currentState.fireDirty();
+            // lastSubPath.pushPoint(point);
+
+            // let point = new Point3D(x, y, z);
             var m = currentState.transformMatrix.matrix;
-            var temp = _Mat2.default.multiplyWithVertex(m, point.value);
-            point.x = temp[0];
-            point.y = temp[1];
-            point.z = temp[2];
+            var temp = _Mat2.default.multiplyWithVertex(m, [x, y, z, 1]);
+            lastSubPath.addPoint(temp[0], temp[1], temp[2], currentState.id, currentState.transformMatrixId);
+            // point.x = temp[0];
+            // point.y = temp[1];
+            // point.z = temp[2];
             // point.contextStateIndex = currentState.id;
             // point.transformMatrixIndex = currentState.transformMatrixId;
             currentState.fireDirty();
-            lastSubPath.pushPoint(point);
+            // lastSubPath.pushPoint(point);
         }
 
         /**
@@ -179,18 +207,21 @@ var CanvasRenderingContextWebgl2D = function () {
             if (z == undefined) z = 0;
             var currentState = this.currentContextState;
             var currentSubPath = this.currentPath;
-            var point = new _Point3D2.default(x, y, z);
-            var m = currentState.transformMatrix.matrix;
-            var temp = _Mat2.default.multiplyWithVertex(m, point.value);
-            point.x = temp[0];
-            point.y = temp[1];
-            point.z = temp[2];
-            // point.contextStateIndex = currentState.id;
-            // point.transformMatrixIndex = currentState.transformMatrixId;
-            currentState.fireDirty();
-
-            var subPath = new _SubPath3D2.default(point);
+            // let point = new Point3D(x, y, z);
+            // let m = currentState.transformMatrix.matrix;
+            // let temp = Mat4.multiplyWithVertex(m, point.value);
+            // point.x = temp[0];
+            // point.y = temp[1];
+            // point.z = temp[2];
+            // // point.contextStateIndex = currentState.id;
+            // // point.transformMatrixIndex = currentState.transformMatrixId;
+            // currentState.fireDirty();
+            //
+            // let subPath = new SubPath3D(point);
+            // currentSubPath.addSubPath(subPath);
+            var subPath = new _SubPath3D2.default();
             currentSubPath.addSubPath(subPath);
+            this.lineTo(x, y, z);
         }
 
         /**
@@ -213,8 +244,6 @@ var CanvasRenderingContextWebgl2D = function () {
             this.lineTo(x + w, y, depth);
             this.lineTo(x + w, y + h, depth);
             this.lineTo(x, y + h, depth);
-            var currentSubPath = this.currentPath.lastSubPath;
-            currentSubPath.type = _SubPath3D2.default.TYPE_RECTANGLE;
             this.closePath();
         }
     }, {
@@ -562,10 +591,27 @@ var CanvasRenderingContextWebgl2D = function () {
         value: function draw() {
             this.webglRender.initRending();
             this.webglRender.executeRenderAction(this[_renderActionList], this[_stateArray]);
+            this.collectBufferForRecycle();
             this[_renderActionList] = [];
             this[_stateArray] = [];
             // debug:
             // console.log("绘制调用次数：", this.webglRender.DEBUG_DRAW_COUNT);
+        }
+    }, {
+        key: "collectBufferForRecycle",
+        value: function collectBufferForRecycle() {
+            for (var i = 0; i < this[_renderActionList].length; i++) {
+                var action = this[_renderActionList][i];
+                var vd = action.vertexData;
+                var vddb = vd.dataBuffer;
+                if (!vddb.recycle()) {
+                    break;
+                }
+                var vdmb = vd.matrixIndexBuffer;
+                if (!vdmb.recycle()) {
+                    break;
+                }
+            }
         }
     }, {
         key: "currentContextState",

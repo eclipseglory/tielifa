@@ -18,6 +18,10 @@ var _Mat = require("../math/Mat4.js");
 
 var _Mat2 = _interopRequireDefault(_Mat);
 
+var _DataBuffer = require("./DataBuffer.js");
+
+var _DataBuffer2 = _interopRequireDefault(_DataBuffer);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -124,20 +128,61 @@ var WebGLRender = function () {
             }
             vertexNumber -= firstVerticesStart;
             var gl = this.gl;
-            this.prepareVertexDatas(size);
-            this.prepareMatrixIndexDatas(size / 8); //因为单个顶点的大小为32，矩阵索引是4，所以就是8倍的关系
+            var temp = null; //new Uint8Array(new ArrayBuffer(size));
+            var tempBuffer = _DataBuffer2.default.getFromCache(size);
+            if (tempBuffer == null) {
+                temp = new Uint8Array(new ArrayBuffer(size));
+            } else {
+                if (tempBuffer.dv instanceof Uint8Array) {
+                    temp = tempBuffer.dv;
+                } else {
+                    temp = new Uint8Array(tempBuffer.buffer);
+                }
+            }
 
-            var offset = 0;
-            var offset1 = 0;
+            var temp1 = null; //new Uint8Array(new ArrayBuffer(size / 8));
+            var tempBuffer1 = _DataBuffer2.default.getFromCache(size / 8);
+            if (tempBuffer1 == null) {
+                temp1 = new Uint8Array(new ArrayBuffer(size / 8));
+            } else {
+                if (tempBuffer1.dv instanceof Uint8Array) {
+                    temp1 = tempBuffer1.dv;
+                } else {
+                    temp1 = new Uint8Array(tempBuffer1.buffer);
+                }
+            }
+            var index = 0;
+            var index1 = 0;
             for (var _i = 0; _i < vertexDataArray.length; _i++) {
                 var vertexData = vertexDataArray[_i];
-                gl.bindBuffer(gl.ARRAY_BUFFER, this.shaderInformation.verticesBuffer);
-                this.gl.bufferSubData(this.gl.ARRAY_BUFFER, offset, vertexData.dataBuffer.buffer);
-                gl.bindBuffer(gl.ARRAY_BUFFER, this.shaderInformation.matrixIndexBuffer);
-                this.gl.bufferSubData(this.gl.ARRAY_BUFFER, offset1, vertexData.matrixIndexBuffer.buffer);
-                offset += vertexData.dataBuffer.currentIndex;
-                offset1 += vertexData.matrixIndexBuffer.currentIndex;
+                var u18 = new Uint8Array(vertexData.dataBuffer.buffer);
+                temp.set(u18, index);
+                index += vertexData.dataBuffer.buffer.byteLength;
+                var u181 = new Uint8Array(vertexData.matrixIndexBuffer.buffer);
+                temp1.set(u181, index1);
+                index1 += vertexData.matrixIndexBuffer.buffer.byteLength;
             }
+
+            var shaderInfo = this.shaderInformation;
+            gl.bindBuffer(gl.ARRAY_BUFFER, shaderInfo.verticesBuffer);
+            this.prepareVertexDatas(size);
+            gl.bufferData(gl.ARRAY_BUFFER, temp.buffer, gl.DYNAMIC_DRAW);
+            _DataBuffer2.default.putInCache({ buffer: temp.buffer, dv: temp });
+            gl.bindBuffer(gl.ARRAY_BUFFER, this.shaderInformation.matrixIndexBuffer);
+            this.prepareMatrixIndexDatas(size / 8); //因为单个顶点的大小为32，矩阵索引是4，所以就是8倍的关系
+            gl.bufferData(gl.ARRAY_BUFFER, temp1.buffer, gl.DYNAMIC_DRAW);
+            _DataBuffer2.default.putInCache({ buffer: temp1.buffer, dv: temp1 });
+            // let offset = 0;
+            // let offset1 = 0;
+            // for (let i = 0; i < vertexDataArray.length; i++) {
+            //     let vertexData = vertexDataArray[i];
+            //     gl.bindBuffer(gl.ARRAY_BUFFER, this.shaderInformation.verticesBuffer);
+            //     this.gl.bufferSubData(this.gl.ARRAY_BUFFER, offset, vertexData.dataBuffer.buffer);
+            //     gl.bindBuffer(gl.ARRAY_BUFFER, this.shaderInformation.matrixIndexBuffer);
+            //     this.gl.bufferSubData(this.gl.ARRAY_BUFFER, offset1, vertexData.matrixIndexBuffer.buffer);
+            //     offset += vertexData.dataBuffer.currentIndex;
+            //     offset1 += vertexData.matrixIndexBuffer.currentIndex;
+            // }
             return vertexNumber;
         }
     }, {
@@ -159,7 +204,7 @@ var WebGLRender = function () {
             this.configTexture();
             var vertexNumber = this.configVerticesBufferData(vertexDataArray, firstVerticesStart, lastVerticesEnd);
             if (vertexNumber < 2) return;
-            this.gl.drawArrays(this.gl.LINE_STRIP, 0, vertexNumber);
+            this.gl.drawArrays(this.gl.LINES, 0, vertexNumber);
             this.DEBUG_DRAW_COUNT++;
         }
 
@@ -297,15 +342,17 @@ var WebGLRender = function () {
                 var currentAction = actionList[i];
                 if (lastAction == undefined) lastAction = currentAction;
                 if (currentAction.type == _RenderAction2.default.ACTION_STROKE) {
-                    if (lastAction != currentAction && lastAction != undefined) {
-                        if (lastAction.type != _RenderAction2.default.ACTION_STROKE) this.rendVertexArray(lastAction.type, vertexDataArray, undefined, undefined, lastAction.textureIndex);
+                    if (currentAction.type == lastAction.type) {
+                        lastAction = currentAction;
+                        vertexDataArray.push(currentAction.vertexData);
+                        continue;
+                    } else {
+                        this.rendVertexArray(lastAction.type, vertexDataArray, undefined, undefined, lastAction.textureIndex);
+                        vertexDataArray = [];
+                        i--;
+                        lastAction = undefined;
+                        continue;
                     }
-                    vertexDataArray = [];
-                    vertexDataArray.push(currentAction.vertexData);
-                    lastAction = currentAction;
-                    this.rendVertexArray(currentAction.type, vertexDataArray);
-                    vertexDataArray = [];
-                    continue;
                 } else {
                     // 先收集顶点数据，顶点的矩阵在下一步再设置
                     if (currentAction.type == lastAction.type) {
@@ -324,6 +371,7 @@ var WebGLRender = function () {
                         this.rendVertexArray(lastAction.type, vertexDataArray);
                         i--;
                         lastAction = undefined;
+                        vertexDataArray = [];
                         continue;
                     }
                 }
@@ -369,8 +417,8 @@ var WebGLRender = function () {
             gl.enableVertexAttribArray(shaderInfo.colorAttribute);
             gl.enableVertexAttribArray(shaderInfo.textureCoordAttribute);
             // gl.enableVertexAttribArray(shaderInfo.transformMatrixIndex);
-            gl.bindBuffer(gl.ARRAY_BUFFER, shaderInfo.verticesBuffer);
-            gl.bufferData(gl.ARRAY_BUFFER, dataByteLength, gl.DYNAMIC_DRAW);
+            // gl.bindBuffer(gl.ARRAY_BUFFER, shaderInfo.verticesBuffer);
+            // gl.bufferData(gl.ARRAY_BUFFER, dataByteLength, gl.DYNAMIC_DRAW);
 
             // 设置如何从buffer中读出顶点
             var floatByteSize = 4;
@@ -406,8 +454,8 @@ var WebGLRender = function () {
             var shaderInfo = this.shaderInformation;
 
             gl.enableVertexAttribArray(shaderInfo.transformMatrixIndex);
-            gl.bindBuffer(gl.ARRAY_BUFFER, shaderInfo.matrixIndexBuffer);
-            gl.bufferData(gl.ARRAY_BUFFER, length, gl.DYNAMIC_DRAW);
+            // gl.bindBuffer(gl.ARRAY_BUFFER, shaderInfo.matrixIndexBuffer);
+            // gl.bufferData(gl.ARRAY_BUFFER, length, gl.DYNAMIC_DRAW);
             var type = gl.FLOAT;
             var size = 1;
             var offset = 0;

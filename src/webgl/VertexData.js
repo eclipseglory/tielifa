@@ -25,9 +25,6 @@ var VERTEX_BYTE_LENGTH = 32;
 var MATRIX_INDEX_STRUCTURE = [{ type: _DataBuffer2.default.TYPE_FLOAT32, count: 1 }];
 var MATRIX_INDEX_BYTE_LENGTH = 4;
 
-var MATRIX_ID_STRUCTURE = [{ type: _DataBuffer2.default.TYPE_UINT16, count: 2 }];
-var MATRIX_ID_BYTE_LENGTH = 4;
-
 var TYPE_FILL = 0;
 var TYPE_STROKE = 1;
 
@@ -53,8 +50,13 @@ var VertexData = function () {
     }, {
         key: "addVertexData",
         value: function addVertexData(points, color, opacity, textureCoor) {
-            this.dataBuffer.putVertexData(points, color, opacity, textureCoor);
+            this.addVertexData2(points[0], points[1], points[2], color, opacity, textureCoor);
             // this.matrixIndexBuffer.put(transformMatrixId);
+        }
+    }, {
+        key: "addVertexData2",
+        value: function addVertexData2(x, y, z, color, opacity, textureCoor) {
+            this.dataBuffer.putVertexData2(x, y, z, color, opacity, textureCoor);
         }
     }, {
         key: "addMatrixIdData",

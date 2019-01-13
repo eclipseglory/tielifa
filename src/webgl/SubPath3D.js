@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 
 Object.defineProperty(exports, "__esModule", {
     value: true
@@ -8,74 +8,134 @@ var _createClass = function () { function defineProperties(target, props) { for 
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-var TYPE_RECTANGLE = 0;
-var TYPE_TRIANGLE = 1;
-var TYPE_POLYGON = 2;
-var TYPE_ELLIPSE = 3;
+var _currentIndex = Symbol('当前的点所在的索引位置');
+var _pointsCoordinateArray = Symbol('点的坐标值数组,每三个为一组，分别是x,y,z');
+var _pointsTransformMatrixArray = Symbol('点的坐标值数组，每两个为一组，分别是stateId,matrixId');
 
 var SubPath3D = function () {
-    function SubPath3D(startPoint, type) {
+    function SubPath3D(startPoint) {
         _classCallCheck(this, SubPath3D);
 
         this.pointsArray = [];
+        this[_currentIndex] = 0;
+        this[_pointsCoordinateArray] = [];
+        this[_pointsTransformMatrixArray] = [];
         if (startPoint != undefined && startPoint != null) {
             this.pushPoint(startPoint);
         }
         this.isClosed = false;
-        this.type = type || TYPE_POLYGON;
     }
 
     _createClass(SubPath3D, [{
-        key: "close",
+        key: 'init',
+        value: function init() {
+            this.isClosed = false;
+            this[_currentIndex] = 0;
+        }
+    }, {
+        key: 'getPointX',
+        value: function getPointX(index) {
+            index = index * 3;
+            return this[_pointsCoordinateArray][index];
+        }
+    }, {
+        key: 'getPointY',
+        value: function getPointY(index) {
+            index = index * 3;
+            return this[_pointsCoordinateArray][index + 1];
+        }
+    }, {
+        key: 'getPointZ',
+        value: function getPointZ(index) {
+            index = index * 3;
+            return this[_pointsCoordinateArray][index + 2];
+        }
+    }, {
+        key: 'getPointStateId',
+        value: function getPointStateId(index) {
+            index = index * 2;
+            return this[_pointsTransformMatrixArray][index];
+        }
+    }, {
+        key: 'getPointMatrixId',
+        value: function getPointMatrixId(index) {
+            index = index * 2;
+            return this[_pointsTransformMatrixArray][index + 1];
+        }
+    }, {
+        key: 'getPointMatrixData',
+        value: function getPointMatrixData(index) {
+            return [this.getPointStateId(index), this.getPointMatrixId(index)];
+        }
+    }, {
+        key: 'addPoint',
+        value: function addPoint(x, y, z, stateId, matrixId) {
+            stateId = stateId || 0;
+            matrixId = matrixId || 0;
+            var index = this[_currentIndex];
+            if (index * 3 >= this[_pointsCoordinateArray].length) {
+                this[_pointsCoordinateArray].push(x);
+                this[_pointsCoordinateArray].push(y);
+                this[_pointsCoordinateArray].push(z);
+            } else {
+                this[_pointsCoordinateArray][index] = x;
+                this[_pointsCoordinateArray][index + 1] = y;
+                this[_pointsCoordinateArray][index + 2] = z;
+            }
+            if (index * 2 >= this[_pointsTransformMatrixArray].length) {
+                this[_pointsTransformMatrixArray].push(stateId);
+                this[_pointsTransformMatrixArray].push(matrixId);
+            } else {
+                this[_pointsTransformMatrixArray][index] = stateId;
+                this[_pointsTransformMatrixArray][index + 1] = matrixId;
+            }
+            this[_currentIndex]++;
+        }
+    }, {
+        key: 'close',
         value: function close() {
             this.isClosed = true;
         }
+
+        /**
+         * @deprecated
+         * @param index
+         * @returns {*}
+         */
+
     }, {
-        key: "getPoint",
+        key: 'getPoint',
         value: function getPoint(index) {
             return this.pointsArray[index];
         }
     }, {
-        key: "clean",
+        key: 'clean',
         value: function clean() {
             this.pointsArray.length = 0;
             this.isClosed = false;
             // this.pointsArray = [];// 这样比length = 0 效率高???!!
         }
+
+        /**
+         * @deprecated
+         * @param point
+         */
+
     }, {
-        key: "pushPoint",
+        key: 'pushPoint',
         value: function pushPoint(point) {
             this.pointsArray.push(point);
         }
     }, {
-        key: "popPoint",
-        value: function popPoint() {
-            this.pointsArray.pop();
+        key: 'pointsCoordinateArray',
+        get: function get() {
+            return this[_pointsCoordinateArray];
         }
     }, {
-        key: "pointsNumber",
+        key: 'pointsNumber',
         get: function get() {
-            return this.pointsArray.length;
-        }
-    }], [{
-        key: "TYPE_RECTANGLE",
-        get: function get() {
-            return TYPE_RECTANGLE;
-        }
-    }, {
-        key: "TYPE_POLYGON",
-        get: function get() {
-            return TYPE_POLYGON;
-        }
-    }, {
-        key: "TYPE_TRIANGLE",
-        get: function get() {
-            return TYPE_TRIANGLE;
-        }
-    }, {
-        key: "TYPE_ELLIPSE",
-        get: function get() {
-            return TYPE_ELLIPSE;
+            return this[_currentIndex];
+            // return this.pointsArray.length;
         }
     }]);
 

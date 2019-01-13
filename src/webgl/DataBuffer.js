@@ -24,65 +24,62 @@ var _dataStructure = Symbol('ArrayBuffer的数据存放结构');
 var _currentStructureIndex = Symbol('当前所在结构中的索引');
 var littleEndian = undefined; // DataView是否是按照低位存放
 
+var arrayBufferCache = {};
+var cacheMaxsize = 16 * 1024 * 1024;
+var currentCacheSize = 0;
+
 var DataBuffer = function () {
     function DataBuffer(dataStructure, length) {
         _classCallCheck(this, DataBuffer);
 
         if (length === undefined) length = MAX_SINGLE_BYTE_LENGTH;
-        this.buffer = new ArrayBuffer(length);
-        this.dv = new DataView(this.buffer);
-        this.byteDv = new Uint8Array(this.buffer);
-        this[_dataStructure] = dataStructure;
-        var that = this;
-        var initDataStructure = function initDataStructure(dataStructure) {
-            if (dataStructure === undefined || dataStructure === null) {
-                // 如果没有设置数据结构，那就默认是单个float32进行添加
-                console.warn("DataStructure没有指定，默认单个float32数据进行存放。DataStructure必须是一个数组，其内部结构为 [...{type:type,count:count,byteSize:size},...]");
-                that[_singleDataFragmentSize] = 4;
-                that[_dataStructure] = undefined;
-                return;
-            } else {
-                if (!(dataStructure instanceof Array)) {
-                    console.warn("DataStructure必须是一个数组，其内部结构为 [...{type:type,count:count,byteSize:size},...]");
-                    that[_singleDataFragmentSize] = 4;
-                    that[_dataStructure] = undefined;
-                    return;
-                }
-                var size = 0;
-                var startByte = 0;
-                var endByte = 0;
-                for (var i = 0; i < dataStructure.length; i++) {
-                    var s = dataStructure[i];
-                    s.byteSize = that.getByteSize(s.type) * s.count;
-                    s.startByte = startByte;
-                    endByte = startByte + s.byteSize;
-                    s.endByte = endByte - 1;
-                    size += s.byteSize;
-                    startByte = endByte;
-                }
-                that[_singleDataFragmentSize] = size;
-            }
-        };
+        var cacheBuffer = DataBuffer.getFromCache(length);
+        this.buffer = null;
+        this.dv = null;
+        if (cacheBuffer == null) {
+            this.buffer = new ArrayBuffer(length);
+        } else {
+            this.buffer = cacheBuffer.buffer;
+            this.dv = cacheBuffer.dv;
+        }
+        if (this.dv == null || !(this.dv instanceof DataView)) {
+            this.dv = new DataView(this.buffer);
+        }
 
-        initDataStructure(this[_dataStructure]);
+        // this.byteDv = new Uint8Array(this.buffer);
+        this[_dataStructure] = dataStructure;
+        DataBuffer.initDataStructure(dataStructure, this);
         this[_currentStructureIndex] = 0;
         this[_currentByteIndex] = 0;
     }
 
     _createClass(DataBuffer, [{
+        key: 'recycle',
+        value: function recycle() {
+            return DataBuffer.putInCache(this);
+        }
+    }, {
         key: 'flush',
         value: function flush(byteLength) {
             if (byteLength != undefined) {
                 if (byteLength != this.buffer.byteLength) {
                     this.buffer = new ArrayBuffer(byteLength);
                     this.dv = new DataView(this.buffer);
-                    this.byteDv = new Uint8Array(this.buffer);
+                    // new Uint8Array(this.buffer);
+                    // this.byteDv = new Uint8Array(this.buffer);
                 }
             } else {
+                var byteDv = new Uint8Array(this.buffer);
                 for (var i = 0; i < this.buffer.byteLength; i++) {
-                    this.byteDv[i] = 0.0;
+                    byteDv[i] = 0.0;
                 }
             }
+            this[_currentStructureIndex] = 0;
+            this[_currentByteIndex] = 0;
+        }
+    }, {
+        key: 'resetButDontFlush',
+        value: function resetButDontFlush() {
             this[_currentStructureIndex] = 0;
             this[_currentByteIndex] = 0;
         }
@@ -216,12 +213,11 @@ var DataBuffer = function () {
         key: 'addLength',
         value: function addLength(additionLength) {
             // ArrayBuffer是不能直接进行读取的，所以利用uint8一个一个字节复制过去,这里用了TypedArray的set方法
-            var sourceView = this.byteDv;
+            var sourceView = new Uint8Array(this.buffer);
             var destView = new Uint8Array(new ArrayBuffer(this.buffer.byteLength + additionLength));
             destView.set(sourceView);
             this.buffer = destView.buffer;
             this.dv = new DataView(this.buffer);
-            this.byteDv = new Uint8Array(this.buffer);
         }
     }, {
         key: 'resizeBuffer',
@@ -237,7 +233,6 @@ var DataBuffer = function () {
             // 重新new一个出来
             this.buffer = new ArrayBuffer(this.buffer.byteLength);
             this.dv = new DataView(this.buffer);
-            this.byteDv = new Uint8Array(this.buffer);
             this[_currentByteIndex] = 0;
             this[_currentStructureIndex] = 0;
         }
@@ -259,12 +254,17 @@ var DataBuffer = function () {
     }, {
         key: 'putVertexData',
         value: function putVertexData(vertex, color, opacity, texcoord) {
+            this.putVertexData2(vertex[0], vertex[1], vertex[2], color, opacity, texcoord);
+        }
+    }, {
+        key: 'putVertexData2',
+        value: function putVertexData2(x, y, z, color, opacity, texcoord) {
             this.resizeBuffer(this.singleDataFragmentByteSize);
             var littleEndian = DataBuffer.littleEndian;
             var index = this.currentIndex;
-            this.dv.setFloat32(index, vertex[0], littleEndian);
-            this.dv.setFloat32(index + 4, vertex[1], littleEndian);
-            this.dv.setFloat32(index + 8, vertex[2], littleEndian);
+            this.dv.setFloat32(index, x, littleEndian);
+            this.dv.setFloat32(index + 4, y, littleEndian);
+            this.dv.setFloat32(index + 8, z, littleEndian);
             // this.dv.setFloat32(index + 12, trasnformMatrixIndex, littleEndian);
             // 这里插入1位float类型的无用数据，为了数据对齐
             this.dv.setFloat32(index + 16, 0, littleEndian);
@@ -309,6 +309,69 @@ var DataBuffer = function () {
             return this.buffer.byteLength;
         }
     }], [{
+        key: 'putInCache',
+        value: function putInCache(dataBuffer) {
+            var buffer = dataBuffer.buffer;
+            var dv = dataBuffer.dv;
+            if (currentCacheSize + buffer.byteLength > cacheMaxsize) {
+                return false;
+            } else {
+                currentCacheSize += buffer.byteLength;
+                var array = arrayBufferCache[buffer.byteLength];
+                if (array == undefined) {
+                    array = [];
+                    arrayBufferCache[buffer.byteLength] = array;
+                }
+                array.push({ buffer: buffer, dv: dv });
+            }
+            return true;
+        }
+    }, {
+        key: 'getFromCache',
+        value: function getFromCache(length) {
+            var array = arrayBufferCache[length];
+            if (array == undefined || array.length == 0) return null;
+            var cacheBuffer = array.pop();
+            currentCacheSize -= cacheBuffer.buffer.byteLength;
+            return cacheBuffer;
+        }
+    }, {
+        key: 'initDataStructure',
+        value: function initDataStructure(dataStructure, that) {
+            if (dataStructure === undefined || dataStructure === null) {
+                // 如果没有设置数据结构，那就默认是单个float32进行添加
+                console.warn("DataStructure没有指定，默认单个float32数据进行存放。DataStructure必须是一个数组，其内部结构为 [...{type:type,count:count,byteSize:size},...]");
+                that[_singleDataFragmentSize] = 4;
+                that[_dataStructure] = undefined;
+                return;
+            } else {
+                if (!(dataStructure instanceof Array)) {
+                    console.warn("DataStructure必须是一个数组，其内部结构为 [...{type:type,count:count,byteSize:size},...]");
+                    that[_singleDataFragmentSize] = 4;
+                    that[_dataStructure] = undefined;
+                    return;
+                }
+                var size = 0;
+                var startByte = 0;
+                var endByte = 0;
+                for (var i = 0; i < dataStructure.length; i++) {
+                    var s = dataStructure[i];
+                    s.byteSize = that.getByteSize(s.type) * s.count;
+                    s.startByte = startByte;
+                    endByte = startByte + s.byteSize;
+                    s.endByte = endByte - 1;
+                    size += s.byteSize;
+                    startByte = endByte;
+                }
+                that[_singleDataFragmentSize] = size;
+            }
+        }
+    }, {
+        key: 'arrayBufferCache',
+        get: function get() {
+            return arrayBufferCache;
+        }
+    }, {
         key: 'TYPE_FLOAT32',
         get: function get() {
             return TYPE_FLOAT32;

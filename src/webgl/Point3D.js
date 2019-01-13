@@ -10,6 +10,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 var _point = Symbol('存放坐标值的Float32数组');
 var _transformMatrixIndex = Symbol('坐标转换矩阵索引');
+/**
+ * @deprecated
+ */
 
 var Point3D = function () {
     function Point3D(x, y, z) {
