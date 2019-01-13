@@ -6,7 +6,11 @@ Object.defineProperty(exports, "__esModule", {
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-require('./w3color.js');
+var _W3Color = require('./W3Color.js');
+
+var _W3Color2 = _interopRequireDefault(_W3Color);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -26,34 +30,16 @@ var Color = function () {
     _createClass(Color, [{
         key: 'convertStringToColor',
         value: function convertStringToColor(string) {
+            var vec3 = this.colorMap[string];
+            if (vec3 != undefined) return vec3;
             string = string.toLowerCase();
-            var that = this;
-            // if (Color.isHEXString(string)) {
-            //     return getColorViaHex(string);
-            // }
             if (Color.isRGBAString(string)) {
                 return this.rgba2vec(string);
             }
-            // if (Color.isRGBString(string)) {
-            //     return this.rgb2vec(string);
-            // }
             if (Color.isHSLAString(string)) {
                 return this.hsla2vet3(string);
             }
-            // if (Color.isHSLString(string)) {
-            //     return this.hsl2vet3(string);
-            // }
-
-            function getColorViaHex(string) {
-                var vec3 = that.colorMap[string];
-                if (vec3 != undefined) return vec3;
-                vec3 = that.convertHEXToVet3(string);
-                that.colorMap[string] = vec3;
-                return vec3;
-            }
-
             return this.getVec(string, string, 1);
-            // return this.convertKeywordToVet3(string);
         }
     }, {
         key: 'hsla2vet3',
@@ -111,12 +97,14 @@ var Color = function () {
     }, {
         key: 'getVec',
         value: function getVec(string, key, alpha) {
-            var v = w3color(string);
+            var vec3 = this.colorMap[key];
+            if (vec3 != undefined) return vec3;
+            var v = new _W3Color2.default(string);
             if (v.valid) {
-                v = v.toRgb();
-                var vec3 = [v.r, v.g, v.b, alpha];
-                if (this.colorMap[key] == undefined) this.colorMap[key] = vec3;
-                return vec3;
+                var v1 = v.toRgb();
+                var _vec = [v1.r, v1.g, v1.b, alpha];
+                if (this.colorMap[key] == undefined) this.colorMap[key] = _vec;
+                return _vec;
             } else {
                 return [0, 0, 0, 1];
             }
