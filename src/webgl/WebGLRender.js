@@ -10,23 +10,14 @@ var _TextureManager = require("./TextureManager.js");
 
 var _TextureManager2 = _interopRequireDefault(_TextureManager);
 
-var _RenderAction = require("./RenderAction.js");
-
-var _RenderAction2 = _interopRequireDefault(_RenderAction);
-
 var _Mat = require("../math/Mat4.js");
 
 var _Mat2 = _interopRequireDefault(_Mat);
-
-var _DataBuffer = require("./DataBuffer.js");
-
-var _DataBuffer2 = _interopRequireDefault(_DataBuffer);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-var SINGLE_DATA_BYTE_LENGTH = 32;
 var fsSource = "\n  precision mediump float;\n  varying vec4 currentColor;\n  varying vec2 v_texcoord;\n  varying vec3 normal;\n  varying vec3 v_position;\n  uniform vec2 singleCanvas;\n  uniform vec3 u_lightPosition;\n  uniform float enableLight;\n  uniform sampler2D u_texture;\n  void main() {\n        vec2 coord = vec2(v_texcoord.x / singleCanvas.x , v_texcoord.y/singleCanvas.y);\n        vec4 color = currentColor;\n        vec3 r_normal = normalize(normal);    \n        vec3 forward = u_lightPosition - v_position;\n        vec3 lightLocation = normalize(forward);    \n        gl_FragColor = color * texture2D(u_texture,coord);\n        if(enableLight == 1.0){\n            gl_FragColor.rgb *= abs(dot(r_normal,lightLocation));\n        }\n  }\n  ";
 /**
  precision mediump float;
@@ -49,9 +40,7 @@ var WebGLRender = function () {
         _classCallCheck(this, WebGLRender);
 
         this.gl = gl;
-        this.firstTIMEDEBUG = true;
         this.DEBUG_DRAW_COUNT = 0;
-        this.configured = false;
         projectionType = projectionType || 0;
         textureMaxSize = textureMaxSize || gl.getParameter(this.gl.MAX_TEXTURE_SIZE);
         var maxVectors = gl.getParameter(gl.MAX_VERTEX_UNIFORM_VECTORS);
@@ -61,6 +50,9 @@ var WebGLRender = function () {
         this[_maxTransformMatrixNum] = maxTransformNum;
         // this[_maxTransformMatrixNum] = 10; // 测试设置
         this.textureManager = null;
+        this.verticesData = null;
+        this.fragmentData = null;
+        this.transformMatrixData = null;
         this.lightPosition = new Float32Array(3);
         this.lightPosition[0] = gl.canvas.clientWidth / 2;
         this.lightPosition[1] = gl.canvas.clientHeight / 2;
@@ -93,293 +85,103 @@ var WebGLRender = function () {
             gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
         }
     }, {
-        key: "rendVertexArray",
-        value: function rendVertexArray(type, vertexDataArray, firstVerticesStart, lastVerticesEnd, textureIndex) {
-            var gl = this.gl;
-            this.gl.uniform3f(this.shaderInformation.lightPosition, this.lightPosition[0], this.lightPosition[1], this.lightPosition[2]);
-            switch (type) {
-                case _RenderAction2.default.ACTION_FILL:
-                    this.fillRendVertexArray(vertexDataArray, firstVerticesStart, lastVerticesEnd, textureIndex);
-                    break;
-                case _RenderAction2.default.ACTION_STROKE:
-                    this.strokeRendVertexArray(vertexDataArray, firstVerticesStart, lastVerticesEnd, textureIndex);
-                    break;
-            }
-        }
-    }, {
         key: "setUniformTransformMatrix",
         value: function setUniformTransformMatrix(matrix, id) {
             var gl = this.gl;
             gl.uniformMatrix4fv(this.shaderInformation.transformMatrixArray[id], false, matrix);
         }
     }, {
-        key: "configVerticesBufferData",
-        value: function configVerticesBufferData(vertexDataArray, firstVerticesStart, lastVerticesEnd) {
-            var size = 0;
-            var vertexNumber = 0;
-            if (firstVerticesStart == undefined) firstVerticesStart = 0;
-            for (var i = 0; i < vertexDataArray.length; i++) {
-                size += vertexDataArray[i].bufferSize;
-                if (i == vertexDataArray.length - 1 && lastVerticesEnd != undefined) {
-                    vertexNumber += lastVerticesEnd + 1;
-                } else {
-                    vertexNumber += vertexDataArray[i].vertexNumber;
-                }
-            }
-            vertexNumber -= firstVerticesStart;
+        key: "prepareWebGLBuffer",
+        value: function prepareWebGLBuffer() {
             var gl = this.gl;
-            var temp = null; //new Uint8Array(new ArrayBuffer(size));
-            var tempBuffer = _DataBuffer2.default.getFromCache(size);
-            if (tempBuffer == null) {
-                temp = new Uint8Array(new ArrayBuffer(size));
-            } else {
-                if (tempBuffer.dv instanceof Uint8Array) {
-                    temp = tempBuffer.dv;
-                } else {
-                    temp = new Uint8Array(tempBuffer.buffer);
-                }
-            }
-
-            var temp1 = null; //new Uint8Array(new ArrayBuffer(size / 8));
-            var tempBuffer1 = _DataBuffer2.default.getFromCache(size / 8);
-            if (tempBuffer1 == null) {
-                temp1 = new Uint8Array(new ArrayBuffer(size / 8));
-            } else {
-                if (tempBuffer1.dv instanceof Uint8Array) {
-                    temp1 = tempBuffer1.dv;
-                } else {
-                    temp1 = new Uint8Array(tempBuffer1.buffer);
-                }
-            }
-            var index = 0;
-            var index1 = 0;
-            for (var _i = 0; _i < vertexDataArray.length; _i++) {
-                var vertexData = vertexDataArray[_i];
-                var u18 = new Uint8Array(vertexData.dataBuffer.buffer);
-                temp.set(u18, index);
-                index += vertexData.dataBuffer.buffer.byteLength;
-                var u181 = new Uint8Array(vertexData.matrixIndexBuffer.buffer);
-                temp1.set(u181, index1);
-                index1 += vertexData.matrixIndexBuffer.buffer.byteLength;
-            }
-
             var shaderInfo = this.shaderInformation;
+            gl.enableVertexAttribArray(shaderInfo.vertexAttribute);
             gl.bindBuffer(gl.ARRAY_BUFFER, shaderInfo.verticesBuffer);
-            this.prepareVertexDatas(size);
-            gl.bufferData(gl.ARRAY_BUFFER, temp.buffer, gl.DYNAMIC_DRAW);
-            _DataBuffer2.default.putInCache({ buffer: temp.buffer, dv: temp });
-            gl.bindBuffer(gl.ARRAY_BUFFER, this.shaderInformation.matrixIndexBuffer);
-            this.prepareMatrixIndexDatas(size / 8); //因为单个顶点的大小为32，矩阵索引是4，所以就是8倍的关系
-            gl.bufferData(gl.ARRAY_BUFFER, temp1.buffer, gl.DYNAMIC_DRAW);
-            _DataBuffer2.default.putInCache({ buffer: temp1.buffer, dv: temp1 });
-            // let offset = 0;
-            // let offset1 = 0;
-            // for (let i = 0; i < vertexDataArray.length; i++) {
-            //     let vertexData = vertexDataArray[i];
-            //     gl.bindBuffer(gl.ARRAY_BUFFER, this.shaderInformation.verticesBuffer);
-            //     this.gl.bufferSubData(this.gl.ARRAY_BUFFER, offset, vertexData.dataBuffer.buffer);
-            //     gl.bindBuffer(gl.ARRAY_BUFFER, this.shaderInformation.matrixIndexBuffer);
-            //     this.gl.bufferSubData(this.gl.ARRAY_BUFFER, offset1, vertexData.matrixIndexBuffer.buffer);
-            //     offset += vertexData.dataBuffer.currentIndex;
-            //     offset1 += vertexData.matrixIndexBuffer.currentIndex;
-            // }
-            return vertexNumber;
+            gl.bufferData(gl.ARRAY_BUFFER, this.verticesData.buffer, gl.DYNAMIC_DRAW);
+
+            var size = 3;
+            var type = gl.FLOAT;
+            var normalize = false;
+            var stride = 32;
+            var offset = 0;
+            gl.vertexAttribPointer(shaderInfo.vertexAttribute, size, type, normalize, stride, offset);
+            //法向量数据：
+            type = gl.FLOAT;
+            size = 3;
+            offset = 16; // 4 * 4;//因为有一个空的float32，所以要多移动4个字节
+            normalize = true; //单位划该向量
+            gl.vertexAttribPointer(shaderInfo.normalAttribute, size, type, normalize, stride, offset);
+
+            gl.enableVertexAttribArray(shaderInfo.colorAttribute);
+            gl.enableVertexAttribArray(shaderInfo.textureCoordAttribute);
+            gl.bindBuffer(gl.ARRAY_BUFFER, shaderInfo.fragmentBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, this.fragmentData.buffer, gl.DYNAMIC_DRAW);
+
+            type = gl.UNSIGNED_BYTE;
+            stride = this.fragmentData.singleDataByteLength;
+            size = 3;
+            offset = 0;
+            normalize = false;
+            gl.vertexAttribPointer(shaderInfo.colorAttribute, size, type, normalize, stride, offset);
+
+            type = gl.FLOAT;
+            size = 1;
+            offset = 4;
+            gl.vertexAttribPointer(shaderInfo.alphaAttribute, size, type, normalize, stride, offset);
+
+            type = gl.FLOAT;
+            size = 2;
+            offset = 8;
+            gl.vertexAttribPointer(shaderInfo.textureCoordAttribute, size, type, normalize, stride, offset);
+
+            gl.enableVertexAttribArray(shaderInfo.transformMatrixIndex);
+            gl.bindBuffer(gl.ARRAY_BUFFER, shaderInfo.matrixIndexBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, this.transformMatrixData.buffer, gl.DYNAMIC_DRAW);
+            type = gl.FLOAT;
+            size = 1;
+            offset = 0;
+            stride = 4;
+            gl.vertexAttribPointer(shaderInfo.transformMatrixIndex, size, type, normalize, stride, offset);
         }
     }, {
-        key: "fillRendVertexArray",
-        value: function fillRendVertexArray(vertexDataArray, firstVerticesStart, lastVerticesEnd, textureIndex) {
-            if (firstVerticesStart == undefined) firstVerticesStart = 0;
-            if (vertexDataArray.length == 0) return;
-            this.configTexture(textureIndex);
-            var vertexNumber = this.configVerticesBufferData(vertexDataArray, firstVerticesStart, lastVerticesEnd);
-            if (vertexNumber < 3) return;
-            this.gl.drawArrays(this.gl.TRIANGLES, 0, vertexNumber);
-            this.DEBUG_DRAW_COUNT++;
-        }
-    }, {
-        key: "strokeRendVertexArray",
-        value: function strokeRendVertexArray(vertexDataArray, firstVerticesStart, lastVerticesEnd) {
-            if (firstVerticesStart == undefined) firstVerticesStart = 0;
-            if (vertexDataArray.length == 0) return;
-            this.configTexture();
-            var vertexNumber = this.configVerticesBufferData(vertexDataArray, firstVerticesStart, lastVerticesEnd);
-            if (vertexNumber < 2) return;
-            this.gl.drawArrays(this.gl.LINES, 0, vertexNumber);
-            this.DEBUG_DRAW_COUNT++;
-        }
-
-        // executeRenderAction(actionList, stateArray) {
-        //     let matrixIndex = 1; // 每次绘制都要重新设置矩阵的索引
-        //     let lastAction = undefined;
-        //     let vertexDataArray = [];
-        //     let matrixMap = {}; // 由状态id和状态内矩阵id组合成一个key，value是对应的矩阵索引值
-        //     let firstVerticesStart = 0;
-        //
-        //
-        //     for (let i = 0; i < actionList.length; i++) {
-        //         let currentAction = actionList[i];
-        //         if (lastAction == undefined) lastAction = currentAction;
-        //         if (currentAction.type == RenderAction.ACTION_STROKE) {
-        //             if (lastAction != currentAction && lastAction != undefined) {
-        //                 this.rendVertexArray(lastAction.type, vertexDataArray, undefined, undefined, lastAction.textureIndex);
-        //             }
-        //             vertexDataArray = [];
-        //             vertexDataArray.push(currentAction.vertexData);
-        //             matrixIndex = 1;
-        //             matrixMap = {};
-        //             lastAction = currentAction;
-        //             for (let k = 0; k < currentAction.vertexData.vertexNumber; k++) {
-        //                 let mid = currentAction.vertexData.getMatrixIndex(k);
-        //                 let sid = currentAction.vertexData.getContextStateIndex(k);
-        //                 let key = sid.toString() + '-' + mid.toString();
-        //                 let currentMatrixIndex = matrixMap[key];
-        //                 if (currentMatrixIndex == undefined) {
-        //                     currentMatrixIndex = matrixIndex;
-        //                     if ((currentMatrixIndex + 1) > this.maxTransformMatrixNum) {
-        //                         //为了能让一个绘制动作顺利结束，只能自己计算坐标咯
-        //                         let m = stateArray[sid].matrixArray[mid];
-        //                         let vertex = currentAction.vertexData.dataBuffer.getVertex(k * currentAction.vertexData.dataBuffer.singleDataFragmentByteSize);
-        //                         vertex = Mat4.multiplyWithVertex(m, vertex);
-        //                         currentAction.vertexData.dataBuffer.modifyVertex(vertex, k * currentAction.vertexData.dataBuffer.singleDataFragmentByteSize);
-        //                         currentAction.vertexData.matrixIndexBuffer.put(0);
-        //                     } else {
-        //                         let m = stateArray[sid].matrixArray[mid];
-        //                         matrixMap[key] = currentMatrixIndex;
-        //                         this.setUniformTransformMatrix(m, currentMatrixIndex);
-        //                         currentAction.vertexData.matrixIndexBuffer.put(currentMatrixIndex);
-        //                         matrixIndex++;
-        //                     }
-        //                 } else {
-        //                     currentAction.vertexData.matrixIndexBuffer.put(currentMatrixIndex);
-        //                 }
-        //             }
-        //             this.rendVertexArray(currentAction.type, vertexDataArray);
-        //             matrixMap = {};
-        //             vertexDataArray = [];
-        //             matrixIndex = 1;
-        //             continue;
-        //         } else {
-        //             // 先收集顶点数据，顶点的矩阵在下一步再设置
-        //             if (currentAction.type == lastAction.type) { // 同个Fill绘制可以进行叠加统一绘制
-        //                 if (currentAction.textureIndex != lastAction.textureIndex && currentAction.textureIndex != -1 && lastAction.textureIndex != -1) {
-        //                     this.rendVertexArray(lastAction.type, vertexDataArray, undefined, undefined, lastAction.textureIndex);
-        //                     vertexDataArray = [];
-        //                     lastAction = currentAction;
-        //                     matrixIndex = 1;
-        //                     matrixMap = {};
-        //                 }
-        //                 if (lastAction.textureIndex == -1 && currentAction.textureIndex != -1) {
-        //                     lastAction = currentAction;
-        //                 }
-        //                 vertexDataArray.push(currentAction.vertexData); // 叠加
-        //             } else {
-        //                 // 如果类型不一样，先绘制之前的类型，并且当前的index退回去
-        //                 this.rendVertexArray(lastAction.type, vertexDataArray);
-        //                 matrixIndex = 1;
-        //                 i--;
-        //                 lastAction = undefined;
-        //                 vertexDataArray = [];
-        //                 continue;
-        //             }
-        //         }
-        //
-        //         // 开始设置顶点的变换矩阵
-        //         for (let k = 0; k < currentAction.vertexData.vertexNumber; k++) {
-        //             let mid = currentAction.vertexData.getMatrixIndex(k);
-        //             let sid = currentAction.vertexData.getContextStateIndex(k);
-        //             let key = sid.toString() + '-' + mid.toString();
-        //             let currentMatrixIndex = matrixMap[key];
-        //             if (currentMatrixIndex == undefined) {
-        //                 currentMatrixIndex = matrixIndex;
-        //                 if ((currentMatrixIndex + 1) > this.maxTransformMatrixNum) {
-        //                     // 如果Index已经超过最大限制，就先绘制之前的
-        //                     if (k == 0) {
-        //                         vertexDataArray.pop();
-        //                         this.rendVertexArray(lastAction.type, vertexDataArray, undefined, undefined, lastAction.textureIndex);
-        //                         matrixMap = {};
-        //                         matrixIndex = 1;
-        //                         vertexDataArray = [];
-        //                         lastAction = undefined;
-        //                         i--;
-        //                         break;
-        //                     } else {
-        //                         //为了能让一个绘制动作顺利结束，只能自己计算坐标咯
-        //                         let m = stateArray[sid].matrixArray[mid];
-        //                         let vertex = currentAction.vertexData.dataBuffer.getVertex(k * currentAction.vertexData.dataBuffer.singleDataFragmentByteSize);
-        //                         vertex = Mat4.multiplyWithVertex(m, vertex);
-        //                         currentAction.vertexData.dataBuffer.modifyVertex(vertex, k * currentAction.vertexData.dataBuffer.singleDataFragmentByteSize);
-        //                         currentAction.vertexData.matrixIndexBuffer.put(0);
-        //                     }
-        //                 } else {
-        //                     let m = stateArray[sid].matrixArray[mid];
-        //                     matrixMap[key] = currentMatrixIndex;
-        //                     this.setUniformTransformMatrix(m, currentMatrixIndex);
-        //                     currentAction.vertexData.matrixIndexBuffer.put(currentMatrixIndex);
-        //                     matrixIndex++;
-        //                 }
-        //             } else {
-        //                 currentAction.vertexData.matrixIndexBuffer.put(currentMatrixIndex);
-        //             }
-        //         }
-        //     }
-        //
-        //     if (vertexDataArray.length != 0 && lastAction != undefined) {
-        //         this.rendVertexArray(lastAction.type, vertexDataArray, firstVerticesStart, undefined, lastAction.textureIndex);
-        //     }
-        // }
-
-
-    }, {
-        key: "executeRenderAction",
-        value: function executeRenderAction(actionList, stateArray) {
+        key: "executeRenderAction2",
+        value: function executeRenderAction2(actionList, stateArray) {
+            this.prepareWebGLBuffer();
             var matrixIndex = 1; // 每次绘制都要重新设置矩阵的索引
             var lastAction = undefined;
-            var vertexDataArray = [];
-            var matrixMap = {}; // 由状态id和状态内矩阵id组合成一个key，value是对应的矩阵索引值
-            var firstVerticesStart = 0;
-
+            var startIndex = 0;
+            var rendNumber = 0;
             for (var i = 0; i < actionList.length; i++) {
                 var currentAction = actionList[i];
                 if (lastAction == undefined) lastAction = currentAction;
-                if (currentAction.type == _RenderAction2.default.ACTION_STROKE) {
-                    if (currentAction.type == lastAction.type) {
-                        lastAction = currentAction;
-                        vertexDataArray.push(currentAction.vertexData);
-                        continue;
-                    } else {
-                        this.rendVertexArray(lastAction.type, vertexDataArray, undefined, undefined, lastAction.textureIndex);
-                        vertexDataArray = [];
-                        i--;
-                        lastAction = undefined;
-                        continue;
-                    }
-                } else {
-                    // 先收集顶点数据，顶点的矩阵在下一步再设置
-                    if (currentAction.type == lastAction.type) {
-                        // 同个Fill绘制可以进行叠加统一绘制
-                        if (currentAction.textureIndex != lastAction.textureIndex && currentAction.textureIndex != -1 && lastAction.textureIndex != -1) {
-                            this.rendVertexArray(lastAction.type, vertexDataArray, undefined, undefined, lastAction.textureIndex);
-                            vertexDataArray = [];
-                            lastAction = currentAction;
-                        }
-                        if (lastAction.textureIndex == -1 && currentAction.textureIndex != -1) {
-                            lastAction = currentAction;
-                        }
-                        vertexDataArray.push(currentAction.vertexData); // 叠加
-                    } else {
-                        // 如果类型不一样，先绘制之前的类型，并且当前的index退回去
-                        this.rendVertexArray(lastAction.type, vertexDataArray);
-                        i--;
-                        lastAction = undefined;
-                        vertexDataArray = [];
-                        continue;
-                    }
+                // 先收集顶点数据，顶点的矩阵在下一步再设置
+                if (currentAction.textureIndex != lastAction.textureIndex && currentAction.textureIndex != -1 && lastAction.textureIndex != -1) {
+                    this.renderVertices(startIndex, rendNumber, lastAction.textureIndex);
+                    lastAction = currentAction;
+                    startIndex = rendNumber;
+                    rendNumber = 0;
                 }
+                if (lastAction.textureIndex == -1 && currentAction.textureIndex != -1) {
+                    lastAction = currentAction;
+                }
+                rendNumber += currentAction.renderPointNumber;
             }
 
-            if (vertexDataArray.length != 0 && lastAction != undefined) {
-                this.rendVertexArray(lastAction.type, vertexDataArray, firstVerticesStart, undefined, lastAction.textureIndex);
+            if (lastAction != undefined) {
+                this.renderVertices(startIndex, rendNumber, lastAction.textureIndex);
             }
+        }
+    }, {
+        key: "renderVertices",
+        value: function renderVertices(startIndex, renderPointNumber, textureIndex) {
+            if (renderPointNumber == 0) {
+                return;
+            }
+            var gl = this.gl;
+            this.gl.uniform3f(this.shaderInformation.lightPosition, this.lightPosition[0], this.lightPosition[1], this.lightPosition[2]);
+            this.configTexture(textureIndex);
+            gl.drawArrays(gl.TRIANGLES, startIndex, renderPointNumber);
+            this.DEBUG_DRAW_COUNT++;
         }
     }, {
         key: "setLightPosition",
@@ -408,63 +210,6 @@ var WebGLRender = function () {
             gl.activeTexture(gl.TEXTURE0 + 0);
             gl.bindTexture(gl.TEXTURE_2D, texture);
         }
-    }, {
-        key: "prepareVertexDatas",
-        value: function prepareVertexDatas(dataByteLength) {
-            var gl = this.gl;
-            var shaderInfo = this.shaderInformation;
-            gl.enableVertexAttribArray(shaderInfo.vertexAttribute);
-            gl.enableVertexAttribArray(shaderInfo.colorAttribute);
-            gl.enableVertexAttribArray(shaderInfo.textureCoordAttribute);
-            // gl.enableVertexAttribArray(shaderInfo.transformMatrixIndex);
-            // gl.bindBuffer(gl.ARRAY_BUFFER, shaderInfo.verticesBuffer);
-            // gl.bufferData(gl.ARRAY_BUFFER, dataByteLength, gl.DYNAMIC_DRAW);
-
-            // 设置如何从buffer中读出顶点
-            var floatByteSize = 4;
-
-            // 设置如何从buffer中读出顶点
-            var size = 3; // 这是表示这组数据由多少个数组element组成
-            var type = gl.FLOAT; // 给出数据的类型
-            var normalize = false; // 是否要标准化，比如gl.UNSIGN8BIT,就会变成[1-0】之间的数字
-            var stride = SINGLE_DATA_BYTE_LENGTH; // 读取的时候移动多少字节到达该类型数据的下一个，这个很关键，一般都是这个数据layout的单个组成所有数据的大小
-            // 比如现在，就是3个顶点坐标+2个贴图坐标+2个无用float，因为都设置成了float，再加上4位颜色 所以这个stride值就是 7*4+4 =32;
-            var offset = 0; // 读取的起始位置，和stride一样，移动的位置也是字节大小。顶点数据是在整个layout的开始，所以是0，而颜色数据在顶点之后，则是3*4
-            gl.vertexAttribPointer(shaderInfo.vertexAttribute, size, type, normalize, stride, offset);
-
-            // type = gl.FLOAT;
-            // size = 1;
-            // offset = 3 * floatByteSize;
-            // gl.vertexAttribPointer(shaderInfo.transformMatrixIndex, size, type, normalize, stride, offset);
-
-            type = gl.UNSIGNED_BYTE;
-            size = 4;
-            offset = 5 * floatByteSize; // 注意：这里要跳过两个无用的float类型数据
-            gl.vertexAttribPointer(shaderInfo.colorAttribute, size, type, normalize, stride, offset);
-
-            type = gl.FLOAT;
-            size = 2;
-            offset += 4;
-            gl.vertexAttribPointer(shaderInfo.textureCoordAttribute, size, type, normalize, stride, offset);
-        }
-    }, {
-        key: "prepareMatrixIndexDatas",
-        value: function prepareMatrixIndexDatas(length) {
-            var gl = this.gl;
-            var shaderInfo = this.shaderInformation;
-
-            gl.enableVertexAttribArray(shaderInfo.transformMatrixIndex);
-            // gl.bindBuffer(gl.ARRAY_BUFFER, shaderInfo.matrixIndexBuffer);
-            // gl.bufferData(gl.ARRAY_BUFFER, length, gl.DYNAMIC_DRAW);
-            var type = gl.FLOAT;
-            var size = 1;
-            var offset = 0;
-            var stripe = 4;
-            gl.vertexAttribPointer(shaderInfo.transformMatrixIndex, size, type, false, stripe, offset);
-        }
-    }, {
-        key: "registerTexture",
-        value: function registerTexture(image) {}
     }, {
         key: "createShaderProgram",
         value: function createShaderProgram() {
@@ -528,11 +273,17 @@ var WebGLRender = function () {
             var vertexAttribute = gl.getAttribLocation(program, "a_position");
             gl.enableVertexAttribArray(vertexAttribute);
 
+            var normalAttribute = gl.getAttribLocation(program, "a_normal");
+            gl.enableVertexAttribArray(normalAttribute);
+
             var transformMatrixIndex = gl.getAttribLocation(program, "transform_matrix_index");
             gl.enableVertexAttribArray(transformMatrixIndex);
 
             var colorAttribute = gl.getAttribLocation(program, 'color');
             gl.enableVertexAttribArray(colorAttribute);
+
+            var alphaAttribute = gl.getAttribLocation(program, 'alpha');
+            gl.enableVertexAttribArray(alphaAttribute);
 
             // 转化矩阵全局变量
             var perspectiveMatrix = gl.getUniformLocation(program, "perspective_matrix");
@@ -551,6 +302,8 @@ var WebGLRender = function () {
             // 创建数据缓存
             var verticesBuffer = gl.createBuffer();
             var matrixIndexBuffer = gl.createBuffer();
+            var fragmentBuffer = gl.createBuffer();
+
             var blackTexture = gl.createTexture();
             gl.bindTexture(gl.TEXTURE_2D, blackTexture);
             var blackPixel = new Uint8Array([255, 255, 255, 255]);
@@ -558,9 +311,12 @@ var WebGLRender = function () {
             gl.bindTexture(gl.TEXTURE_2D, null);
             return {
                 vertexAttribute: vertexAttribute,
+                normalAttribute: normalAttribute,
                 colorAttribute: colorAttribute,
+                alphaAttribute: alphaAttribute,
                 textureCoordAttribute: textureCoordAttribute,
                 verticesBuffer: verticesBuffer,
+                fragmentBuffer: fragmentBuffer,
                 matrixIndexBuffer: matrixIndexBuffer,
                 perspectiveMatrix: perspectiveMatrix,
                 transformMatrixArray: transformMatrixArray,
@@ -623,7 +379,7 @@ var WebGLRender = function () {
     }, {
         key: "getVertexShaderSource",
         value: function getVertexShaderSource(transformMatrixCount) {
-            var vsSource = ' attribute vec4 color;\n' + '     attribute vec4 a_position;\n' + '     attribute vec2 u_texCoord;\n' + '     varying vec3 v_position;\n' + '     attribute float transform_matrix_index;\n' + '     varying vec2 v_texcoord;\n' + '     varying vec4 currentColor;\n' + '     varying vec3 normal;\n' + '     uniform mat4 perspective_matrix;\n' + '     uniform mat4 transform_matrix_array[' + transformMatrixCount + '];\n' + '     void main() {\n' + '             normal = vec3(0,0,1);\n' + '             vec4 yuandian = vec4(0,0,0,1);\n' + '             v_texcoord = u_texCoord;\n' + '            vec4 new_position = transform_matrix_array[int(transform_matrix_index)] * a_position;\n' + '            v_position = vec3(new_position.xyz);\n' + '            vec4 n_y = transform_matrix_array[int(transform_matrix_index)] * yuandian;\n' + '            vec4 n_n = transform_matrix_array[int(transform_matrix_index)] * vec4(normal,1);\n' + '            normal = vec3(n_n.x-n_y.x,n_n.y-n_y.y,n_n.z-n_y.z);\n' + '            vec4 finalPosition = perspective_matrix* new_position;\n' + '            currentColor = vec4 (color.xyz/255.0,color.w/100.0);\n' + '            gl_Position = finalPosition;\n' + '    }';
+            var vsSource = ' attribute vec3 color;\n' + '     attribute vec4 a_position;\n' + '     attribute vec3 a_normal;\n' + '     attribute float alpha;\n' + '     attribute vec2 u_texCoord;\n' + '     varying vec3 v_position;\n' + '     attribute float transform_matrix_index;\n' + '     varying vec2 v_texcoord;\n' + '     varying vec4 currentColor;\n' + '     varying vec3 normal;\n' + '     uniform mat4 perspective_matrix;\n' + '     uniform mat4 transform_matrix_array[' + transformMatrixCount + '];\n' + '     void main() {\n' + '            normal = a_normal;\n' + '            vec4 yuandian = vec4(0,0,0,1);\n' + '            v_texcoord = u_texCoord;\n' + '            vec4 new_position = transform_matrix_array[int(transform_matrix_index)] * a_position;\n' + '            v_position = vec3(new_position.xyz);\n' + '            vec4 finalPosition = perspective_matrix* new_position;\n' + '            currentColor = vec4 (color.xyz/255.0,alpha);\n' + '            gl_Position = finalPosition;\n' + '    }';
             return vsSource;
         }
     }, {
