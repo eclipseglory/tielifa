@@ -42,9 +42,17 @@ var _Mat = require("../math/Mat4.js");
 
 var _Mat2 = _interopRequireDefault(_Mat);
 
-var _DataBuffer = require("./DataBuffer.js");
+var _VerticesData = require("./VerticesData.js");
 
-var _DataBuffer2 = _interopRequireDefault(_DataBuffer);
+var _VerticesData2 = _interopRequireDefault(_VerticesData);
+
+var _FragmentData = require("./FragmentData.js");
+
+var _FragmentData2 = _interopRequireDefault(_FragmentData);
+
+var _TransformMatrixData = require("./TransformMatrixData.js");
+
+var _TransformMatrixData2 = _interopRequireDefault(_TransformMatrixData);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -56,6 +64,8 @@ var _stateArray = Symbol('状态数组，记录全部状态');
 var _pathList = Symbol('路径列表');
 var _renderActionList = Symbol('绘制动作List');
 var _subpathCatch = Symbol('子Path缓存');
+
+var FACE_NORMAL4 = [0, 0, 1, 0];
 
 var CanvasRenderingContextWebgl2D = function () {
     function CanvasRenderingContextWebgl2D(canvas, properties) {
@@ -70,12 +80,22 @@ var CanvasRenderingContextWebgl2D = function () {
         var FOV = properties['FOV'] || 20;
         var t = Math.tan(FOV * Math.PI / 180);
         this.defaultDepth = -canvas.height / (2 * t);
+        this.maxBufferByteLength = properties['maxMemorySize'] || 1024 * 1024;
         this[_stateStack] = [];
         this[_stateArray] = [];
         this[_pathList] = [];
         this[_renderActionList] = [];
         this[_subpathCatch] = [];
         this.webglRender = new _WebGLRender2.default(this.gl, properties['maxTransformNum'], properties['maxTextureSize'], properties['projectionType'], this.defaultDepth);
+        var maxVertexNumber = this.maxBufferByteLength / 32;
+        this.verticesData = new _VerticesData2.default(maxVertexNumber);
+        // DEBUG :
+        // console.log(maxVertexNumber,this.verticesData.totalByteLength);
+        this.fragmetData = new _FragmentData2.default(maxVertexNumber);
+        this.transformMatrixData = new _TransformMatrixData2.default(maxVertexNumber);
+        this.webglRender.verticesData = this.verticesData;
+        this.webglRender.fragmentData = this.fragmetData;
+        this.webglRender.transformMatrixData = this.transformMatrixData;
         this.translate(0, 0, this.defaultDepth);
     }
 
@@ -165,28 +185,10 @@ var CanvasRenderingContextWebgl2D = function () {
             var currentState = this.currentContextState;
             var currentSubPath = this.currentPath;
             var lastSubPath = currentSubPath.lastSubPath;
-            // let point = new Point3D(x, y, z);
-            // let m = currentState.transformMatrix.matrix;
-            // let temp = Mat4.multiplyWithVertex(m, point.value);
-            // point.x = temp[0];
-            // point.y = temp[1];
-            // point.z = temp[2];
-            // // point.contextStateIndex = currentState.id;
-            // // point.transformMatrixIndex = currentState.transformMatrixId;
-            // currentState.fireDirty();
-            // lastSubPath.pushPoint(point);
-
-            // let point = new Point3D(x, y, z);
             var m = currentState.transformMatrix.matrix;
             var temp = _Mat2.default.multiplyWithVertex(m, [x, y, z, 1]);
             lastSubPath.addPoint(temp[0], temp[1], temp[2], currentState.id, currentState.transformMatrixId);
-            // point.x = temp[0];
-            // point.y = temp[1];
-            // point.z = temp[2];
-            // point.contextStateIndex = currentState.id;
-            // point.transformMatrixIndex = currentState.transformMatrixId;
             currentState.fireDirty();
-            // lastSubPath.pushPoint(point);
         }
 
         /**
@@ -207,21 +209,17 @@ var CanvasRenderingContextWebgl2D = function () {
             if (z == undefined) z = 0;
             var currentState = this.currentContextState;
             var currentSubPath = this.currentPath;
-            // let point = new Point3D(x, y, z);
-            // let m = currentState.transformMatrix.matrix;
-            // let temp = Mat4.multiplyWithVertex(m, point.value);
-            // point.x = temp[0];
-            // point.y = temp[1];
-            // point.z = temp[2];
-            // // point.contextStateIndex = currentState.id;
-            // // point.transformMatrixIndex = currentState.transformMatrixId;
-            // currentState.fireDirty();
-            //
-            // let subPath = new SubPath3D(point);
-            // currentSubPath.addSubPath(subPath);
-            var subPath = new _SubPath3D2.default();
-            currentSubPath.addSubPath(subPath);
-            this.lineTo(x, y, z);
+            var lastSubPath = currentSubPath.lastSubPath;
+            if (lastSubPath != undefined && lastSubPath.pointsNumber < 2) {
+                //这个subpath只要一个点，就用它作为新的subpath
+                var m = currentState.transformMatrix.matrix;
+                var temp = _Mat2.default.multiplyWithVertex(m, [x, y, z, 1]);
+                lastSubPath.setPoint(0, temp[0], temp[1], temp[2], currentState.id, currentState.transformMatrixId);
+            } else {
+                var subPath = new _SubPath3D2.default();
+                currentSubPath.addSubPath(subPath);
+                this.lineTo(x, y, z);
+            }
         }
 
         /**
@@ -503,7 +501,9 @@ var CanvasRenderingContextWebgl2D = function () {
             texCoordArray[2] = [tr, tb]; // 右下角
             texCoordArray[3] = [tx, tb]; // 左下角
             var color = [255, 255, 255]; //白色，在glsl里会成为一个1,1,1的向量，这样就不会改变贴图数据了
-            action.collectVertexData(pathList, color, opacity, texCoordArray);
+            action.verticesData = this.verticesData;
+            action.fragmentData = this.fragmetData;
+            action.collectVertexDataForFill(pathList, color, opacity, texCoordArray, this.currentFaceVector);
         }
     }, {
         key: "fill",
@@ -512,8 +512,10 @@ var CanvasRenderingContextWebgl2D = function () {
             var opacity = this.currentContextState.globalAlpha;
             var pathList = this[_pathList];
             var action = new _RenderAction2.default(_RenderAction2.default.ACTION_FILL);
+            action.verticesData = this.verticesData;
+            action.fragmentData = this.fragmetData;
             this[_renderActionList].push(action);
-            action.collectVertexData(pathList, fillColor, opacity * fillColor[3], [0, 0]);
+            action.collectVertexDataForFill(pathList, fillColor, opacity * fillColor[3], [0, 0], this.currentFaceVector);
         }
     }, {
         key: "fillRect",
@@ -522,15 +524,33 @@ var CanvasRenderingContextWebgl2D = function () {
             this.rect(x, y, w, h);
             this.fill();
         }
+
+        /**
+         * @deprecated
+         */
+
     }, {
-        key: "stroke",
-        value: function stroke() {
+        key: "stroke2",
+        value: function stroke2() {
             var strokeColor = _Color2.default.getInstance().convertStringToColor(this.currentContextState.strokeStyle);
             var opacity = this.currentContextState.globalAlpha;
             var pathList = this[_pathList];
             var action = new _RenderAction2.default(_RenderAction2.default.ACTION_STROKE);
             this[_renderActionList].push(action);
             action.collectVertexData(pathList, strokeColor, opacity * strokeColor[3], [0, 0]);
+        }
+    }, {
+        key: "stroke",
+        value: function stroke() {
+            var strokeColor = _Color2.default.getInstance().convertStringToColor(this.currentContextState.strokeStyle);
+            var opacity = this.currentContextState.globalAlpha;
+            var pathList = this[_pathList];
+            var lineWidth = this.currentContextState.lineWidth;
+            var action = new _RenderAction2.default(_RenderAction2.default.ACTION_FILL);
+            action.verticesData = this.verticesData;
+            action.fragmentData = this.fragmetData;
+            this[_renderActionList].push(action);
+            action.collectVertexDataForStroke(pathList, strokeColor, opacity * strokeColor[3], [0, 0], lineWidth, this.currentFaceVector);
         }
 
         //******************** 扩展接口 *****************************//
@@ -590,28 +610,14 @@ var CanvasRenderingContextWebgl2D = function () {
         key: "draw",
         value: function draw() {
             this.webglRender.initRending();
-            this.webglRender.executeRenderAction(this[_renderActionList], this[_stateArray]);
-            this.collectBufferForRecycle();
+            this.webglRender.executeRenderAction2(this[_renderActionList], this[_stateArray]);
             this[_renderActionList] = [];
             this[_stateArray] = [];
+            this.verticesData.init();
+            this.fragmetData.init();
+            this.transformMatrixData.init();
             // debug:
             // console.log("绘制调用次数：", this.webglRender.DEBUG_DRAW_COUNT);
-        }
-    }, {
-        key: "collectBufferForRecycle",
-        value: function collectBufferForRecycle() {
-            for (var i = 0; i < this[_renderActionList].length; i++) {
-                var action = this[_renderActionList][i];
-                var vd = action.vertexData;
-                var vddb = vd.dataBuffer;
-                if (!vddb.recycle()) {
-                    break;
-                }
-                var vdmb = vd.matrixIndexBuffer;
-                if (!vdmb.recycle()) {
-                    break;
-                }
-            }
         }
     }, {
         key: "currentContextState",
@@ -656,6 +662,13 @@ var CanvasRenderingContextWebgl2D = function () {
             return this.currentContextState.strokeStyle;
         }
     }, {
+        key: "currentFaceVector",
+        get: function get() {
+            var m = this.currentContextState.transformMatrix.matrix;
+            var n = _Mat2.default.multiplyWithVertex(m, FACE_NORMAL4);
+            return n;
+        }
+    }, {
         key: "fillStyle",
         set: function set(fill) {
             this.currentContextState.fillStyle = fill;
@@ -670,6 +683,14 @@ var CanvasRenderingContextWebgl2D = function () {
         },
         get: function get() {
             return this.currentContextState.globalAlpha;
+        }
+    }, {
+        key: "lineWidth",
+        set: function set(lineWidth) {
+            this.currentContextState.lineWidth = lineWidth;
+        },
+        get: function get() {
+            return this.currentContextState.lineWidth;
         }
     }]);
 

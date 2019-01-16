@@ -30,9 +30,6 @@ var CanvasDrawingStylesWebgl2D = function () {
         this.textBaseline = 'alphabetic';
     }
 
-    // line caps/joins
-
-
     _createClass(CanvasDrawingStylesWebgl2D, [{
         key: 'clone',
         value: function clone() {
@@ -46,20 +43,23 @@ var CanvasDrawingStylesWebgl2D = function () {
             return c;
         }
     }, {
-        key: 'lineWidth',
-        get: function get() {
-            return this[_lineWidth];
-        },
-        set: function set(lineWidth) {
-            this[_lineWidth] = lineWidth;
-        }
-    }, {
         key: 'lineCap',
         get: function get() {
             return this[_lineCap];
         },
         set: function set(lineCap) {
             this[_lineCap] = lineCap;
+        }
+
+        // line caps/joins
+
+    }, {
+        key: 'lineWidth',
+        get: function get() {
+            return this[_lineWidth];
+        },
+        set: function set(lineWidth) {
+            this[_lineWidth] = lineWidth;
         }
     }, {
         key: 'lineJoin',
