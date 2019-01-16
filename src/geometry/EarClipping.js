@@ -584,7 +584,7 @@ var EarClipping = function () {
     }, {
         key: 'locallyInside',
         value: function locallyInside(a, b) {
-            return area(a.prev, a, a.next) < 0 ? EarClipping.area(a, b, a.next) >= 0 && EarClipping.area(a, a.prev, b) >= 0 : EarClipping.area(a, b, a.prev) < 0 || EarClipping.area(a, a.next, b) < 0;
+            return EarClipping.area(a.prev, a, a.next) < 0 ? EarClipping.area(a, b, a.next) >= 0 && EarClipping.area(a, a.prev, b) >= 0 : EarClipping.area(a, b, a.prev) < 0 || EarClipping.area(a, a.next, b) < 0;
         }
 
         // check if the middle point of a polygon diagonal is inside the polygon
