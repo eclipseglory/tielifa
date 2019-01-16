@@ -10,6 +10,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 var EPSILON = 0.00001;
 var PI2 = Math.PI * 2;
+var littleEndian = undefined;
 
 var Tools = function () {
     function Tools() {
@@ -187,6 +188,23 @@ var Tools = function () {
         key: "EPSILON",
         get: function get() {
             return EPSILON;
+        }
+    }, {
+        key: "littleEndian",
+        get: function get() {
+            if (littleEndian === undefined) {
+                // DataView是默认按照高位存放，这里要做判断，更改存放顺序
+                // PS: Float32Array却是按照低位存放的
+                var arrayBuffer = new ArrayBuffer(2);
+                var uint8Array = new Uint8Array(arrayBuffer);
+                var uint16array = new Uint16Array(arrayBuffer);
+                uint8Array[0] = 0xAA; // 第一位是AA
+                uint8Array[1] = 0xBB; // 第二位是BB
+                // 如果从16的view中读取数据，按照其排序就能得出高低位，以便DataView在设置值的时候能正确
+                if (uint16array[0] === 0xBBAA) littleEndian = true;
+                if (uint16array[0] === 0xAABB) littleEndian = false;
+            }
+            return littleEndian;
         }
     }]);
 
