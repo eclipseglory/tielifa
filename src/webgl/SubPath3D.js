@@ -68,6 +68,19 @@ var SubPath3D = function () {
             return [this.getPointStateId(index), this.getPointMatrixId(index)];
         }
     }, {
+        key: 'setPoint',
+        value: function setPoint(index, x, y, z, stateId, matrixId) {
+            stateId = stateId || 0;
+            matrixId = matrixId || 0;
+            var sIndex = index * 2;
+            index = index * 3;
+            this[_pointsCoordinateArray][index] = x;
+            this[_pointsCoordinateArray][index + 1] = y;
+            this[_pointsCoordinateArray][index + 2] = z;
+            this[_pointsTransformMatrixArray][sIndex] = stateId;
+            this[_pointsTransformMatrixArray][sIndex + 1] = matrixId;
+        }
+    }, {
         key: 'addPoint',
         value: function addPoint(x, y, z, stateId, matrixId) {
             stateId = stateId || 0;
@@ -111,9 +124,8 @@ var SubPath3D = function () {
     }, {
         key: 'clean',
         value: function clean() {
-            this.pointsArray.length = 0;
+            this.pointsArray = []; // 这样比length = 0 效率高?
             this.isClosed = false;
-            // this.pointsArray = [];// 这样比length = 0 效率高???!!
         }
 
         /**
