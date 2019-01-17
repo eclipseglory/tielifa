@@ -6,13 +6,13 @@ Object.defineProperty(exports, "__esModule", {
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _MathTools = require("../math/MathTools.js");
-
-var _MathTools2 = _interopRequireDefault(_MathTools);
-
 var _Vector = require("../math/Vector3.js");
 
 var _Vector2 = _interopRequireDefault(_Vector);
+
+var _GeometryTools = require("./GeometryTools.js");
+
+var _GeometryTools2 = _interopRequireDefault(_GeometryTools);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -129,7 +129,7 @@ var LineToRectangle = function () {
                 var n = { x: 0, y: 0, z: 0 };
                 _Vector2.default.cross(_temp, temp1, that.faceDirection);
                 _Vector2.default.normalize(n, _temp);
-                var p1 = _MathTools2.default.calculateIntersectionOfPlane(n, u1, lr2, _r2);
+                var p1 = _GeometryTools2.default.calculateIntersectionOfPlane(n, u1, lr2, _r2);
                 if (p1 != undefined) {
                     setPointValue(p1.x, p1.y, p1.z, 0);
                     setPointValue(p1.x, p1.y, p1.z, 5);
@@ -140,7 +140,7 @@ var LineToRectangle = function () {
                 _temp.z = lr3.z - lr4.z;
                 _Vector2.default.normalize(u1, _temp);
 
-                var p2 = _MathTools2.default.calculateIntersectionOfPlane(n, u1, lr3, _r3);
+                var p2 = _GeometryTools2.default.calculateIntersectionOfPlane(n, u1, lr3, _r3);
                 if (p2 != undefined) {
                     setPointValue(p2.x, p2.y, p2.z, 4);
                     setPointValue(p2.x, p2.y, p2.z, endIndex - 3);
@@ -158,8 +158,8 @@ var LineToRectangle = function () {
                 var n = { x: 0, y: 0, z: 0 };
                 _Vector2.default.cross(temp, lineDirection, that.faceDirection);
                 _Vector2.default.normalize(n, temp);
-                var p1 = _MathTools2.default.calculateIntersectionOfPlane(n, u1, lastR2, r2);
-                if (p1 != undefined) {
+                var p1 = _GeometryTools2.default.calculateIntersectionOfPlane(n, u1, lastR2, r2);
+                if (p1 != null) {
                     //更新上个矩形r2和这个矩形的r1
                     r1.x = p1.x;
                     r1.y = p1.y;
@@ -169,8 +169,8 @@ var LineToRectangle = function () {
                 temp.y = lastR3.y - lastR4.y;
                 temp.z = lastR3.z - lastR4.z;
                 _Vector2.default.normalize(u1, temp);
-                var p2 = _MathTools2.default.calculateIntersectionOfPlane(n, u1, lastR3, r4);
-                if (p2 != undefined) {
+                var p2 = _GeometryTools2.default.calculateIntersectionOfPlane(n, u1, lastR3, r4);
+                if (p2 != null) {
                     //更新上个矩形r3和这个矩形的r4
                     r4.x = p2.x;
                     r4.y = p2.y;
@@ -183,12 +183,12 @@ var LineToRectangle = function () {
                 index = index * 6 * that.dim;
                 var r2Index = index + that.dim;
                 var r3Index = r2Index + that.dim;
-                if (p != undefined) {
+                if (p != null) {
                     rectPoints[r2Index] = p.x;
                     rectPoints[r2Index + 1] = p.y;
                     rectPoints[r2Index + 2] = p.z;
                 }
-                if (p1 != undefined) {
+                if (p1 != null) {
                     rectPoints[r3Index] = p1.x;
                     rectPoints[r3Index + 1] = p1.y;
                     rectPoints[r3Index + 2] = p1.z;
