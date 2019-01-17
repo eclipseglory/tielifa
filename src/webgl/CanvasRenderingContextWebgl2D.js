@@ -54,6 +54,22 @@ var _TransformMatrixData = require("./TransformMatrixData.js");
 
 var _TransformMatrixData2 = _interopRequireDefault(_TransformMatrixData);
 
+var _Mat3 = require("../math/Mat3.js");
+
+var _Mat4 = _interopRequireDefault(_Mat3);
+
+var _Vector = require("../math/Vector3.js");
+
+var _Vector2 = _interopRequireDefault(_Vector);
+
+var _Vector3 = require("../math/Vector2.js");
+
+var _Vector4 = _interopRequireDefault(_Vector3);
+
+var _GeometryTools = require("../geometry/GeometryTools.js");
+
+var _GeometryTools2 = _interopRequireDefault(_GeometryTools);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -101,12 +117,18 @@ var CanvasRenderingContextWebgl2D = function () {
 
     _createClass(CanvasRenderingContextWebgl2D, [{
         key: "clean",
+
+
+        /**
+         * clean all the path content and clear webgl depth buffer/color buffer
+         */
         value: function clean() {
             this[_pathList].length = 0;
             this.webglRender.clean();
         }
 
         /**
+         * didn't implement , just clear whole canvas
          * 没有实现,只能全部清空
          * @param left
          * @param top
@@ -124,9 +146,6 @@ var CanvasRenderingContextWebgl2D = function () {
 
         // 没有实现的有这些：
         // arcTo(x1: number, y1: number, x2: number, y2: number, radius: number): void;
-        // arcTo(x1: number, y1: number, x2: number, y2: number, radiusX: number, radiusY: number, rotation: number): void;
-        // bezierCurveTo(cp1x: number, cp1y: number, cp2x: number, cp2y: number, x: number, y: number): void;
-        // quadraticCurveTo(cpx: number, cpy: number, x: number, y: number): void;
 
     }, {
         key: "beginPath",
@@ -135,7 +154,7 @@ var CanvasRenderingContextWebgl2D = function () {
         }
 
         /**
-         * 关闭当前Path，下面是规范说明
+         * 封闭当前Path，下面是规范说明
          * The closePath() method must do nothing if the object's path has no subpaths.
          * Otherwise, it must mark the last subpath as closed,
          * create a new subpath whose first point is the same as the previous subpath's first point,
@@ -181,10 +200,14 @@ var CanvasRenderingContextWebgl2D = function () {
     }, {
         key: "lineTo",
         value: function lineTo(x, y, z) {
-            if (z == undefined) z = 0;
-            var currentState = this.currentContextState;
             var currentSubPath = this.currentPath;
             var lastSubPath = currentSubPath.lastSubPath;
+            if (lastSubPath == undefined) {
+                this.moveTo(x, y, z);
+                return;
+            }
+            if (z == undefined) z = 0;
+            var currentState = this.currentContextState;
             var m = currentState.transformMatrix.matrix;
             var temp = _Mat2.default.multiplyWithVertex(m, [x, y, z, 1]);
             lastSubPath.addPoint(temp[0], temp[1], temp[2], currentState.id, currentState.transformMatrixId);
@@ -218,7 +241,10 @@ var CanvasRenderingContextWebgl2D = function () {
             } else {
                 var subPath = new _SubPath3D2.default();
                 currentSubPath.addSubPath(subPath);
-                this.lineTo(x, y, z);
+                var _m = currentState.transformMatrix.matrix;
+                var _temp = _Mat2.default.multiplyWithVertex(_m, [x, y, z, 1]);
+                subPath.addPoint(_temp[0], _temp[1], _temp[2], currentState.id, currentState.transformMatrixId);
+                currentState.fireDirty();
             }
         }
 
@@ -244,10 +270,148 @@ var CanvasRenderingContextWebgl2D = function () {
             this.lineTo(x, y + h, depth);
             this.closePath();
         }
+
+        /**
+         * 绘制cubic贝塞尔曲线，4个控制点
+         * @param cp1x
+         * @param cp1y
+         * @param cp2x
+         * @param cp2y
+         * @param x
+         * @param y
+         */
+
+    }, {
+        key: "bezierCurveTo",
+        value: function bezierCurveTo(cp1x, cp1y, cp2x, cp2y, x, y) {
+            var lastSubPath = this.currentPath.lastSubPath;
+            var cp0x = cp1x;
+            var cp0y = cp1y;
+
+            if (lastSubPath == undefined) {
+                this.moveTo(cp1x, cp1y);
+            } else {
+                var lastIndex = lastSubPath.pointsNumber - 1;
+                var x0 = lastSubPath.getPointX(lastIndex);
+                var y0 = lastSubPath.getPointY(lastIndex);
+                if (x0 != cp1x && y0 != cp1y) {
+                    cp0x = x0;
+                    cp0y = y0;
+                }
+            }
+            // 二阶导数：6(1-t)(p2-2p1+p0) + 6t(p3-2p2+p1)
+            // 计算出三姐导数：6(p3 - 3p2 + 3p1-p0) 不知道算没算错 ：）
+            var sx = 6 * (x - 3 * cp2x + 3 * cp1x - cp0x);
+            var sy = 6 * (y - 3 * cp2y + 3 * cp1y - cp0y);
+            var r = 1 / (sx * sx + sy * sy);
+            var delta = Math.pow(r, 1 / 6);
+            var temp = _Vector4.default.TEMP_VECTORS[0];
+            var segment = 0;
+            for (; segment < 1; segment += delta) {
+                _GeometryTools2.default.cubicBezier(segment, cp0x, cp0y, cp1x, cp1y, cp2x, cp2y, x, y, temp.value);
+                this.lineTo(temp.x, temp.y);
+            }
+            if (segment > 1 && segment != 1) {
+                this.lineTo(x, y);
+            }
+        }
+
+        /**
+         * 绘制Quadratice贝塞尔，3个控制点
+         * @param cpx
+         * @param cpy
+         * @param x
+         * @param y
+         */
+
+    }, {
+        key: "quadraticCurveTo",
+        value: function quadraticCurveTo(cpx, cpy, x, y) {
+            var lastSubPath = this.currentPath.lastSubPath;
+            var cp0x = cpx;
+            var cp0y = cpy;
+
+            if (lastSubPath == undefined) {
+                this.moveTo(cpx, cpy);
+            } else {
+                var lastIndex = lastSubPath.pointsNumber - 1;
+                var x0 = lastSubPath.getPointX(lastIndex);
+                var y0 = lastSubPath.getPointY(lastIndex);
+                if (x0 != cpx && y0 != cpy) {
+                    cp0x = x0;
+                    cp0y = y0;
+                }
+            }
+            // 2阶导数：2(p2-2p1+p0)
+            var sx = 2 * (x - 2 * cpx + cp0x);
+            var sy = 2 * (y - 2 * cpy + cp0y);
+            var r = 1 / (sx * sx + sy * sy);
+            var delta = Math.pow(r, 0.25);
+            var temp = _Vector4.default.TEMP_VECTORS[0];
+            var segment = 0;
+            for (; segment < 1; segment += delta) {
+                _GeometryTools2.default.quadraticBezier(segment, cp0x, cp0y, cpx, cpy, x, y, temp.value);
+                this.lineTo(temp.x, temp.y);
+            }
+            if (segment > 1 && segment != 1) {
+                this.lineTo(x, y);
+            }
+        }
+
+        // arcTo(x1: number, y1: number, x2: number, y2: number, radius: number): void;
+        // arcTo(x1: number, y1: number, x2: number, y2: number, radiusX: number, radiusY: number, rotation: number): void;
+        /**
+         * 方法实现有错误！！
+         * @deprecated
+         * @param x1
+         * @param y1
+         * @param x2
+         * @param y2
+         * @param radiusX
+         * @param radiusY
+         * @param rotation
+         * @returns {{center: number[], theta: number[]}}
+         */
+
+    }, {
+        key: "arcTo",
+        value: function arcTo(x1, y1, x2, y2, radiusX, radiusY, rotation) {
+            if (arguments.length == 5) {
+                radiusY = radiusX;
+                rotation = 0;
+            }
+            if (radiusX < 0 || radiusY < 0) throw new Error('IndexError,radius should not be negative value');
+            if (rotation == undefined) rotation = 0;
+            var lastSubPath = this.currentPath.lastSubPath;
+            if (lastSubPath == undefined) {
+                this.moveTo(x1, y1);
+                lastSubPath = this.currentPath.lastSubPath;
+            } else {
+                var lastIndex = lastSubPath.pointsNumber - 1;
+                var x0 = lastSubPath.getPointX(lastIndex);
+                var y0 = lastSubPath.getPointY(lastIndex);
+                if (x0 != x1 && y0 != y1) {
+                    this.lineTo(x1, y1);
+                }
+            }
+
+            if (x1 == x2 && y1 == y2) {
+                this.lineTo(x2, y2);
+                return;
+            }
+
+            var result = _GeometryTools2.default.arcConversionEndpointToCenter(x1, y1, x2, y2, radiusX, radiusY, rotation);
+            var theta = result.theta;
+            var deltaTheta = result.deltaTheta;
+            var cx = result.x;
+            var cy = result.y;
+            this.ellipse(cx, cy, radiusX, radiusY, rotation, theta, theta + deltaTheta);
+            this.lineTo(x2, y2);
+        }
     }, {
         key: "ellipse",
         value: function ellipse(x, y, radiusX, radiusY, rotation, startAngle, endAngle, anticlockwise) {
-            if (radiusX < 0 || radiusY < 0) throw new Error('半径必须不小于0. Radius should not be smaller than zero. BanJing BiXu BuXiaoYu Ling');
+            if (radiusX < 0 || radiusY < 0) throw new Error('IndexError.半径必须不小于0. Radius should not be smaller than zero. BanJing BiXu BuXiaoYu Ling');
             if (radiusX == 0 || radiusY == 0) return;
             if (anticlockwise == undefined) anticlockwise = false;
 
@@ -257,6 +421,8 @@ var CanvasRenderingContextWebgl2D = function () {
                 this.currentPath.addSubPath(subpath);
             }
 
+            var realRadius = Math.max(radiusX, radiusY); // 这个值要根据当前缩放算一下
+            var plusAngle = Math.asin(1 / realRadius) * 2;
             startAngle = adjustAngle(startAngle);
             endAngle = adjustAngle(endAngle);
 
@@ -271,26 +437,33 @@ var CanvasRenderingContextWebgl2D = function () {
                 }
             }
 
-            var realRadius = Math.max(radiusX, radiusY); // 这个值要根据当前缩放算一下
-            var plusAngle = Math.asin(1 / realRadius) * 2;
-            var count = 0;
             if (anticlockwise) {
-                plusAngle *= -1;
+                for (var theta = startAngle; theta > endAngle; theta -= plusAngle) {
+                    if (Math.abs(theta - startAngle) >= _Tools2.default.PI2) {
+                        return;
+                    }
+                    var _nextPoint = _Vector2.default.TEMP_VECTORS[0];
+                    _GeometryTools2.default.getEllipsePointWithRadian(x, y, radiusX, radiusY, theta, rotation, _nextPoint.value);
+                    this.lineTo(_nextPoint.x, _nextPoint.y);
+                }
+            } else {
+                for (var _theta = startAngle; _theta < endAngle; _theta += plusAngle) {
+                    if (Math.abs(_theta - startAngle) >= _Tools2.default.PI2) {
+                        return;
+                    }
+                    var _nextPoint2 = _Vector2.default.TEMP_VECTORS[0];
+                    _GeometryTools2.default.getEllipsePointWithRadian(x, y, radiusX, radiusY, _theta, rotation, _nextPoint2.value);
+                    this.lineTo(_nextPoint2.x, _nextPoint2.y);
+                }
             }
-
-            for (var radian = startAngle; Math.abs(radian) < Math.abs(endAngle); radian += plusAngle, count++) {
-                var _nextPoint = getPoint(x, y, radiusX, radiusY, radian);
-                this.lineTo(_nextPoint.x, _nextPoint.y);
-            }
-
-            // 连接上最后一个点：
-            var nextPoint = getPoint(x, y, radiusX, radiusY, endAngle);
+            var nextPoint = _Vector2.default.TEMP_VECTORS[0];
+            _GeometryTools2.default.getEllipsePointWithRadian(x, y, radiusX, radiusY, endAngle, rotation, nextPoint.value);
             this.lineTo(nextPoint.x, nextPoint.y);
 
             function adjustAngle(angle) {
                 var PI2 = 2 * Math.PI;
                 var beishu = Math.floor(Math.abs(angle / PI2)) + 1;
-                if (Math.abs(angle) > PI2) beishu++;
+                // if (Math.abs(angle) > PI2) beishu++;
                 if (angle < 0 && !anticlockwise) {
                     angle += beishu * PI2;
                 }
@@ -299,29 +472,9 @@ var CanvasRenderingContextWebgl2D = function () {
                 }
                 return angle;
             }
-
-            function getPoint(x, y, radiusX, radiusY, radian) {
-                var cos = Math.cos(radian);
-                var sin = Math.sin(radian);
-                var tan = sin / cos;
-                var x1 = Math.sqrt(radiusY * radiusY * radiusX * radiusX / (radiusY * radiusY + radiusX * radiusX * tan * tan));
-                var y1 = tan * x1;
-                if (cos * x1 < 0) x1 *= -1;
-                if (sin * y1 < 0) y1 *= -1;
-                x1 += x;
-                y1 += y;
-                if (rotation != 0) {
-                    var nx = (x1 - x) * Math.cos(rotation) - (y1 - y) * Math.sin(rotation) + x;
-                    var ny = (y1 - y) * Math.cos(rotation) + (x1 - x) * Math.sin(rotation) + y;
-                    x1 = nx;
-                    y1 = ny;
-                }
-                return { x: x1, y: y1 };
-            }
         }
 
         /**
-         * 该方法已经在canvas2d下模拟测试通过
          * 规范说明
          * The arc(x, y, radius, startAngle, endAngle, counterclockwise) method draws an arc.
          * If the context has any subpaths, then the method must add a straight line from the last point in
@@ -417,6 +570,64 @@ var CanvasRenderingContextWebgl2D = function () {
             this.currentContextState.scale(scaleX, scaleY, scaleZ);
         }
 
+        /**
+         *
+         * @param scaleX :number
+         * @param skewY:number
+         * @param skewX:number
+         * @param scaleY:number
+         * @param tx:number
+         * @param ty:number
+         */
+
+    }, {
+        key: "setTransform",
+        value: function setTransform(scaleX, skewY, skewX, scaleY, tx, ty) {
+            _Mat2.default.identityMatrix(this.currentContextState.transformMatrix.matrix);
+            var m = this.currentContextState.transformMatrix.matrix;
+            m[0] = scaleX;
+            m[1] = skewY;
+            m[4] = skewX;
+            m[5] = scaleY;
+            m[12] = tx;
+            m[13] = ty;
+            m[14] = this.defaultDepth; //这个是默认的z值
+        }
+
+        /**
+         * 给出一个转换矩阵数据，可以执行：拉伸，倾斜，移动
+         * @param scaleX 横向拉伸 :number
+         * @param skewY 纵向倾斜 :number
+         * @param skewX 横向倾斜:number
+         * @param scaleY 纵向拉伸:number
+         * @param tx 横向移动:number
+         * @param ty 纵向移动:number
+         */
+
+    }, {
+        key: "transform",
+        value: function transform(scaleX, skewY, skewX, scaleY, tx, ty) {
+            var m = _Mat2.default.TEMP_MAT4[0];
+            _Mat2.default.identityMatrix(m);
+            /* 矩阵是这样的：
+              [ a,c,e
+                b,d,f,
+                0,0,1 ]
+                对应我自己的4x4矩阵是：
+                a,b,0,0
+                c,d,0,0
+                0,0,1,0
+                e,f,0,1
+             */
+            m[0] = scaleX;
+            m[1] = skewY;
+            m[4] = skewX;
+            m[5] = scaleY;
+            m[12] = tx;
+            m[13] = ty;
+            this.currentContextState.applyTransform(m);
+        }
+
         /*********************** 绘制 */ //////////////
 
     }, {
@@ -478,8 +689,8 @@ var CanvasRenderingContextWebgl2D = function () {
                 tb = texture.y + texture.height;
                 depth = dstX;
             }
-            // 有9个参数传入的调用，即要调整贴图做镖
-            if (arguments.length == 9) {
+            // 有9或10个参数传入的调用，即要调整贴图坐标
+            if (arguments.length == 9 || arguments.length == 10) {
                 left = dstX;
                 top = dstY;
                 right = dstX + dstWidth;
@@ -553,6 +764,21 @@ var CanvasRenderingContextWebgl2D = function () {
             action.collectVertexDataForStroke(pathList, strokeColor, opacity * strokeColor[3], [0, 0], lineWidth, this.currentFaceVector);
         }
 
+        //////////////////// ImageData相关 /////////////////////////////
+
+    }, {
+        key: "createImageData",
+        value: function createImageData(width, height) {
+            if (arguments.length == 1) {
+                var imgData = width;
+                width = imgData.width;
+                height = imgData.height;
+            }
+            var array = new Uint8ClampedArray(width * height * 4);
+            var data = new ImageData(array, width, height);
+            return data;
+        }
+
         //******************** 扩展接口 *****************************//
 
     }, {
@@ -610,7 +836,7 @@ var CanvasRenderingContextWebgl2D = function () {
         key: "draw",
         value: function draw() {
             this.webglRender.initRending();
-            this.webglRender.executeRenderAction2(this[_renderActionList], this[_stateArray]);
+            this.webglRender.executeRenderAction(this[_renderActionList], this[_stateArray]);
             this[_renderActionList] = [];
             this[_stateArray] = [];
             this.verticesData.init();
@@ -684,6 +910,13 @@ var CanvasRenderingContextWebgl2D = function () {
         get: function get() {
             return this.currentContextState.globalAlpha;
         }
+
+        /**
+         * set stroke lineWidth
+         * 设置stroke时的线宽度
+         * @param lineWidth
+         */
+
     }, {
         key: "lineWidth",
         set: function set(lineWidth) {
