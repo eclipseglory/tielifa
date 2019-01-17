@@ -144,8 +144,8 @@ var WebGLRender = function () {
             gl.vertexAttribPointer(shaderInfo.transformMatrixIndex, size, type, normalize, stride, offset);
         }
     }, {
-        key: "executeRenderAction2",
-        value: function executeRenderAction2(actionList, stateArray) {
+        key: "executeRenderAction",
+        value: function executeRenderAction(actionList) {
             this.prepareWebGLBuffer();
             var matrixIndex = 1; // 每次绘制都要重新设置矩阵的索引
             var lastAction = undefined;

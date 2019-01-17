@@ -36,9 +36,6 @@ var RenderAction = function () {
     _createClass(RenderAction, [{
         key: "collectVertexDataForStroke",
         value: function collectVertexDataForStroke(pathList, color, opacity, textureCoord, lineWidth, faceDirection) {
-
-            var totalPointsCount = 0;
-            var linesRects = [];
             var lineToRect = new _LineToRectangle2.default(lineWidth);
             if (faceDirection != undefined) {
                 lineToRect.faceDirection.x = faceDirection[0];
@@ -53,39 +50,29 @@ var RenderAction = function () {
                     if (vertexCount < 2) continue;
                     lineToRect.points = subPath.pointsCoordinateArray;
                     lineToRect.isClosed = subPath.isClosed;
-                    var result = lineToRect.generatePoints();
-                    totalPointsCount += result.length / 3;
-                    linesRects.push(result);
-                }
-            }
-            this.renderPointNumber += totalPointsCount;
-            if (totalPointsCount == 0) return;
-            // let vertexData = this.getVertexData(totalPointsCount);
-            var testData = this.verticesData;
-            for (var _i = 0; _i < linesRects.length; _i++) {
-                var rects = linesRects[_i];
-                for (var _j = 0; _j < rects.length / 3; _j++) {
-                    var index = _j * 3;
-                    // vertexData.addVertexData2(rects[index], rects[index + 1], rects[index + 2],
-                    //     color, opacity, textureCoord);
-                    if (testData != null) {
-                        testData.addVerticesData(rects[index], rects[index + 1], rects[index + 2], faceDirection[0], faceDirection[1], faceDirection[2]);
+                    var rects = lineToRect.generatePoints();
+                    for (var k = 0; k < rects.length / 3; k++) {
+                        var index = k * 3;
+                        if (this.verticesData != null) {
+                            this.verticesData.addVerticesData(rects[index], rects[index + 1], rects[index + 2], faceDirection[0], faceDirection[1], faceDirection[2]);
+                        }
+                        if (this.fragmentData != null) {
+                            this.fragmentData.addFragmentData(color[0], color[1], color[2], opacity, textureCoord[0], textureCoord[1], -1);
+                        }
+                        if (this.transformData != null) {
+                            // 记录转换矩阵数据
+                            this.transformData.addMatrixIndex(0);
+                        }
                     }
-                    if (this.fragmentData != null) {
-                        this.fragmentData.addFragmentData(color[0], color[1], color[2], opacity, textureCoord[0], textureCoord[1], -1);
-                    }
-                    if (this.transformData != null) {
-                        // 记录转换矩阵数据
-                        this.transformData.addMatrixIndex(0);
-                    }
+                    this.renderPointNumber += rects.length / 3;
                 }
             }
         }
     }, {
         key: "collectVertexDataForFill",
         value: function collectVertexDataForFill(pathList, color, opacity, textureCoord, faceDirection) {
-            var totalNum = 0;
-            var orgedVertexed = [];
+            // let totalNum = 0;
+            // let orgedVertexed = [];
             for (var i = 0; i < pathList.length; i++) {
                 var path = pathList[i];
                 if (path.subPathNumber == 0) {
@@ -107,31 +94,13 @@ var RenderAction = function () {
                             vertexOrg = _EarClipping2.default.earcut(temp, null, 3);
                         }
                     }
-                    totalNum += vertexOrg.length;
-                    orgedVertexed.push(vertexOrg);
-                    // this.organizeVertexForFill(subPath, color, opacity, textureCoord)
-                }
-            }
-            this.renderPointNumber += totalNum;
-            // let vertexData = this.getVertexData(totalNum);
-            if (totalNum == 0) {
-                return;
-            }
-            var index = 0;
-            var testVertiesData = this.verticesData;
-            for (var _i2 = 0; _i2 < pathList.length; _i2++) {
-                var _path = pathList[_i2];
-                if (_path.subPathNumber == 0) {
-                    continue;
-                }
-                for (var _j2 = 0; _j2 < _path.subPathNumber; _j2++, index++) {
-                    var _subPath = _path.subPathArray[_j2];
-                    if (_subPath.pointsNumber < 3) continue; // 小于三个无法填充成一个面
-                    var _vertexOrg = orgedVertexed[index];
-                    for (var k = 0; k < _vertexOrg.length; k++) {
-                        var vertexIndex = _vertexOrg[k];
-                        if (testVertiesData != null) {
-                            testVertiesData.addVerticesData(_subPath.getPointX(vertexIndex), _subPath.getPointY(vertexIndex), _subPath.getPointZ(vertexIndex), faceDirection[0], faceDirection[1], faceDirection[2]);
+                    this.renderPointNumber += vertexOrg.length;
+                    // orgedVertexed.push(vertexOrg);
+
+                    for (var k = 0; k < vertexOrg.length; k++) {
+                        var vertexIndex = vertexOrg[k];
+                        if (this.verticesData != null) {
+                            this.verticesData.addVerticesData(subPath.getPointX(vertexIndex), subPath.getPointY(vertexIndex), subPath.getPointZ(vertexIndex), faceDirection[0], faceDirection[1], faceDirection[2]);
                         }
                         if (this.fragmentData != null) {
                             var t = undefined;
@@ -147,8 +116,48 @@ var RenderAction = function () {
                             this.transformData.addMatrixIndex(0);
                         }
                     }
+
+                    // this.organizeVertexForFill(subPath, color, opacity, textureCoord)
                 }
             }
+            // this.renderPointNumber += totalNum;
+            // let vertexData = this.getVertexData(totalNum);
+            // if (totalNum == 0) {
+            //     return;
+            // }
+            // let index = 0;
+            // let testVertiesData = this.verticesData;
+            // for (let i = 0; i < pathList.length; i++) {
+            //     let path = pathList[i];
+            //     if (path.subPathNumber == 0) {
+            //         continue;
+            //     }
+            //     for (let j = 0; j < path.subPathNumber; j++, index++) {
+            //         let subPath = path.subPathArray[j];
+            //         if (subPath.pointsNumber < 3) continue; // 小于三个无法填充成一个面
+            //         let vertexOrg = orgedVertexed[index];
+            //         for (let k = 0; k < vertexOrg.length; k++) {
+            //             let vertexIndex = vertexOrg[k];
+            //             if (testVertiesData != null) {
+            //                 testVertiesData.addVerticesData(subPath.getPointX(vertexIndex), subPath.getPointY(vertexIndex),
+            //                     subPath.getPointZ(vertexIndex), faceDirection[0], faceDirection[1], faceDirection[2]);
+            //             }
+            //             if (this.fragmentData != null) {
+            //                 let t = undefined;
+            //                 if (textureCoord[0] instanceof Array) {
+            //                     t = textureCoord[vertexIndex];
+            //                 } else {
+            //                     t = textureCoord;
+            //                 }
+            //                 this.fragmentData.addFragmentData(color[0], color[1], color[2], opacity, t[0], t[1], this.textureIndex);
+            //             }
+            //             if (this.transformData != null) {
+            //                 // 记录转换矩阵数据
+            //                 this.transformData.addMatrixIndex(0);
+            //             }
+            //         }
+            //     }
+            // }
         }
     }], [{
         key: "ACTION_STROKE",
