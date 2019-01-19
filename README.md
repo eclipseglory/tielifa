@@ -28,10 +28,15 @@ ctx.restore();
 
 ctx.draw();
 ```
-TieLiFa does not paint immeditelly when user execute ```fill,stroke or drawImage```, it need user to invoke ```draw``` method.
+TieLiFa does not paint immediately when user execute ```fill,stroke or drawImage```, it need user to invoke ```draw``` method.
 # What TieLiFa implements
 ## Properties
-| CanvasRendingContext2D    | TieLiFa | Different |
+
+Properties | Support
+------------ | -------------
+```canvas``` | <span style="color:red">Yes</span>
+
+| Properties    | Support | Different |
 | ------| ------  | ------ |
 | ```fillStyle``` | ```fillStyle``` | none |
 | ```strokeStyle``` | ```strokeStyle``` | none |
