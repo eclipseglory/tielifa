@@ -28,6 +28,22 @@ var GeometryTools = function () {
     }
 
     _createClass(GeometryTools, null, [{
+        key: "getProjectionPointOnLine",
+        value: function getProjectionPointOnLine(point, linep1, linep2) {
+            var temp = _Vector4.default.TEMP_VECTORS[0];
+            temp.x = linep2.x - linep1.x;
+            temp.y = linep2.y - linep1.y;
+            _Vector4.default.normalize(temp, temp);
+            var temp1 = _Vector4.default.TEMP_VECTORS[1];
+            temp1.x = point.x - linep1.x;
+            temp1.y = point.y - linep1.y;
+            var d = _Vector4.default.dot(temp1, temp);
+            _Vector4.default.multiplyValue(temp, temp, d);
+            var out = { x: 0, y: 0 };
+            _Vector4.default.plus(out, temp, linep1);
+            return out;
+        }
+    }, {
         key: "cubicBezier",
         value: function cubicBezier(t, p0x, p0y, p1x, p1y, p2x, p2y, p3x, p3y, out) {
             // b(t) = (1-t)^3p0 + 3(1-t)^2tp1+3(1-t)t^2p2+t^3p3
@@ -83,7 +99,7 @@ var GeometryTools = function () {
         value: function arcConversionEndpointToCenter(x1, y1, x2, y2, radiusX, radiusY, rotation) {
             var fa = 0;
             var fs = 1;
-            var v = [(x1 - x2) / 2, (y1 - y2) / 2, 0];
+            var v = [(x1 - x2) / 2, (y1 - y2) / 2, 1];
             var m = _Mat2.default.TEMP_MAT3[0];
             if (rotation != 0) {
                 _Mat2.default.rotate(m, -rotation);
@@ -102,7 +118,7 @@ var GeometryTools = function () {
             var v1 = [radiusX * v[1] / radiusY, -radiusY * v[0] / radiusX, 0];
             v1[0] *= scale;
             v1[1] *= scale;
-            var c = [v1[0], v1[1], 0];
+            var c = [v1[0], v1[1], 1];
             if (rotation != 0) {
                 _Mat2.default.rotate(m, rotation);
                 _Mat2.default.multiplyWithVertex(m, m, c);
@@ -173,15 +189,18 @@ var GeometryTools = function () {
 
     }, {
         key: "calculateIntersectionOfPlane",
-        value: function calculateIntersectionOfPlane(n, u, p, v) {
+        value: function calculateIntersectionOfPlane(n, u, p, v, out) {
             var down = _Vector2.default.dot(n, u);
             if (down == 0) return null;
-            var w = { x: v.x - p.x, y: v.y - p.y, z: v.z - p.z };
+            var w = _Vector2.default.TEMP_VECTORS[0];
+            w.x = v.x - p.x;
+            w.y = v.y - p.y;
+            w.z = v.z - p.z;
+            // let w = {x: v.x - p.x, y: v.y - p.y, z: v.z - p.z};
             var length = _Vector2.default.dot(w, n) / down;
-            var result = { x: 0, y: 0, z: 0 };
-            _Vector2.default.multiplyValue(result, u, length);
-            _Vector2.default.plus(result, result, p);
-            return result;
+            // let result = {x: 0, y: 0, z: 0};
+            _Vector2.default.multiplyValue(w, u, length);
+            _Vector2.default.plus(out, w, p);
         }
 
         /**
