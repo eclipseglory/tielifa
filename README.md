@@ -28,49 +28,67 @@ ctx.restore();
 
 ctx.draw();
 ```
-TieLiFa does not paint immediately when user execute ```fill,stroke or drawImage```, it need user to invoke ```draw``` method.
+TieLiFa does not paint immediately when user invoke ```fill,stroke or drawImage```, it need user to invoke ```draw``` method.
 # What TieLiFa implements
-## Properties
 
-
-Properties | Support | Remark
+Property | Support | Example
 ------ | ------- | -------
 ```canvas```| :heavy_check_mark:
 ```fillStyle```| :heavy_check_mark:
 ```font```| :x:
-```canvas```| :heavy_check_mark:
-```canvas```| :heavy_check_mark:
-```canvas```| :heavy_check_mark:
-```canvas```| :heavy_check_mark:
-```canvas```| :heavy_check_mark:
-```canvas```| :heavy_check_mark:
-```canvas```| :heavy_check_mark:
-```canvas```| :heavy_check_mark:
-```canvas```| :heavy_check_mark:
+```globalAlpha```| :heavy_check_mark:
+```globalCompositeOperation```| :x:
+```imageSmoothingEnabled```| :x:
+```lineCap```| :x:
+```lineDashOffset```| :x:
+```lineJoin```| :x:
+```lineWidth```| :heavy_check_mark:
+```miterLimit```| :x:
+```shadowBlur```| :x:
+```shadowColor```| :x:
+```shadowOffsetX```| :x:
+```shadowOffsetY```| :x:
+```strokeStyle```| :heavy_check_mark:
+```textAlign```| :x:
+```textBaseline```| :x:
 
-| Properties    | Support | Different |
-| ------| ------  | ------ |
-| ```fillStyle``` | ```fillStyle``` | none |
-| ```strokeStyle``` | ```strokeStyle``` | none |
-## Methods
-| CanvasRendingContext2D    | TieLiFa | Different |
-| ------| ------  | ------ |
-| ```save()``` | ```save()``` | none |
-| ```restore()```| ```restore()``` | none |
-| ```clearRect(x,y,w,h)```| ```clearRect()``` | just clean whole canvas |
-| ```beginPath()```| ```beginPath()``` | none |
-| ```closePath()```| ```closePath()``` | none |
-| ```fill()```| ```fill()``` | none |
-| ```stroke()```| ```stroke()``` | none |
-| ```rotate(radian)```| ```rotate(radian)``` | none |
-| ```translate(x,y)```| ```translate(x,y,z)``` | accpet depth paramter |
-| ```moveTo(x,y)```| ```moveTo(x,y,z)``` | accpet depth paramter |
-| ```lineTo(x,y)```| ```lineTo(x,y,z)``` | accpet depth paramter |
-| ```arc(x,y,radius,startAngel,endAngel,anticlockwise)```| ```arc(x,y,radius,startAngel,endAngel,anticlockwise)``` | none |
-| ```ellipse(x,y,radiusX,radiusY,rotation,startAngel,endAngel,anticlockwise)```| ```ellipse(x,y,radiusX,radiusY,rotation,startAngel,endAngel,anticlockwise)``` | none |
-| ```drawImage(image,tx,ty,tw,th,sx,sy,sw,sh)```| ```drawImage(image,tx,ty,tw,th,sx,sy,sw,sh)``` | none |
-| ```rect(x,y,w,h)```| ```rect(x,y,w,h)``` | none |
-| ```fillRect(x,y,w,h)```| ```fillRect(x,y,w,h)``` | none |
-# Example
-- [Animation](https://codepen.io/eclipseglory/pen/zyaaJj)
-- [Extend Methods](https://codepen.io/eclipseglory/pen/GPGGvb)
+Method | Support | Example
+------ | ------- | -------
+```arc()```| :heavy_check_mark:
+```arcTo()```| :x:
+```beginPath()```| :heavy_check_mark:
+```bezierCurveTo()```| :heavy_check_mark:
+```clearRect()```| :warning:
+```clip()```| :x:
+```closePath()```| :heavy_check_mark:
+```createImageData()```| :x:
+```createLinearGradient()```| :x:
+```createPattern()```| :x:
+```createRadialGradient()```| :x:
+```drawFocusIfNeeded()```| :x:
+```drawImage()```| :heavy_check_mark:
+```ellipse()```| :heavy_check_mark:
+```fill()```| :heavy_check_mark:
+```fillRect()```| :heavy_check_mark:
+```fillText()```| :x:
+```getImageData()```| :x:
+```getLineDash()```| :x:
+```isPointInPath()```| :x:
+```isPointInStroke()```| :x:
+```lineTo()```| :heavy_check_mark:
+```measureText()```| :x:
+```moveTo()```| :heavy_check_mark:
+```putImageData()```| :x:
+```quadraticCurveTo()```| :heavy_check_mark:
+```rect()```| :heavy_check_mark:
+```restore()```| :heavy_check_mark:
+```rotate()```| :heavy_check_mark:
+```save()```| :heavy_check_mark:
+```scale()```| :heavy_check_mark:
+```setLineDash()```| :x:
+```setTransform()```| :heavy_check_mark:
+```stroke()```| :heavy_check_mark:
+```strokeRect()```| :heavy_check_mark:
+```strokeText()```| :x:
+```transform()```| :heavy_check_mark:
+```translate()```| :heavy_check_mark:
