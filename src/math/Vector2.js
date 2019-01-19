@@ -56,6 +56,11 @@ var Vector2 = function () {
         get: function get() {
             return Math.sqrt(this.x * this.x + this.y * this.y);
         }
+
+        // static vectorAngle(fromVector, toVector) {
+        //     return Math.atan2(toVector.y - fromVector.y, toVector.x - fromVector.x);
+        // }
+
     }], [{
         key: "rotate",
         value: function rotate(out, sourceVector, radian) {
@@ -156,9 +161,11 @@ var Vector2 = function () {
     function Vector2(x, y) {
         _classCallCheck(this, Vector2);
 
-        this[_value] = new Float32Array(2);
+        this[_value] = new Float32Array(3);
+        // this[_value] = [0, 0, 1];//多一位是免得和mat计算时还要自动加一个
         if (x != null || x != undefined) this.x = x;
         if (y != null || y != undefined) this.y = y;
+        this[_value][2] = 1;
     }
 
     _createClass(Vector2, [{

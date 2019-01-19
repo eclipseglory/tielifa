@@ -20,10 +20,12 @@ var Vector3 = function () {
     function Vector3(x, y, z) {
         _classCallCheck(this, Vector3);
 
-        this.value = [0, 0, 0];
+        this.value = new Float32Array(4);
+        // this.value = [0, 0, 0, 1];//多一位是免得和mat计算时还要自动加一个
         this.x = x || 0;
         this.y = y || 0;
         this.z = z || 0;
+        this.value[3] = 1;
     }
 
     _createClass(Vector3, [{
@@ -89,6 +91,13 @@ var Vector3 = function () {
             out.y = v.y * value;
             out.z = v.z * value;
             return out;
+        }
+    }, {
+        key: "copy",
+        value: function copy(from, to) {
+            to.x = from.x;
+            to.y = from.y;
+            to.z = from.z;
         }
     }, {
         key: "cross",

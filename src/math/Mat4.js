@@ -140,6 +140,7 @@ var Mat4 = function () {
     }, {
         key: "identity",
         value: function identity() {
+            // let m = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
             var m = new Float32Array(16);
             m[0] = 1;
             m[5] = 1;
@@ -338,7 +339,7 @@ var Mat4 = function () {
         }
     }, {
         key: "multiplyWithVertex",
-        value: function multiplyWithVertex(matrix, vertex) {
+        value: function multiplyWithVertex(matrix, vertex, out) {
             var a00 = matrix[0];
             var a01 = matrix[1];
             var a02 = matrix[2];
@@ -362,8 +363,14 @@ var Mat4 = function () {
             var b03 = vertex[3];
             if (b02 == undefined) b02 = 0;
             if (b03 == undefined) b03 = 1;
-
-            return [b00 * a00 + b01 * a10 + b02 * a20 + b03 * a30, b00 * a01 + b01 * a11 + b02 * a21 + b03 * a31, b00 * a02 + b01 * a12 + b02 * a22 + b03 * a32, b00 * a03 + b01 * a13 + b02 * a23 + b03 * a33];
+            // if (out == undefined) {
+            //     out = [0, 0, 0, 0];
+            // }
+            out[0] = b00 * a00 + b01 * a10 + b02 * a20 + b03 * a30;
+            out[1] = b00 * a01 + b01 * a11 + b02 * a21 + b03 * a31;
+            out[2] = b00 * a02 + b01 * a12 + b02 * a22 + b03 * a32;
+            out[3] = b00 * a03 + b01 * a13 + b02 * a23 + b03 * a33;
+            return out;
         }
     }, {
         key: "multiply",

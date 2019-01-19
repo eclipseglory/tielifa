@@ -30,6 +30,7 @@ var Mat3 = function () {
         key: "identity",
         value: function identity(out) {
             if (out == undefined) {
+                // out = [0, 0, 0, 0, 0, 0, 0, 0, 0];
                 out = new Float32Array(9);
                 out[0] = 1;
                 out[4] = 1;
