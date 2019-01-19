@@ -42,53 +42,53 @@ Property | Support | Example
 ```lineCap```| :x:
 ```lineDashOffset```| :x:
 ```lineJoin```| :x:
-```lineWidth```| :heavy_check_mark:
+```lineWidth```| :heavy_check_mark:|[rect and line](https://codepen.io/eclipseglory/pen/wRVrYw)
 ```miterLimit```| :x:
 ```shadowBlur```| :x:
 ```shadowColor```| :x:
 ```shadowOffsetX```| :x:
 ```shadowOffsetY```| :x:
-```strokeStyle```| :heavy_check_mark:
+```strokeStyle```| :heavy_check_mark:|[rect and line](https://codepen.io/eclipseglory/pen/wRVrYw)
 ```textAlign```| :x:
 ```textBaseline```| :x:
 
 Method | Support | Example
 ------ | ------- | -------
-```arc()```| :heavy_check_mark:
+```arc()```| :heavy_check_mark:|[some arcs](https://codepen.io/eclipseglory/pen/GPVMVb)
 ```arcTo()```| :x:
-```beginPath()```| :heavy_check_mark:
-```bezierCurveTo()```| :heavy_check_mark:
-```clearRect()```| :warning:
+```beginPath()```| :heavy_check_mark:|[tow lines](https://codepen.io/eclipseglory/pen/ZVgaEJ)
+```bezierCurveTo()```| :heavy_check_mark:|[cubic bezier](https://codepen.io/eclipseglory/pen/PXMOwo)
+```clearRect()```| :warning:|just clear whole canvas
 ```clip()```| :x:
-```closePath()```| :heavy_check_mark:
+```closePath()```| :heavy_check_mark:|[a triangle](https://codepen.io/eclipseglory/pen/MZNOwo)
 ```createImageData()```| :x:
 ```createLinearGradient()```| :x:
 ```createPattern()```| :x:
 ```createRadialGradient()```| :x:
 ```drawFocusIfNeeded()```| :x:
-```drawImage()```| :heavy_check_mark:
-```ellipse()```| :heavy_check_mark:
-```fill()```| :heavy_check_mark:
-```fillRect()```| :heavy_check_mark:
+```drawImage()```| :heavy_check_mark:|[rotating image](https://codepen.io/eclipseglory/pen/zyaaJj)
+```ellipse()```| :heavy_check_mark:|[Example1](https://codepen.io/eclipseglory/pen/VqorjN) [Example2](https://codepen.io/eclipseglory/pen/roXYMJ)
+```fill()```| :heavy_check_mark:|[fill a rectangle](https://codepen.io/eclipseglory/pen/VqoMXB)
+```fillRect()```| :heavy_check_mark:|[two rectangles](https://codepen.io/eclipseglory/pen/MZNEBj)
 ```fillText()```| :x:
 ```getImageData()```| :x:
 ```getLineDash()```| :x:
 ```isPointInPath()```| :x:
 ```isPointInStroke()```| :x:
-```lineTo()```| :heavy_check_mark:
+```lineTo()```| :heavy_check_mark:|[tow lines](https://codepen.io/eclipseglory/pen/ZVgaEJ)
 ```measureText()```| :x:
-```moveTo()```| :heavy_check_mark:
+```moveTo()```| :heavy_check_mark:|[tow lines](https://codepen.io/eclipseglory/pen/ZVgaEJ)
 ```putImageData()```| :x:
-```quadraticCurveTo()```| :heavy_check_mark:
-```rect()```| :heavy_check_mark:
-```restore()```| :heavy_check_mark:
-```rotate()```| :heavy_check_mark:
-```save()```| :heavy_check_mark:
-```scale()```| :heavy_check_mark:
+```quadraticCurveTo()```| :heavy_check_mark:|[quadratic bezier](https://codepen.io/eclipseglory/pen/ebqeWV)
+```rect()```| :heavy_check_mark:|[rect and line](https://codepen.io/eclipseglory/pen/wRVrYw)
+```restore()```| :heavy_check_mark:|[save/restore color](https://codepen.io/eclipseglory/pen/EGqbXe)
+```rotate()```| :heavy_check_mark:|[rotate rectangle](https://codepen.io/eclipseglory/pen/bOXYrB)
+```save()```| :heavy_check_mark:|[save/restore color](https://codepen.io/eclipseglory/pen/EGqbXe)
+```scale()```| :heavy_check_mark:|[scale rect](https://codepen.io/eclipseglory/pen/XovzaY)
 ```setLineDash()```| :x:
-```setTransform()```| :heavy_check_mark:
-```stroke()```| :heavy_check_mark:
+```setTransform()```| :heavy_check_mark:|[skewing rect](https://codepen.io/eclipseglory/pen/maNqBy)
+```stroke()```| :heavy_check_mark:|[tow lines](https://codepen.io/eclipseglory/pen/ZVgaEJ)
 ```strokeRect()```| :heavy_check_mark:
 ```strokeText()```| :x:
-```transform()```| :heavy_check_mark:
-```translate()```| :heavy_check_mark:
+```transform()```| :heavy_check_mark:|[skewing rect](https://codepen.io/eclipseglory/pen/maNqBy)
+```translate()```| :heavy_check_mark:|[rotating image](https://codepen.io/eclipseglory/pen/zyaaJj)
