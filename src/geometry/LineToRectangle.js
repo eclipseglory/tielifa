@@ -212,22 +212,23 @@ var LineToRectangle = function () {
                 var n = planeNormalTemp;
                 _Vector2.default.cross(n, temp1, faceDirectionTemp);
                 _Vector2.default.normalize(n, n);
-                var p1 = _GeometryTools2.default.calculateIntersectionOfPlane(n, u1, lastR2Temp, r2Temp);
-                if (p1 != undefined) {
-                    this.setPointValue(p1.x, p1.y, p1.z, 0, rectPoints);
-                    this.setPointValue(p1.x, p1.y, p1.z, 5, rectPoints);
-                    this.setPointValue(p1.x, p1.y, p1.z, _endIndex - 5, rectPoints);
+                var _temp = _Vector2.default.TEMP_VECTORS[0];
+                var p1 = _GeometryTools2.default.calculateIntersectionOfPlane(n, u1, lastR2Temp, r2Temp, _temp);
+                if (_temp != undefined) {
+                    this.setPointValue(_temp.x, _temp.y, _temp.z, 0, rectPoints);
+                    this.setPointValue(_temp.x, _temp.y, _temp.z, 5, rectPoints);
+                    this.setPointValue(_temp.x, _temp.y, _temp.z, _endIndex - 5, rectPoints);
                 }
                 u1.x = lastR3Temp.x - lastR4Temp.x;
                 u1.y = lastR3Temp.y - lastR4Temp.y;
                 u1.z = lastR3Temp.z - lastR4Temp.z;
                 _Vector2.default.normalize(u1, u1);
 
-                var p2 = _GeometryTools2.default.calculateIntersectionOfPlane(n, u1, lastR3Temp, r4Temp);
-                if (p2 != undefined) {
-                    this.setPointValue(p2.x, p2.y, p2.z, 4, rectPoints);
-                    this.setPointValue(p2.x, p2.y, p2.z, _endIndex - 3, rectPoints);
-                    this.setPointValue(p2.x, p2.y, p2.z, _endIndex - 4, rectPoints);
+                var p2 = _GeometryTools2.default.calculateIntersectionOfPlane(n, u1, lastR3Temp, r4Temp, _temp);
+                if (_temp != undefined) {
+                    this.setPointValue(_temp.x, _temp.y, _temp.z, 4, rectPoints);
+                    this.setPointValue(_temp.x, _temp.y, _temp.z, _endIndex - 3, rectPoints);
+                    this.setPointValue(_temp.x, _temp.y, _temp.z, _endIndex - 4, rectPoints);
                 }
             }
             return rectPoints;

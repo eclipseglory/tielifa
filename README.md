@@ -34,9 +34,9 @@ TieLiFa does not paint immediately when user invoke ```fill,stroke or drawImage`
 Property | Support | Example
 ------ | ------- | -------
 ```canvas```| :heavy_check_mark:
-```fillStyle```| :heavy_check_mark:
+```fillStyle```| :heavy_check_mark:|[fill a rectangle](https://codepen.io/eclipseglory/pen/VqoMXB)
 ```font```| :x:
-```globalAlpha```| :heavy_check_mark:
+```globalAlpha```| :heavy_check_mark:|[two rectangles](https://codepen.io/eclipseglory/pen/MZNEBj)
 ```globalCompositeOperation```| :x:
 ```imageSmoothingEnabled```| :x:
 ```lineCap```| :x:
