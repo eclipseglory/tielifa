@@ -1,5 +1,5 @@
-# TieLiFa(铁力发)
-Javascript canvas rendering context 2d implement with webgl
+# What's TieLiFa
+TieLiFa(铁力发) is a library implements Javascript canvas rendering context 2d with webgl.
 # How to use
 Import ```tielifa.js``` or ```tielifa.min.js```, create a new context object like this : 
 ```Javascript
