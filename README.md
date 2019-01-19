@@ -34,7 +34,7 @@ TieLiFa does not paint immediately when user execute ```fill,stroke or drawImage
 
 Properties | Support
 ------------ | -------------
-```canvas``` | <span style="color:red">Yes</span>
+```canvas``` | <span style="color:red">:heavy_check_mark:</span>
 
 | Properties    | Support | Different |
 | ------| ------  | ------ |
