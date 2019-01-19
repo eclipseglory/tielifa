@@ -36,22 +36,25 @@ var RenderAction = function () {
     _createClass(RenderAction, [{
         key: "collectVertexDataForStroke",
         value: function collectVertexDataForStroke(pathList, color, opacity, textureCoord, lineWidth, faceDirection) {
-            var lineToRect = new _LineToRectangle2.default(lineWidth);
-            if (faceDirection != undefined) {
-                lineToRect.faceDirection.x = faceDirection[0];
-                lineToRect.faceDirection.y = faceDirection[1];
-                lineToRect.faceDirection.z = faceDirection[2];
-            }
+            // let lineToRect = new LineToRectangle(lineWidth);
+            // if (faceDirection != undefined) {
+            //     lineToRect.faceDirection.x = faceDirection[0];
+            //     lineToRect.faceDirection.y = faceDirection[1];
+            //     lineToRect.faceDirection.z = faceDirection[2];
+            // }
             for (var i = 0; i < pathList.length; i++) {
                 var path = pathList[i];
                 for (var j = 0; j < path.subPathNumber; j++) {
                     var subPath = path.subPathArray[j];
                     var vertexCount = subPath.pointsNumber;
                     if (vertexCount < 2) continue;
-                    lineToRect.points = subPath.pointsCoordinateArray;
-                    lineToRect.isClosed = subPath.isClosed;
-                    var rects = lineToRect.generatePoints();
-                    for (var k = 0; k < rects.length / 3; k++) {
+
+                    // lineToRect.points = subPath.pointsCoordinateArray;
+                    // lineToRect.isClosed = subPath.isClosed;
+                    // let rects = lineToRect.generatePoints();
+                    var rects = _LineToRectangle2.default.generatePoints1(lineWidth, subPath.pointsCoordinateArray, subPath.isClosed, faceDirection);
+                    var pointsNum = rects.length / 3;
+                    for (var k = 0; k < pointsNum; k++) {
                         var index = k * 3;
                         if (this.verticesData != null) {
                             this.verticesData.addVerticesData(rects[index], rects[index + 1], rects[index + 2], faceDirection[0], faceDirection[1], faceDirection[2]);
@@ -64,7 +67,7 @@ var RenderAction = function () {
                             this.transformData.addMatrixIndex(0);
                         }
                     }
-                    this.renderPointNumber += rects.length / 3;
+                    this.renderPointNumber += pointsNum;
                 }
             }
         }
