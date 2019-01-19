@@ -32,9 +32,21 @@ TieLiFa does not paint immediately when user execute ```fill,stroke or drawImage
 # What TieLiFa implements
 ## Properties
 
-Properties | Support
------------- | -------------
-```canvas``` | <span style="color:red">:heavy_check_mark:</span>
+
+Properties | Support | Remark
+------ | ------- | -------
+```canvas```| :heavy_check_mark:
+```fillStyle```| :heavy_check_mark:
+```font```| :x:
+```canvas```| :heavy_check_mark:
+```canvas```| :heavy_check_mark:
+```canvas```| :heavy_check_mark:
+```canvas```| :heavy_check_mark:
+```canvas```| :heavy_check_mark:
+```canvas```| :heavy_check_mark:
+```canvas```| :heavy_check_mark:
+```canvas```| :heavy_check_mark:
+```canvas```| :heavy_check_mark:
 
 | Properties    | Support | Different |
 | ------| ------  | ------ |
