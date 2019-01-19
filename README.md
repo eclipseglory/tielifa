@@ -4,7 +4,7 @@ Javascript canvas rendering context 2d implement with webgl
 Import ```tielifa.js``` or ```tielifa.min.js```, create a new context object like this : 
 ```Javascript
 let canvas = document.getElementById('someid');// Get the canvas element object
-let ctx = new tielifa.WebGl2D(canvas);
+let ctx = new tielifa.WebGL2D(canvas);
 ```
 Use this ```ctx``` to draw something like the CanvasRendingContext2D.
 
