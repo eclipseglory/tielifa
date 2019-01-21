@@ -36,28 +36,35 @@ var _program = Symbol('WebGL的program');
 var _maxTransformMatrixNum = Symbol('转换矩阵变量可用的最大数量');
 
 var WebGLRender = function () {
-    function WebGLRender(gl, maxTransformNum, textureMaxSize, projectionType, defaultDepth, enableLight) {
+    function WebGLRender(gl, maxTransformNum, textureMaxSize, projectionType, fov, enableLight) {
         _classCallCheck(this, WebGLRender);
 
         this.gl = gl;
         this.DEBUG_DRAW_COUNT = 0;
+        this.defaultTransformMatrix = _Mat2.default.identity();
+        this.orthoProjectionMatrix = _Mat2.default.identity();
+        this.perspectiveMatrix = _Mat2.default.identity();
         projectionType = projectionType || 0;
         textureMaxSize = textureMaxSize || gl.getParameter(this.gl.MAX_TEXTURE_SIZE);
         var maxVectors = gl.getParameter(gl.MAX_VERTEX_UNIFORM_VECTORS);
         // 顶点作色器里已经用了一个mat4了，就是4个vector,减去这4个然后除以4就得到可以定义的最大mat4数组
         maxTransformNum = maxTransformNum || Math.floor((maxVectors - 4) / 4);
+        // debug:
         maxTransformNum = 2;
         this[_maxTransformMatrixNum] = maxTransformNum;
-        // this[_maxTransformMatrixNum] = 10; // 测试设置
         this.textureManager = null;
         this.verticesData = null;
         this.fragmentData = null;
         this.transformMatrixData = null;
+        this.canvasWidth = -1;
+        this.canvasHeight = -1;
         this.lightPosition = new Float32Array(3);
         this.lightPosition[0] = gl.canvas.clientWidth / 2;
         this.lightPosition[1] = gl.canvas.clientHeight / 2;
         this.lightPosition[2] = 0;
-        this.init(projectionType, defaultDepth);
+        this.projectionType = projectionType;
+        this.fov = fov;
+        this.init();
         this.textureManager.maxHeight = textureMaxSize;
         this.textureManager.maxWidth = this.textureManager.maxHeight;
         enableLight = enableLight || false;
@@ -178,10 +185,36 @@ var WebGLRender = function () {
                 return;
             }
             var gl = this.gl;
+            this.initProjectionMatrix();
             this.gl.uniform3f(this.shaderInformation.lightPosition, this.lightPosition[0], this.lightPosition[1], this.lightPosition[2]);
             this.configTexture(textureIndex);
             gl.drawArrays(gl.TRIANGLES, startIndex, renderPointNumber);
             this.DEBUG_DRAW_COUNT++;
+        }
+    }, {
+        key: "initProjectionMatrix",
+        value: function initProjectionMatrix() {
+            var gl = this.gl;
+            // 设置透视矩阵
+            if (this.canvasHeight != gl.canvas.clientHeight && this.canvasWidth != gl.canvas.clientWidth) {
+                var t = Math.tan(this.fov * Math.PI / 180);
+                var defaultDepth = -gl.canvas.height / (2 * t);
+                // 为了配合预设的深度
+                _Mat2.default.identityMatrix(this.defaultTransformMatrix);
+                _Mat2.default.translationMatrix(this.defaultTransformMatrix, 0, 0, defaultDepth);
+                gl.uniformMatrix4fv(this.shaderInformation.transformMatrixArray[0], false, this.defaultTransformMatrix);
+                var m1 = void 0;
+                var near = 1;
+                if (this.projectionType == 0) {
+                    m1 = _Mat2.default.orthoProjection(0, 0, gl.canvas.width, gl.canvas.height, near, Math.abs(defaultDepth * 2), this.orthoProjectionMatrix);
+                } else {
+                    var theta = Math.atan2(gl.canvas.clientHeight / 2, Math.abs(defaultDepth));
+                    m1 = _Mat2.default.perspective3(theta * 2, gl.canvas.clientWidth, gl.canvas.clientHeight, near, Math.abs(defaultDepth * 2), this.perspectiveMatrix);
+                }
+                gl.uniformMatrix4fv(this.shaderInformation.perspectiveMatrix, false, m1);
+                this.canvasHeight = gl.canvas.clientHeight;
+                this.canvasWidth = gl.canvas.clientWidth;
+            }
         }
     }, {
         key: "setLightPosition",
@@ -233,7 +266,7 @@ var WebGLRender = function () {
         }
     }, {
         key: "init",
-        value: function init(projectionType, defaultDepth) {
+        value: function init() {
             var gl = this.gl;
             this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
             this.gl.enable(this.gl.BLEND);
@@ -242,26 +275,16 @@ var WebGLRender = function () {
             var program = this[_program];
             this.shaderInformation = this.initShaderInformation(program);
             this.textureManager = new _TextureManager2.default(801, 801, 10, 4);
-            // 设置透视矩阵
-            var m1 = void 0;
-            var near = 1;
-            if (projectionType == 0) {
-                m1 = _Mat2.default.orthoProjection(0, 0, gl.canvas.width, gl.canvas.height, near, Math.abs(defaultDepth * 2));
-            } else {
-                var theta = Math.atan2(gl.canvas.clientHeight / 2, Math.abs(defaultDepth));
-                m1 = _Mat2.default.perspective3(theta * 2, gl.canvas.clientWidth, gl.canvas.clientHeight, near, Math.abs(defaultDepth * 2));
-            }
-            gl.uniformMatrix4fv(this.shaderInformation.perspectiveMatrix, false, m1);
         }
-    }, {
-        key: "setPerspective",
-        value: function setPerspective(viewAngel, near, far) {
-            var aspect = this.gl.canvas.clientWidth / this.gl.canvas.clientHeight;
-            var m = _Mat2.default.perspective2(0, 0, this.gl.canvas.clientWidth, this.gl.canvas.clientHeight, near, far);
-            m = _Mat2.default.perspective(viewAngel, aspect, near, far);
-            m = _Mat2.default.perspective3(viewAngel, this.gl.canvas.clientWidth, this.gl.canvas.clientHeight, near, far);
-            this.gl.uniformMatrix4fv(this.shaderInformation.perspectiveMatrix, false, m);
-        }
+
+        // setPerspective(viewAngel, near, far) {
+        //     let aspect = this.gl.canvas.clientWidth / this.gl.canvas.clientHeight;
+        //     let m = Mat4.perspective2(0, 0, this.gl.canvas.clientWidth, this.gl.canvas.clientHeight, near, far);
+        //     m = Mat4.perspective(viewAngel, aspect, near, far);
+        //     m = Mat4.perspective3(viewAngel, this.gl.canvas.clientWidth, this.gl.canvas.clientHeight, near, far);
+        //     this.gl.uniformMatrix4fv(this.shaderInformation.perspectiveMatrix, false, m);
+        // }
+
     }, {
         key: "initShaderInformation",
         value: function initShaderInformation(program) {
@@ -291,10 +314,7 @@ var WebGLRender = function () {
             for (var i = 0; i < transformMatrixArray.length; i++) {
                 transformMatrixArray[i] = gl.getUniformLocation(program, "transform_matrix_array[" + i + "]");
             }
-            var rawMatrix = _Mat2.default.identity();
-            // 为了配合预设的深度
-            // Mat4.translationMatrix(rawMatrix, 0, 0, -Math.max(gl.canvas.clientWidth, gl.canvas.clientHeight));
-            gl.uniformMatrix4fv(transformMatrixArray[0], false, rawMatrix);
+
             var singleCanvas = gl.getUniformLocation(program, "singleCanvas");
             var lightPosition = gl.getUniformLocation(program, "u_lightPosition");
             var enableLight = gl.getUniformLocation(program, "enableLight");

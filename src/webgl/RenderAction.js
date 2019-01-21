@@ -31,6 +31,7 @@ var RenderAction = function () {
         this.fragmentData = null;
         this.transformData = null;
         this.renderPointNumber = 0;
+        this.isRect = false;
     }
 
     _createClass(RenderAction, [{
@@ -98,7 +99,6 @@ var RenderAction = function () {
                         }
                     }
                     this.renderPointNumber += vertexOrg.length;
-                    // orgedVertexed.push(vertexOrg);
 
                     for (var k = 0; k < vertexOrg.length; k++) {
                         var vertexIndex = vertexOrg[k];

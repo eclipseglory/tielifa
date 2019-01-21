@@ -75,7 +75,6 @@ var _subpathCatch = Symbol('子Path缓存');
 
 var FACE_NORMAL4 = new Float32Array(4);
 var ORI_NORMAL4 = new Float32Array(4);
-var FACE_TEMP = new Float32Array(4);
 // let TEMP_VERTEX_COORD4DIM_ARRAY = [[0, 0, 0, 1], [0, 0, 0, 1], [0, 0, 0, 1], [0, 0, 0, 1]];
 var TEMP_VERTEX_COORD4DIM_ARRAY = [new Float32Array(4), new Float32Array(4), new Float32Array(4), new Float32Array(4)];
 
@@ -97,15 +96,15 @@ var CanvasRenderingContextWebgl2D = function () {
         if (this.gl == undefined) throw new Error('Current canvas doesnt support WebGL');
         // this.defaultDepth = -canvas.height * 2;
         var FOV = properties['FOV'] || 20;
-        var t = Math.tan(FOV * Math.PI / 180);
-        this.defaultDepth = -canvas.height / (2 * t);
+        // let t = Math.tan(FOV * Math.PI / 180);
+        // this.defaultDepth = -canvas.height / (2 * t);
         this.maxBufferByteLength = properties['maxMemorySize'] || 1024 * 1024;
         this[_stateStack] = [];
         this[_stateArray] = [];
         this[_pathList] = [];
         this[_renderActionList] = [];
         this[_subpathCatch] = [];
-        this.webglRender = new _WebGLRender2.default(this.gl, properties['maxTransformNum'], properties['maxTextureSize'], properties['projectionType'], this.defaultDepth);
+        this.webglRender = new _WebGLRender2.default(this.gl, properties['maxTransformNum'], properties['maxTextureSize'], properties['projectionType'], FOV);
         var maxVertexNumber = this.maxBufferByteLength / 32;
         this.verticesData = new _VerticesData2.default(maxVertexNumber);
         // DEBUG :
@@ -115,7 +114,7 @@ var CanvasRenderingContextWebgl2D = function () {
         this.webglRender.verticesData = this.verticesData;
         this.webglRender.fragmentData = this.fragmetData;
         this.webglRender.transformMatrixData = this.transformMatrixData;
-        this.translate(0, 0, this.defaultDepth);
+        // this.translate(0, 0, this.defaultDepth);
         this.currentFaceNormal = new Float32Array(4);
         this.currentFaceNormal[2] = 1;
     }
@@ -528,6 +527,7 @@ var CanvasRenderingContextWebgl2D = function () {
                     thetaVector.x = _c;
                     thetaVector.y = _s;
                     thetaVector.z = 0;
+                    console.log(theta);
                     _Mat2.default.multiplyWithVertex(currentMatrix, thetaVector.value, thetaVector.value);
                     this.addPointInLastSubPath(thetaVector.x, thetaVector.y, thetaVector.z, false);
                 }
@@ -594,7 +594,8 @@ var CanvasRenderingContextWebgl2D = function () {
             var currentState = this.currentContextState;
             var stateClone = currentState.clone();
             this[_stateStack].push(stateClone);
-            this[_stateArray].push(stateClone);
+            // TODO 可能要取消这个状态数组了
+            // this[_stateArray].push(stateClone);
             stateClone.id = this[_stateArray].length - 1;
         }
 
@@ -664,7 +665,7 @@ var CanvasRenderingContextWebgl2D = function () {
             m[5] = scaleY;
             m[12] = tx;
             m[13] = ty;
-            m[14] = this.defaultDepth; //这个是默认的z值
+            m[14] = 0;
         }
 
         /**
