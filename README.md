@@ -55,7 +55,7 @@ Property | Support | Example
 Method | Support | Example
 ------ | ------- | -------
 ```arc()```| :heavy_check_mark:|[some arcs](https://codepen.io/eclipseglory/pen/GPVMVb)
-```arcTo()```| :x:
+```arcTo()```| :heavy_check_mark:|[change arc radius](https://codepen.io/eclipseglory/pen/qgWeje)
 ```beginPath()```| :heavy_check_mark:|[tow lines](https://codepen.io/eclipseglory/pen/ZVgaEJ)
 ```bezierCurveTo()```| :heavy_check_mark:|[cubic bezier](https://codepen.io/eclipseglory/pen/PXMOwo)
 ```clearRect()```| :warning:|just clear whole canvas
