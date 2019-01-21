@@ -140,7 +140,7 @@ var LineToRectangle = function () {
                 var lastR2 = preRectLastPoints.r2;
                 var lastR3 = preRectLastPoints.r3;
                 if (lastR1 != null) {
-                    this.updateConnectPoints(lastR1, lastR2, lastR3, lastR4, r1Temp, r2Temp, r3Temp, r4Temp, i, line1VectorTemp, faceDirectionTemp, rectPoints);
+                    this.updateConnectPoints(lastR1, lastR2, lastR3, lastR4, r1Temp, r2Temp, r3Temp, r4Temp, i, line1VectorTemp, faceDirectionTemp, rectPoints, lineWidth * 10);
                 }
 
                 //组织三角形
@@ -275,7 +275,7 @@ var LineToRectangle = function () {
         }
     }, {
         key: "updateConnectPoints",
-        value: function updateConnectPoints(lastR1, lastR2, lastR3, lastR4, r1, r2, r3, r4, lineIndex, lineDirection, faceDirection, rectPoints) {
+        value: function updateConnectPoints(lastR1, lastR2, lastR3, lastR4, r1, r2, r3, r4, lineIndex, lineDirection, faceDirection, rectPoints, maxLength) {
             var temp = _Vector2.default.TEMP_VECTORS[0];
             var u1 = rayVectorTemp;
             u1.x = lastR2.x - lastR1.x;
@@ -284,11 +284,19 @@ var LineToRectangle = function () {
             _Vector2.default.normalize(u1, u1);
             _Vector2.default.normalize(lineDirection, lineDirection);
             var dotValue = _Vector2.default.dot(lineDirection, u1);
+
+            /*
+             * TODO 逆向的情况暂不做处理，因为会产生一个bug，如下描述：
+             * 当逆向的时候，如果接近平行，交点会在很远的地方，这样形成的三角形就会很怪异
+             * TODO 逆向平行：未做处理
+             * TODO 如果逆向求交点，当两条线特别接近平行的时候，交点会在很远很远的地方，绘制的时候就会出现一条很长的射线，这个需要处理
+             */
+            if (dotValue < 0) return;
             dotValue = Math.abs(dotValue);
             /*
+             @TODO 目前如果平行就跳过
              *@TODO 这里要计算一下如果两条线平行的情况该如何处理,目前只是简单的跳过这种情况，不做线的交点计算
              *@TODO 同向平行：前一个线段的矩形的p2和p3改成当前线的p2,p3,当前线段不建立矩形。
-             *@TODO 逆向平行：未做处理
              */
             if (_Tools2.default.equals(dotValue, 1)) {
                 return;
@@ -296,7 +304,7 @@ var LineToRectangle = function () {
             var n = planeNormalTemp;
             _Vector2.default.cross(n, lineDirection, faceDirection);
             _Vector2.default.normalize(n, n);
-            _GeometryTools2.default.calculateIntersectionOfPlane(n, u1, lastR2, r2, line2VectorTemp);
+            _GeometryTools2.default.calculateIntersectionOfPlane(n, u1, lastR2, r1, line2VectorTemp);
             if (line2VectorTemp != null) {
                 //更新上个矩形r2和这个矩形的r1
                 r1.x = line2VectorTemp.x;
@@ -307,7 +315,7 @@ var LineToRectangle = function () {
             u1.y = lastR3.y - lastR4.y;
             u1.z = lastR3.z - lastR4.z;
             _Vector2.default.normalize(u1, u1);
-            _GeometryTools2.default.calculateIntersectionOfPlane(n, u1, lastR3, r4, temp);
+            _GeometryTools2.default.calculateIntersectionOfPlane(n, u1, lastR4, r4, temp);
             if (temp != null) {
                 //更新上个矩形r3和这个矩形的r4
                 r4.x = temp.x;

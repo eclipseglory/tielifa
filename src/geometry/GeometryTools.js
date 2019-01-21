@@ -189,7 +189,7 @@ var GeometryTools = function () {
 
     }, {
         key: "calculateIntersectionOfPlane",
-        value: function calculateIntersectionOfPlane(n, u, p, v, out) {
+        value: function calculateIntersectionOfPlane(n, u, p, v, out, maxLength) {
             var down = _Vector2.default.dot(n, u);
             if (down == 0) return null;
             var w = _Vector2.default.TEMP_VECTORS[0];
@@ -198,6 +198,9 @@ var GeometryTools = function () {
             w.z = v.z - p.z;
             // let w = {x: v.x - p.x, y: v.y - p.y, z: v.z - p.z};
             var length = _Vector2.default.dot(w, n) / down;
+            if (maxLength != undefined) {
+                if (length > maxLength) length = maxLength;
+            }
             // let result = {x: 0, y: 0, z: 0};
             _Vector2.default.multiplyValue(w, u, length);
             _Vector2.default.plus(out, w, p);
