@@ -74,6 +74,9 @@ var Vector3 = function () {
                 out.x = v.x / length;
                 out.y = v.y / length;
                 out.z = v.z / length;
+                // if(Tools.equals(out.x , 0))out.x = 0;
+                // if(Tools.equals(out.y , 0))out.y = 0;
+                // if(Tools.equals(out.z , 0))out.z = 0;
             }
         }
     }, {
