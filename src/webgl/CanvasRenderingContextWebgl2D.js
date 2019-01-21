@@ -62,6 +62,10 @@ var _GeometryTools = require("../geometry/GeometryTools.js");
 
 var _GeometryTools2 = _interopRequireDefault(_GeometryTools);
 
+var _Vector3 = require("../math/Vector2.js");
+
+var _Vector4 = _interopRequireDefault(_Vector3);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -147,9 +151,6 @@ var CanvasRenderingContextWebgl2D = function () {
         }
 
         /************** CanvasPathMethods ************************/
-
-        // 没有实现的有这些：
-        // arcTo(x1: number, y1: number, x2: number, y2: number, radius: number): void;
 
     }, {
         key: "beginPath",
@@ -391,55 +392,97 @@ var CanvasRenderingContextWebgl2D = function () {
             currentState.fireDirty();
         }
 
-        // arcTo(x1: number, y1: number, x2: number, y2: number, radius: number): void;
-        // arcTo(x1: number, y1: number, x2: number, y2: number, radiusX: number, radiusY: number, rotation: number): void;
-        /**
-         * 方法实现有错误！！
-         * @deprecated
-         * @param x1
-         * @param y1
-         * @param x2
-         * @param y2
-         * @param radiusX
-         * @param radiusY
-         * @param rotation
-         * @returns {{center: number[], theta: number[]}}
-         */
+        // 没有实现这个椭圆的：arcTo(x1: number, y1: number, x2: number, y2: number, radiusX: number, radiusY: number, rotation: number): void;
 
     }, {
         key: "arcTo",
-        value: function arcTo(x1, y1, x2, y2, radiusX, radiusY, rotation) {
-            if (arguments.length == 5) {
-                radiusY = radiusX;
-                rotation = 0;
-            }
-            if (radiusX < 0 || radiusY < 0) throw new Error('IndexError,radius should not be negative value');
-            if (rotation == undefined) rotation = 0;
-            var lastSubPath = this.currentPath.lastSubPath;
-            if (lastSubPath == undefined) {
+        value: function arcTo(x1, y1, x2, y2, radius) {
+            if (radius < 0) throw new Error('IndexError: Radius value wrong');
+            var subpath = this.currentPath.lastSubPath;
+            var startx = 0;
+            var starty = 0;
+            if (subpath == undefined) {
+                subpath = new _SubPath3D2.default();
+                this.currentPath.addSubPath(subpath);
                 this.moveTo(x1, y1);
-                lastSubPath = this.currentPath.lastSubPath;
+                return;
             } else {
-                var lastIndex = lastSubPath.pointsNumber - 1;
-                var x0 = lastSubPath.getPointX(lastIndex);
-                var y0 = lastSubPath.getPointY(lastIndex);
-                if (x0 != x1 && y0 != y1) {
+                var sx = subpath.getPointX(subpath.pointsNumber - 1);
+                var sy = subpath.getPointY(subpath.pointsNumber - 1);
+                var sz = subpath.getPointZ(subpath.pointsNumber - 1);
+                var testVertex = TEMP_VERTEX_COORD4DIM_ARRAY[0];
+                testVertex[0] = sx;
+                testVertex[1] = sy;
+                testVertex[2] = sz;
+                testVertex[3] = 1;
+                var tm = this.currentContextState.transformMatrix.matrix;
+                var tempM = _Mat2.default.TEMP_MAT4[0];
+                _Mat2.default.copy(tm, tempM);
+                _Mat2.default.inverse(tempM, tempM);
+                _Mat2.default.multiplyWithVertex(tempM, testVertex, testVertex);
+                if (_Tools2.default.equals(sx, x1) && _Tools2.default.equals(sy, y1) || _Tools2.default.equals(x1, x2) && _Tools2.default.equals(y1, y2) || radius == 0) {
                     this.lineTo(x1, y1);
+                    return;
                 }
+                startx = testVertex[0];
+                starty = testVertex[1];
             }
 
-            if (x1 == x2 && y1 == y2) {
-                this.lineTo(x2, y2);
+            var vector1 = new _Vector4.default(startx - x1, starty - y1);
+            var vector2 = new _Vector4.default(x2 - x1, y2 - y1);
+
+            _Vector4.default.normalize(vector1, vector1);
+            _Vector4.default.normalize(vector2, vector2);
+
+            var vector3 = new _Vector4.default();
+            _Vector4.default.plus(vector3, vector1, vector2);
+            _Vector4.default.normalize(vector3, vector3);
+            var radian1 = Math.acos(_Vector4.default.dot(vector1, vector3));
+            if (_Tools2.default.equals(radian1 * 2 % Math.PI, 0)) {
+                this.lineTo(x1, y1);
                 return;
             }
+            var sin = Math.sin(radian1);
+            var length2 = radius / sin;
 
-            var result = _GeometryTools2.default.arcConversionEndpointToCenter(x1, y1, x2, y2, radiusX, radiusY, rotation);
-            var theta = result.theta;
-            var deltaTheta = result.deltaTheta;
-            var cx = result.x;
-            var cy = result.y;
-            this.ellipse(cx, cy, radiusX, radiusY, rotation, theta, theta + deltaTheta);
-            this.lineTo(x2, y2);
+            var rx = vector3.x * length2 + x1;
+            var ry = vector3.y * length2 + y1;
+
+            var center = { x: rx, y: ry };
+            var linep1 = { x: x1, y: y1 };
+            var linep2 = { x: startx, y: starty };
+            var linep3 = { x: x2, y: y2 };
+            var tangenp1 = _GeometryTools2.default.getProjectionPointOnLine(center, linep1, linep2);
+            var tangenp2 = _GeometryTools2.default.getProjectionPointOnLine(center, linep1, linep3);
+            var tv1 = new _Vector4.default(tangenp1.x - rx, tangenp1.y - ry);
+            var tv2 = new _Vector4.default(tangenp2.x - rx, tangenp2.y - ry);
+            _Vector4.default.normalize(tv1, tv1);
+            _Vector4.default.normalize(tv2, tv2);
+
+            function adjustAngle(angle) {
+                var PI2 = 2 * Math.PI;
+                var beishu = Math.floor(Math.abs(angle / PI2));
+                // if (Math.abs(angle) > PI2) beishu++;
+                if (angle < 0) {
+                    angle += beishu * PI2;
+                }
+                if (angle >= PI2) {
+                    angle -= beishu * PI2;
+                }
+                return angle;
+            }
+
+            var startTheta = Math.atan2(tv1.y, tv1.x);
+            var testst = startTheta;
+            testst = adjustAngle(testst);
+            var endTheta = Math.atan2(tv2.y, tv2.x);
+            var testet = endTheta;
+            testet = adjustAngle(testet);
+            var flag = false;
+            if (Math.abs(testst - testet) > Math.PI) {
+                flag = true;
+            }
+            this.arc(rx, ry, radius, startTheta, endTheta, flag);
         }
     }, {
         key: "ellipse",
@@ -527,7 +570,6 @@ var CanvasRenderingContextWebgl2D = function () {
                     thetaVector.x = _c;
                     thetaVector.y = _s;
                     thetaVector.z = 0;
-                    console.log(theta);
                     _Mat2.default.multiplyWithVertex(currentMatrix, thetaVector.value, thetaVector.value);
                     this.addPointInLastSubPath(thetaVector.x, thetaVector.y, thetaVector.z, false);
                 }
