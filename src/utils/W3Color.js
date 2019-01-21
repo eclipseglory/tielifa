@@ -10,7 +10,7 @@ var _createClass = function () { function defineProperties(target, props) { for 
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-/* w3color_removed.js ver.1.18 by w3schools.com (Do not remove this line)*/
+/* w3color.js ver.1.18 by w3schools.com (Do not remove this line)*/
 /*用es6 class重构一下*/
 var W3Color = function () {
     function W3Color(color, elmnt) {
