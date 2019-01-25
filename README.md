@@ -49,8 +49,8 @@ Property | Support | Example
 ```shadowOffsetX```| :x:
 ```shadowOffsetY```| :x:
 ```strokeStyle```| :heavy_check_mark:|[rect and line](https://codepen.io/eclipseglory/pen/wRVrYw)
-```textAlign```| :x:
-```textBaseline```| :x:
+```textAlign```| :heavy_check_mark:
+```textBaseline```| :heavy_check_mark:
 
 Method | Support | Example
 ------ | ------- | -------
@@ -61,7 +61,7 @@ Method | Support | Example
 ```clearRect()```| :warning:|just clear whole canvas
 ```clip()```| :x:
 ```closePath()```| :heavy_check_mark:|[a triangle](https://codepen.io/eclipseglory/pen/MZNOwo)
-```createImageData()```| :x:
+```createImageData()```| :heavy_check_mark:
 ```createLinearGradient()```| :x:
 ```createPattern()```| :x:
 ```createRadialGradient()```| :x:
