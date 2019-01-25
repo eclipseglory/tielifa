@@ -145,6 +145,30 @@ var ContextState = function () {
             var m = this.matrixArray[index];
             return { matrix: m, id: index };
         }
+    }, {
+        key: "lineWidth",
+        get: function get() {
+            return this.canvasDrawingStyle.lineWidth;
+        },
+        set: function set(width) {
+            this.canvasDrawingStyle.lineWidth = width;
+        }
+    }, {
+        key: "textAlign",
+        get: function get() {
+            return this.canvasDrawingStyle.textAlign;
+        },
+        set: function set(textAlign) {
+            this.canvasDrawingStyle.textAlign = textAlign;
+        }
+    }, {
+        key: "textBaseline",
+        get: function get() {
+            return this.canvasDrawingStyle.textBaseline;
+        },
+        set: function set(textBaseline) {
+            this.canvasDrawingStyle.textBaseline = textBaseline;
+        }
     }]);
 
     return ContextState;
