@@ -28,6 +28,8 @@ var CanvasDrawingStylesWebgl2D = function () {
         this.font = '10px sans-serif';
         this.textAlign = 'start';
         this.textBaseline = 'alphabetic';
+        this.fontFamily = 'Arial';
+        this.fontSize = 32;
     }
 
     _createClass(CanvasDrawingStylesWebgl2D, [{
@@ -40,6 +42,8 @@ var CanvasDrawingStylesWebgl2D = function () {
             c.lineCap = this.lineCap;
             c.lineJoin = this.lineJoin;
             c.lineWidth = this.lineWidth;
+            c.fontFamily = this.fontFamily;
+            c.fontSize = this.fontSize;
             return c;
         }
     }, {
