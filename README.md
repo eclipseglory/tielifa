@@ -70,7 +70,7 @@ Method | Support | Example
 ```ellipse()```| :heavy_check_mark:|[Example1](https://codepen.io/eclipseglory/pen/VqorjN) [Example2](https://codepen.io/eclipseglory/pen/roXYMJ)
 ```fill()```| :heavy_check_mark:|[fill a rectangle](https://codepen.io/eclipseglory/pen/VqoMXB)
 ```fillRect()```| :heavy_check_mark:|[two rectangles](https://codepen.io/eclipseglory/pen/MZNEBj)
-```fillText()```| :x:
+```fillText()```| :heavy_check_mark:
 ```getImageData()```| :x:
 ```getLineDash()```| :x:
 ```isPointInPath()```| :x:
