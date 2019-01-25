@@ -13,17 +13,18 @@ var _pointsCoordinateArray = Symbol('点的坐标值数组,每三个为一组，
 var _pointsTransformMatrixArray = Symbol('点的坐标值数组，每两个为一组，分别是stateId,matrixId');
 
 var SubPath3D = function () {
-    function SubPath3D(startPoint) {
+    function SubPath3D() {
         _classCallCheck(this, SubPath3D);
 
-        this.pointsArray = [];
+        // this.pointsArray = [];
         this[_currentIndex] = 0;
         this[_pointsCoordinateArray] = [];
         this[_pointsTransformMatrixArray] = [];
-        if (startPoint != undefined && startPoint != null) {
-            this.pushPoint(startPoint);
-        }
+        // if (startPoint != undefined && startPoint != null) {
+        //     this.pushPoint(startPoint);
+        // }
         this.isClosed = false;
+        this.isRegularRect = false;
     }
 
     _createClass(SubPath3D, [{
@@ -110,21 +111,21 @@ var SubPath3D = function () {
             this.isClosed = true;
         }
 
-        /**
-         * @deprecated
-         * @param index
-         * @returns {*}
-         */
+        // /**
+        //  * @deprecated
+        //  * @param index
+        //  * @returns {*}
+        //  */
+        // getPoint(index) {
+        //     return this.pointsArray[index];
+        // }
 
-    }, {
-        key: 'getPoint',
-        value: function getPoint(index) {
-            return this.pointsArray[index];
-        }
+
     }, {
         key: 'clean',
         value: function clean() {
-            this.pointsArray = []; // 这样比length = 0 效率高?
+            this[_pointsCoordinateArray] = [];
+            this[_pointsTransformMatrixArray] = [];
             this.isClosed = false;
         }
 
@@ -132,12 +133,10 @@ var SubPath3D = function () {
          * @deprecated
          * @param point
          */
+        // pushPoint(point) {
+        //     this.pointsArray.push(point);
+        // }
 
-    }, {
-        key: 'pushPoint',
-        value: function pushPoint(point) {
-            this.pointsArray.push(point);
-        }
     }, {
         key: 'pointsCoordinateArray',
         get: function get() {
