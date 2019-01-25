@@ -76,7 +76,7 @@ Method | Support | Example
 ```isPointInPath()```| :x:
 ```isPointInStroke()```| :x:
 ```lineTo()```| :heavy_check_mark:|[tow lines](https://codepen.io/eclipseglory/pen/ZVgaEJ)
-```measureText()```| :x:
+```measureText()```| :heavy_check_mark:
 ```moveTo()```| :heavy_check_mark:|[tow lines](https://codepen.io/eclipseglory/pen/ZVgaEJ)
 ```putImageData()```| :x:
 ```quadraticCurveTo()```| :heavy_check_mark:|[quadratic bezier](https://codepen.io/eclipseglory/pen/ebqeWV)
