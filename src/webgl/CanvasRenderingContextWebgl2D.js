@@ -66,6 +66,10 @@ var _Vector3 = require("../math/Vector2.js");
 
 var _Vector4 = _interopRequireDefault(_Vector3);
 
+var _BMFontManager = require("../font/BMFontManager.js");
+
+var _BMFontManager2 = _interopRequireDefault(_BMFontManager);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -79,6 +83,7 @@ var _subpathCatch = Symbol('子Path缓存');
 
 var FACE_NORMAL4 = new Float32Array(4);
 var ORI_NORMAL4 = new Float32Array(4);
+var WHITE_COLOR = [255, 255, 255];
 // let TEMP_VERTEX_COORD4DIM_ARRAY = [[0, 0, 0, 1], [0, 0, 0, 1], [0, 0, 0, 1], [0, 0, 0, 1]];
 var TEMP_VERTEX_COORD4DIM_ARRAY = [new Float32Array(4), new Float32Array(4), new Float32Array(4), new Float32Array(4)];
 
@@ -121,6 +126,9 @@ var CanvasRenderingContextWebgl2D = function () {
         // this.translate(0, 0, this.defaultDepth);
         this.currentFaceNormal = new Float32Array(4);
         this.currentFaceNormal[2] = 1;
+
+        this.fontManager = new _BMFontManager2.default();
+        this.fontManager.initDefaultFont(this.webglRender.textureManager, this.gl);
     }
 
     _createClass(CanvasRenderingContextWebgl2D, [{
@@ -227,7 +235,11 @@ var CanvasRenderingContextWebgl2D = function () {
                 tempVector[2] = z;
                 tempVector[3] = 1;
                 var temp = _Mat2.default.multiplyWithVertex(m, tempVector, tempVector);
-                lastSubPath.setPoint(0, temp[0], temp[1], temp[2], currentState.id, currentState.transformMatrixId);
+                if (lastSubPath.pointsNumber != 0) {
+                    lastSubPath.setPoint(0, temp[0], temp[1], temp[2], currentState.id, currentState.transformMatrixId);
+                } else {
+                    lastSubPath.addPoint(temp[0], temp[1], temp[2], currentState.id, currentState.transformMatrixId);
+                }
             } else {
                 var subPath = new _SubPath3D2.default();
                 currentSubPath.addSubPath(subPath);
@@ -393,6 +405,14 @@ var CanvasRenderingContextWebgl2D = function () {
         }
 
         // 没有实现这个椭圆的：arcTo(x1: number, y1: number, x2: number, y2: number, radiusX: number, radiusY: number, rotation: number): void;
+        /**
+         * TODO 这个方法有个bug，path中的最后一个点所应用的转换矩阵不一定就是当前矩阵
+         * @param x1
+         * @param y1
+         * @param x2
+         * @param y2
+         * @param radius
+         */
 
     }, {
         key: "arcTo",
@@ -748,7 +768,7 @@ var CanvasRenderingContextWebgl2D = function () {
 
     }, {
         key: "drawImage",
-        value: function drawImage(image, srcX, srcY, srcWidth, srcHeight, dstX, dstY, dstWidth, dstHeight, depth) {
+        value: function drawImage(image, srcX, srcY, srcWidth, srcHeight, dstX, dstY, dstWidth, dstHeight, depth, color) {
             depth = depth || 0;
             var texture = this.webglRender.textureManager.getTexture(image, this.gl, true);
             var action = new _RenderAction2.default(_RenderAction2.default.ACTION_FILL);
@@ -806,7 +826,7 @@ var CanvasRenderingContextWebgl2D = function () {
                 depth = dstX;
             }
             // 有9或10个参数传入的调用，即要调整贴图坐标
-            if (arguments.length == 9 || arguments.length == 10) {
+            if (arguments.length == 9 || arguments.length == 10 || arguments.length == 11) {
                 left = dstX;
                 top = dstY;
                 right = dstX + dstWidth;
@@ -816,9 +836,10 @@ var CanvasRenderingContextWebgl2D = function () {
                 ty = texture.y + srcY;
                 tb = texture.y + srcY + srcHeight;
             }
+
             this.beginPath();
             this.rect(left, top, right - left, bottom - top, depth);
-
+            this.currentPath.subPathArray[this.currentPath.subPathNumber - 2].isRegularRect = true;
             var opacity = this.currentContextState.globalAlpha;
             var pathList = this[_pathList];
             this[_renderActionList].push(action);
@@ -827,11 +848,29 @@ var CanvasRenderingContextWebgl2D = function () {
             texCoordArray[1] = [tr, ty]; // 右上角
             texCoordArray[2] = [tr, tb]; // 右下角
             texCoordArray[3] = [tx, tb]; // 左下角
-            var color = [255, 255, 255]; //白色，在glsl里会成为一个1,1,1的向量，这样就不会改变贴图数据了
+            color = color || WHITE_COLOR; //白色，在glsl里会成为一个1,1,1的向量，这样就不会改变贴图数据了
+            // this.fillImage(left, top, right - left, bottom - top, depth,
+            //     texture.index, WHITE_COLOR, this.currentContextState.globalAlpha, texCoordArray);
             action.verticesData = this.verticesData;
             action.fragmentData = this.fragmetData;
             action.collectVertexDataForFill(pathList, color, opacity, texCoordArray, this.currentFaceVector);
         }
+
+        //
+        // fillImage(left, top, width, height, depth, textureIndex, color, opacity, texCoordArray) {
+        //     let action = new RenderAction(RenderAction.ACTION_FILL);
+        //     action.textureIndex = textureIndex;
+        //     this.beginPath();
+        //     this.rect(left, top, width, height, depth);
+        //     this.currentPath.subPathArray[this.currentPath.subPathNumber - 2].isRegularRect = true;
+        //     let pathList = this[_pathList];
+        //     this[_renderActionList].push(action);
+        //     action.verticesData = this.verticesData;
+        //     action.fragmentData = this.fragmetData;
+        //     action.collectVertexDataForFill(pathList, color, opacity, texCoordArray, this.currentFaceVector);
+        // }
+
+
     }, {
         key: "fill",
         value: function fill() {
@@ -845,26 +884,109 @@ var CanvasRenderingContextWebgl2D = function () {
             action.collectVertexDataForFill(pathList, fillColor, opacity * fillColor[3], [0, 0], this.currentFaceVector);
         }
     }, {
+        key: "measureText",
+        value: function measureText(text, bmfont) {
+            if (bmfont == undefined) {
+                var font = this.fontFamily;
+                font = font.trim().toLocaleLowerCase();
+                bmfont = _BMFontManager2.default.getInstance().getBMFont(font);
+                if (bmfont == undefined) {
+                    throw new Error('TieLiFa can not find the font:' + font + ',you can register the BM Font with API');
+                }
+            }
+            var string = text;
+            var width = 0;
+            var fontSize = this.fontSize;
+            var scale = fontSize / bmfont.size;
+            var spaceChar = bmfont.chars[" ".charCodeAt(0)];
+            for (var i = 0; i < string.length; i++) {
+                var id = string.charCodeAt(i);
+                var c = bmfont.chars[id];
+                if (c == undefined) {
+                    width += spaceChar.xadvance;
+                    continue;
+                }
+                width += c.xadvance;
+            }
+            return { width: width * scale };
+        }
+    }, {
+        key: "fillText",
+        value: function fillText(text, x, y, maxWidth) {
+            var font = this.fontFamily;
+            font = font.trim().toLocaleLowerCase();
+            var bmfont = _BMFontManager2.default.getInstance().getBMFont(font);
+            if (bmfont == undefined) {
+                throw new Error('TieLiFa can not find the font:' + font + ',you can register the BM Font with API');
+            }
+            var string = text;
+            var fontSize = this.fontSize;
+            var scale = fontSize / bmfont.size;
+            var base = bmfont.common.base;
+            this.save();
+            this.translate(x, y);
+            this.scale(scale, scale);
+            this.translate(-x, -y);
+            var fillColor = _Color2.default.getInstance().convertStringToColor(this.currentContextState.fillStyle);
+            var textBase = this.textBaseline;
+            var textAlign = this.textAlign;
+            var totalWidth = this.measureText(text, bmfont);
+            var sw = 1;
+            var realWidth = totalWidth.width;
+            if (maxWidth != undefined && maxWidth < totalWidth.width) {
+                if (maxWidth == 0) return;
+                sw = maxWidth / totalWidth.width;
+                realWidth = maxWidth;
+            }
+            if (textAlign == 'end' || textAlign == 'right') {
+                x -= realWidth / scale;
+            }
+            if (textAlign == 'center') {
+                x -= realWidth / scale / 2;
+            }
+            if (textBase == 'top') {}
+            if (textBase == 'bottom') {
+                y -= fontSize / scale;
+            }
+            if (textBase == 'middle') {
+                y -= fontSize / 2 / scale;
+            }
+            var spaceChar = bmfont.chars[" ".charCodeAt(0)];
+            for (var i = 0; i < string.length; i++) {
+                var id = string.charCodeAt(i);
+                var c = bmfont.chars[id];
+                if (c == undefined) {
+                    x += spaceChar.xadvance * sw;
+                    continue;
+                }
+                var h = c.height;
+                var w = c.width;
+                w *= sw;
+                var img = _BMFontManager2.default.getInstance().getFontImage(font, c.page);
+                if (img == null || img == undefined) continue;
+                if (id != 32) {
+                    this.drawImage(img, c.x, c.y, c.width, c.height, x + c.xoffset * sw, y + c.yoffset, w, h, 0, fillColor);
+                }
+                x += c.xadvance * sw;
+            }
+            this.restore();
+        }
+    }, {
         key: "fillRect",
-        value: function fillRect(x, y, w, h) {
+        value: function fillRect(x, y, w, h, depth) {
+            depth = depth || 0;
             this.beginPath();
-            this.rect(x, y, w, h);
+            this.rect(x, y, w, h, depth);
+            this.currentPath.subPathArray[this.currentPath.subPathNumber - 2].isRegularRect = true;
             this.fill();
         }
-
-        /**
-         * @deprecated
-         */
-
     }, {
-        key: "stroke2",
-        value: function stroke2() {
-            var strokeColor = _Color2.default.getInstance().convertStringToColor(this.currentContextState.strokeStyle);
-            var opacity = this.currentContextState.globalAlpha;
-            var pathList = this[_pathList];
-            var action = new _RenderAction2.default(_RenderAction2.default.ACTION_STROKE);
-            this[_renderActionList].push(action);
-            action.collectVertexData(pathList, strokeColor, opacity * strokeColor[3], [0, 0]);
+        key: "strokeRect",
+        value: function strokeRect(x, y, w, h, depth) {
+            depth = depth || 0;
+            this.beginPath();
+            this.rect(x, y, w, h, depth);
+            this.stroke();
         }
     }, {
         key: "stroke",
@@ -1017,6 +1139,22 @@ var CanvasRenderingContextWebgl2D = function () {
             return this.currentFaceNormal;
         }
     }, {
+        key: "fontFamily",
+        get: function get() {
+            return this.currentContextState.canvasDrawingStyle.fontFamily;
+        },
+        set: function set(font) {
+            this.currentContextState.canvasDrawingStyle.fontFamily = font;
+        }
+    }, {
+        key: "fontSize",
+        get: function get() {
+            return this.currentContextState.canvasDrawingStyle.fontSize;
+        },
+        set: function set(size) {
+            this.currentContextState.canvasDrawingStyle.fontSize = size;
+        }
+    }, {
         key: "fillStyle",
         set: function set(fill) {
             this.currentContextState.fillStyle = fill;
@@ -1046,6 +1184,22 @@ var CanvasRenderingContextWebgl2D = function () {
         },
         get: function get() {
             return this.currentContextState.lineWidth;
+        }
+    }, {
+        key: "textAlign",
+        get: function get() {
+            return this.currentContextState.textAlign;
+        },
+        set: function set(textAlign) {
+            this.currentContextState.textAlign = textAlign;
+        }
+    }, {
+        key: "textBaseline",
+        get: function get() {
+            return this.currentContextState.textBaseline;
+        },
+        set: function set(textBaseline) {
+            this.currentContextState.textBaseline = textBaseline;
         }
     }]);
 
