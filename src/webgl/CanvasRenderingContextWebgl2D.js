@@ -70,6 +70,10 @@ var _BMFontManager = require("../font/BMFontManager.js");
 
 var _BMFontManager2 = _interopRequireDefault(_BMFontManager);
 
+var _IndexData = require("./IndexData.js");
+
+var _IndexData2 = _interopRequireDefault(_IndexData);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -118,11 +122,14 @@ var CanvasRenderingContextWebgl2D = function () {
         this.verticesData = new _VerticesData2.default(maxVertexNumber);
         // DEBUG :
         // console.log(maxVertexNumber,this.verticesData.totalByteLength);
+        // this.verticesDataSet = new VerticesDataSet(maxVertexNumber);
+        this.indexData = new _IndexData2.default(maxVertexNumber);
         this.fragmetData = new _FragmentData2.default(maxVertexNumber);
         this.transformMatrixData = new _TransformMatrixData2.default(maxVertexNumber);
         this.webglRender.verticesData = this.verticesData;
         this.webglRender.fragmentData = this.fragmetData;
         this.webglRender.transformMatrixData = this.transformMatrixData;
+        this.webglRender.indexData = this.indexData;
         // this.translate(0, 0, this.defaultDepth);
         this.currentFaceNormal = new Float32Array(4);
         this.currentFaceNormal[2] = 1;
@@ -200,7 +207,7 @@ var CanvasRenderingContextWebgl2D = function () {
         value: function addPointInPath(x, y, z, path, applyTransform) {
             var currentState = this.currentContextState;
             var m = currentState.transformMatrix.matrix;
-            if (applyTransform) {
+            if (applyTransform && !_Mat2.default.isIdentity(m)) {
                 var tempVector = TEMP_VERTEX_COORD4DIM_ARRAY[0];
                 tempVector[0] = x;
                 tempVector[1] = y;
@@ -318,12 +325,14 @@ var CanvasRenderingContextWebgl2D = function () {
                     cp0y = y0;
                 }
             }
-            // 二阶导数：6(1-t)(p2-2p1+p0) + 6t(p3-2p2+p1)
             // 计算出三姐导数：6(p3 - 3p2 + 3p1-p0) 不知道算没算错 ：）
+            // TODO 这种算法是错误的
             var sx = 6 * (x - 3 * cp2x + 3 * cp1x - cp0x);
             var sy = 6 * (y - 3 * cp2y + 3 * cp1y - cp0y);
             var r = 1 / (sx * sx + sy * sy);
             var delta = Math.pow(r, 1 / 6);
+            // 上述算法是错误的
+            delta = 0.01;
             var temp = TEMP_VERTEX_COORD4DIM_ARRAY[0];
             var segment = delta;
             for (; segment < 1; segment += delta) {
@@ -389,11 +398,22 @@ var CanvasRenderingContextWebgl2D = function () {
                 this.addPointInLastSubPath(x, y, z, false);
                 return;
             }
-            // 2阶导数：2(p2-2p1+p0)
+            // 用泰勒展开计算近似
+            // B(t) = P0 + 2(P1 - P0)t + (P2-2P1+P0)t^2
+            var bx0 = cp0x,
+                bx1 = 2 * (cpx - cp0x),
+                bx3 = x - 2 * cpx + cp0x;
+            var by0 = cp0y,
+                by1 = 2 * (cpx - cp0y),
+                by3 = y - 2 * cpy + cp0y;
+            // 这里要是能让delta x平方加上delta y平方等于1，可以求出这个delta t的近似值
+            // 下面这个算法是错误的
             var sx = 2 * (x - 2 * cpx + cp0x);
             var sy = 2 * (y - 2 * cpy + cp0y);
             var r = 1 / (sx * sx + sy * sy);
             var delta = Math.pow(r, 0.25);
+            // 上面算法错误的
+            // delta = 0.01;
             var temp = TEMP_VERTEX_COORD4DIM_ARRAY[0];
             var segment = delta;
             for (; segment <= 1; segment += delta) {
@@ -853,6 +873,7 @@ var CanvasRenderingContextWebgl2D = function () {
             //     texture.index, WHITE_COLOR, this.currentContextState.globalAlpha, texCoordArray);
             action.verticesData = this.verticesData;
             action.fragmentData = this.fragmetData;
+            action.indexData = this.indexData;
             action.collectVertexDataForFill(pathList, color, opacity, texCoordArray, this.currentFaceVector);
         }
 
@@ -880,6 +901,7 @@ var CanvasRenderingContextWebgl2D = function () {
             var action = new _RenderAction2.default(_RenderAction2.default.ACTION_FILL);
             action.verticesData = this.verticesData;
             action.fragmentData = this.fragmetData;
+            action.indexData = this.indexData;
             this[_renderActionList].push(action);
             action.collectVertexDataForFill(pathList, fillColor, opacity * fillColor[3], [0, 0], this.currentFaceVector);
         }
@@ -889,7 +911,7 @@ var CanvasRenderingContextWebgl2D = function () {
             if (bmfont == undefined) {
                 var font = this.fontFamily;
                 font = font.trim().toLocaleLowerCase();
-                bmfont = _BMFontManager2.default.getInstance().getBMFont(font);
+                bmfont = this.fontManager.getBMFont(font);
                 if (bmfont == undefined) {
                     throw new Error('TieLiFa can not find the font:' + font + ',you can register the BM Font with API');
                 }
@@ -915,7 +937,7 @@ var CanvasRenderingContextWebgl2D = function () {
         value: function fillText(text, x, y, maxWidth) {
             var font = this.fontFamily;
             font = font.trim().toLocaleLowerCase();
-            var bmfont = _BMFontManager2.default.getInstance().getBMFont(font);
+            var bmfont = this.fontManager.getBMFont(font);
             if (bmfont == undefined) {
                 throw new Error('TieLiFa can not find the font:' + font + ',you can register the BM Font with API');
             }
@@ -962,7 +984,7 @@ var CanvasRenderingContextWebgl2D = function () {
                 var h = c.height;
                 var w = c.width;
                 w *= sw;
-                var img = _BMFontManager2.default.getInstance().getFontImage(font, c.page);
+                var img = this.fontManager.getFontImage(font, c.page);
                 if (img == null || img == undefined) continue;
                 if (id != 32) {
                     this.drawImage(img, c.x, c.y, c.width, c.height, x + c.xoffset * sw, y + c.yoffset, w, h, 0, fillColor);
@@ -998,6 +1020,7 @@ var CanvasRenderingContextWebgl2D = function () {
             var action = new _RenderAction2.default(_RenderAction2.default.ACTION_FILL);
             action.verticesData = this.verticesData;
             action.fragmentData = this.fragmetData;
+            action.indexData = this.indexData;
             this[_renderActionList].push(action);
             action.collectVertexDataForStroke(pathList, strokeColor, opacity * strokeColor[3], [0, 0], lineWidth, this.currentFaceVector);
         }
@@ -1019,6 +1042,12 @@ var CanvasRenderingContextWebgl2D = function () {
 
         //******************** 扩展接口 *****************************//
 
+    }, {
+        key: "loadBMFont",
+        value: function loadBMFont(fntUrl, callbacks) {
+            callbacks = callbacks || {};
+            this.fontManager.loadBMFont(fntUrl, this.webglRender.textureManager, this.gl, callbacks);
+        }
     }, {
         key: "turnOnLight",
         value: function turnOnLight() {
@@ -1080,6 +1109,8 @@ var CanvasRenderingContextWebgl2D = function () {
             this.verticesData.init();
             this.fragmetData.init();
             this.transformMatrixData.init();
+            this.indexData.init();
+            // this.verticesDataSet.init();
             // debug:
             // console.log("绘制调用次数：", this.webglRender.DEBUG_DRAW_COUNT);
         }
@@ -1131,8 +1162,18 @@ var CanvasRenderingContextWebgl2D = function () {
             var m = this.currentContextState.transformMatrix.matrix;
             var temp1 = _Vector2.default.TEMP_VECTORS[0];
             var temp2 = _Vector2.default.TEMP_VECTORS[1];
-            _Mat2.default.multiplyWithVertex(m, FACE_NORMAL4, temp1.value);
-            _Mat2.default.multiplyWithVertex(m, ORI_NORMAL4, temp2.value);
+            temp1.x = FACE_NORMAL4[0];
+            temp1.y = FACE_NORMAL4[1];
+            temp1.z = FACE_NORMAL4[2];
+            temp1.value[3] = 1;
+            temp2.x = ORI_NORMAL4[0];
+            temp2.y = ORI_NORMAL4[1];
+            temp2.z = ORI_NORMAL4[2];
+            temp2.value[3] = 1;
+            if (!_Mat2.default.isIdentity(m)) {
+                _Mat2.default.multiplyWithVertex(m, FACE_NORMAL4, temp1.value);
+                _Mat2.default.multiplyWithVertex(m, ORI_NORMAL4, temp2.value);
+            }
             this.currentFaceNormal[0] = temp1.x - temp2.x;
             this.currentFaceNormal[1] = temp1.y - temp2.y;
             this.currentFaceNormal[2] = temp1.z - temp2.z;
