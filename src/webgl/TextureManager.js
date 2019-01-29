@@ -28,8 +28,6 @@ var TextureManager = function () {
         this[_textCatch] = [];
         this.imageDataArray = new Array(this.maxTextureNum);
         this.textureArray = new Array(this.maxTextureNum);
-        this.singleTexture = undefined;
-        this.lastImageData = undefined;
         this.space = space || 3;
     }
 
@@ -96,15 +94,13 @@ var TextureManager = function () {
                             y = imageData.height + this.space;
                             canvas.width = Math.max(imageData.width, width);
                             canvas.height = y + height;
-                            console.log('换行');
                         } else {
                             canvas.width = Math.max(imageData.width, x + width);
                             canvas.height = Math.max(imageData.height, y + height);
-                            console.log('不换行');
                         }
                         if (y + height > this.maxHeight) {
                             // 图片已经超过最大可以绘制的空间，换另外一个texture
-                            console.log('图片超过贴图内存最大尺寸');
+                            console.error('图片超过贴图内存最大尺寸');
                             continue;
                         }
                         // 将之前的像素数据放入新的canvas中
