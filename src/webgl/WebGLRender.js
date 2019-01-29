@@ -55,6 +55,7 @@ var WebGLRender = function () {
         this.textureManager = null;
         this.verticesData = null;
         this.fragmentData = null;
+        this.indexData = null;
         this.transformMatrixData = null;
         this.canvasWidth = -1;
         this.canvasHeight = -1;
@@ -149,6 +150,11 @@ var WebGLRender = function () {
             offset = 0;
             stride = 4;
             gl.vertexAttribPointer(shaderInfo.transformMatrixIndex, size, type, normalize, stride, offset);
+
+            // test:
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, shaderInfo.indexDataBuffer);
+            var index = [0, 1, 2, 2, 4, 0];
+            gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, this.indexData.dataArray, gl.DYNAMIC_DRAW);
         }
     }, {
         key: "executeRenderAction",
@@ -188,7 +194,9 @@ var WebGLRender = function () {
             this.initProjectionMatrix();
             this.gl.uniform3f(this.shaderInformation.lightPosition, this.lightPosition[0], this.lightPosition[1], this.lightPosition[2]);
             this.configTexture(textureIndex);
-            gl.drawArrays(gl.TRIANGLES, startIndex, renderPointNumber);
+            // gl.drawArrays(gl.TRIANGLES, startIndex, renderPointNumber);
+            // test:
+            gl.drawElements(gl.TRIANGLES, renderPointNumber, gl.UNSIGNED_SHORT, startIndex);
             this.DEBUG_DRAW_COUNT++;
         }
     }, {
@@ -323,6 +331,7 @@ var WebGLRender = function () {
             var verticesBuffer = gl.createBuffer();
             var matrixIndexBuffer = gl.createBuffer();
             var fragmentBuffer = gl.createBuffer();
+            var indexDataBuffer = gl.createBuffer();
 
             var blackTexture = gl.createTexture();
             gl.bindTexture(gl.TEXTURE_2D, blackTexture);
@@ -338,6 +347,7 @@ var WebGLRender = function () {
                 verticesBuffer: verticesBuffer,
                 fragmentBuffer: fragmentBuffer,
                 matrixIndexBuffer: matrixIndexBuffer,
+                indexDataBuffer: indexDataBuffer,
                 perspectiveMatrix: perspectiveMatrix,
                 transformMatrixArray: transformMatrixArray,
                 transformMatrixIndex: transformMatrixIndex,
