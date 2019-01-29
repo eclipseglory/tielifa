@@ -36,6 +36,11 @@ var Mat4 = function () {
             return m;
         }
     }, {
+        key: "isIdentity",
+        value: function isIdentity(m) {
+            return !(m[0] !== 1 || m[1] !== 0 || m[2] !== 0 || m[3] !== 0 || m[4] !== 0 || m[5] !== 1 || m[6] !== 0 || m[7] !== 0 || m[8] !== 0 || m[9] !== 0 || m[10] !== 1 || m[11] !== 0 || m[12] !== 0 || m[13] !== 0 || m[14] !== 0 || m[15] !== 1);
+        }
+    }, {
         key: "perspective",
         value: function perspective(fieldOfViewInRadians, aspect, near, far, out) {
             var f = Math.tan(Math.PI * 0.5 - 0.5 * fieldOfViewInRadians);

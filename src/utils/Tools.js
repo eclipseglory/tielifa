@@ -194,7 +194,6 @@ var Tools = function () {
         get: function get() {
             if (littleEndian === undefined) {
                 // DataView是默认按照高位存放，这里要做判断，更改存放顺序
-                // PS: Float32Array却是按照低位存放的
                 var arrayBuffer = new ArrayBuffer(2);
                 var uint8Array = new Uint8Array(arrayBuffer);
                 var uint16array = new Uint16Array(arrayBuffer);
