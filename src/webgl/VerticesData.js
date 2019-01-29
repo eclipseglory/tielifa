@@ -43,6 +43,17 @@ var VerticesData = function () {
             this[_dataArray][index + 6] = nz;
         }
     }, {
+        key: 'setVerticesCoor',
+        value: function setVerticesCoor(x, y, z, index) {
+            index = index * 8;
+            if (index * 4 >= this.totalByteLength) {
+                this.resize(this.totalByteLength * 2);
+            }
+            this[_dataArray][index] = x;
+            this[_dataArray][index + 1] = y;
+            this[_dataArray][index + 2] = z;
+        }
+    }, {
         key: 'getVerticesData',
         value: function getVerticesData(index) {
             index = index * 8;
