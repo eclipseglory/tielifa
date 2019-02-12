@@ -36,7 +36,7 @@ var _program = Symbol('WebGL的program');
 var _maxTransformMatrixNum = Symbol('转换矩阵变量可用的最大数量');
 
 var WebGLRender = function () {
-    function WebGLRender(gl, maxTransformNum, textureMaxSize, projectionType, fov, enableLight) {
+    function WebGLRender(gl, maxTransformNum, textureMaxSize, projectionType, fov, enableLight, enableDepthTest) {
         _classCallCheck(this, WebGLRender);
 
         this.gl = gl;
@@ -52,6 +52,7 @@ var WebGLRender = function () {
         // debug:
         maxTransformNum = 2;
         this[_maxTransformMatrixNum] = maxTransformNum;
+        this.enableDepthTest = enableDepthTest || false;
         this.textureManager = null;
         this.verticesData = null;
         this.fragmentData = null;
@@ -60,8 +61,8 @@ var WebGLRender = function () {
         this.canvasWidth = -1;
         this.canvasHeight = -1;
         this.lightPosition = new Float32Array(3);
-        this.lightPosition[0] = gl.canvas.clientWidth / 2;
-        this.lightPosition[1] = gl.canvas.clientHeight / 2;
+        this.lightPosition[0] = gl.canvas.width / 2;
+        this.lightPosition[1] = gl.canvas.height / 2;
         this.lightPosition[2] = 0;
         this.projectionType = projectionType;
         this.fov = fov;
@@ -142,18 +143,17 @@ var WebGLRender = function () {
             offset = 8;
             gl.vertexAttribPointer(shaderInfo.textureCoordAttribute, size, type, normalize, stride, offset);
 
-            gl.enableVertexAttribArray(shaderInfo.transformMatrixIndex);
-            gl.bindBuffer(gl.ARRAY_BUFFER, shaderInfo.matrixIndexBuffer);
-            gl.bufferData(gl.ARRAY_BUFFER, this.transformMatrixData.buffer, gl.DYNAMIC_DRAW);
-            type = gl.FLOAT;
-            size = 1;
-            offset = 0;
-            stride = 4;
-            gl.vertexAttribPointer(shaderInfo.transformMatrixIndex, size, type, normalize, stride, offset);
+            // gl.enableVertexAttribArray(shaderInfo.transformMatrixIndex);
+            // gl.bindBuffer(gl.ARRAY_BUFFER, shaderInfo.matrixIndexBuffer);
+            // gl.bufferData(gl.ARRAY_BUFFER, this.transformMatrixData.buffer, gl.DYNAMIC_DRAW);
+            // type = gl.FLOAT;
+            // size = 1;
+            // offset = 0;
+            // stride = 4;
+            // gl.vertexAttribPointer(shaderInfo.transformMatrixIndex, size, type, normalize, stride, offset);
 
             // test:
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, shaderInfo.indexDataBuffer);
-            var index = [0, 1, 2, 2, 4, 0];
             gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, this.indexData.dataArray, gl.DYNAMIC_DRAW);
         }
     }, {
@@ -167,36 +167,57 @@ var WebGLRender = function () {
             for (var i = 0; i < actionList.length; i++) {
                 var currentAction = actionList[i];
                 if (lastAction == undefined) lastAction = currentAction;
+                if (currentAction.applyMatrix != lastAction.applyMatrix) {
+                    this.renderVertices(startIndex, rendNumber, lastAction.textureIndex, lastAction.applyMatrix);
+                    lastAction = currentAction;
+                    startIndex += rendNumber;
+                    rendNumber = currentAction.renderPointNumber;
+                } else {
+                    if (currentAction.textureIndex != lastAction.textureIndex && currentAction.textureIndex != -1 && lastAction.textureIndex != -1) {
+                        this.renderVertices(startIndex, rendNumber, lastAction.textureIndex, lastAction.applyMatrix);
+                        lastAction = currentAction;
+                        startIndex += rendNumber;
+                        rendNumber = 0;
+                    }
+                    if (lastAction.textureIndex == -1 && currentAction.textureIndex != -1) {
+                        lastAction = currentAction;
+                    }
+                    rendNumber += currentAction.renderPointNumber;
+                }
                 // 先收集顶点数据，顶点的矩阵在下一步再设置
-                if (currentAction.textureIndex != lastAction.textureIndex && currentAction.textureIndex != -1 && lastAction.textureIndex != -1) {
-                    this.renderVertices(startIndex, rendNumber, lastAction.textureIndex);
-                    lastAction = currentAction;
-                    startIndex = rendNumber;
-                    rendNumber = 0;
-                }
-                if (lastAction.textureIndex == -1 && currentAction.textureIndex != -1) {
-                    lastAction = currentAction;
-                }
-                rendNumber += currentAction.renderPointNumber;
+                // if (currentAction.textureIndex != lastAction.textureIndex && currentAction.textureIndex != -1 && lastAction.textureIndex != -1) {
+                //     this.renderVertices(startIndex, rendNumber, lastAction.textureIndex);
+                //     lastAction = currentAction;
+                //     startIndex += rendNumber;
+                //     rendNumber = 0;
+                // }
+                // if (lastAction.textureIndex == -1 && currentAction.textureIndex != -1) {
+                //     lastAction = currentAction;
+                // }
+                // rendNumber += currentAction.renderPointNumber;
             }
 
             if (lastAction != undefined) {
-                this.renderVertices(startIndex, rendNumber, lastAction.textureIndex);
+                this.renderVertices(startIndex, rendNumber, lastAction.textureIndex, lastAction.applyMatrix);
             }
         }
     }, {
         key: "renderVertices",
-        value: function renderVertices(startIndex, renderPointNumber, textureIndex) {
+        value: function renderVertices(startIndex, renderPointNumber, textureIndex, transformMatrix) {
             if (renderPointNumber == 0) {
                 return;
             }
             var gl = this.gl;
             this.initProjectionMatrix();
+            if (transformMatrix != null) {
+                var m = _Mat2.default.identity();
+                _Mat2.default.multiply(m, transformMatrix, this.defaultTransformMatrix);
+                gl.uniformMatrix4fv(this.shaderInformation.transformMatrixArray[0], false, m);
+            }
             this.gl.uniform3f(this.shaderInformation.lightPosition, this.lightPosition[0], this.lightPosition[1], this.lightPosition[2]);
             this.configTexture(textureIndex);
-            // gl.drawArrays(gl.TRIANGLES, startIndex, renderPointNumber);
-            // test:
-            gl.drawElements(gl.TRIANGLES, renderPointNumber, gl.UNSIGNED_SHORT, startIndex);
+            // offset 是字节偏移，所以要乘以2，因为每一个index是2个字节
+            gl.drawElements(gl.TRIANGLES, renderPointNumber, gl.UNSIGNED_SHORT, startIndex * 2);
             this.DEBUG_DRAW_COUNT++;
         }
     }, {
@@ -204,7 +225,7 @@ var WebGLRender = function () {
         value: function initProjectionMatrix() {
             var gl = this.gl;
             // 设置透视矩阵
-            if (this.canvasHeight != gl.canvas.clientHeight && this.canvasWidth != gl.canvas.clientWidth) {
+            if (this.canvasHeight != gl.canvas.height && this.canvasWidth != gl.canvas.width) {
                 var t = Math.tan(this.fov * Math.PI / 180);
                 var defaultDepth = -gl.canvas.height / (2 * t);
                 // 为了配合预设的深度
@@ -216,12 +237,12 @@ var WebGLRender = function () {
                 if (this.projectionType == 0) {
                     m1 = _Mat2.default.orthoProjection(0, 0, gl.canvas.width, gl.canvas.height, near, Math.abs(defaultDepth * 2), this.orthoProjectionMatrix);
                 } else {
-                    var theta = Math.atan2(gl.canvas.clientHeight / 2, Math.abs(defaultDepth));
-                    m1 = _Mat2.default.perspective3(theta * 2, gl.canvas.clientWidth, gl.canvas.clientHeight, near, Math.abs(defaultDepth * 2), this.perspectiveMatrix);
+                    var theta = Math.atan2(gl.canvas.height / 2, Math.abs(defaultDepth));
+                    m1 = _Mat2.default.perspective3(theta * 2, gl.canvas.width, gl.canvas.height, near, Math.abs(defaultDepth * 2), this.perspectiveMatrix);
                 }
                 gl.uniformMatrix4fv(this.shaderInformation.perspectiveMatrix, false, m1);
-                this.canvasHeight = gl.canvas.clientHeight;
-                this.canvasWidth = gl.canvas.clientWidth;
+                this.canvasHeight = gl.canvas.height;
+                this.canvasWidth = gl.canvas.width;
             }
         }
     }, {
@@ -278,7 +299,11 @@ var WebGLRender = function () {
             var gl = this.gl;
             this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
             this.gl.enable(this.gl.BLEND);
-            this.gl.disable(this.gl.DEPTH_TEST);
+            if (this.enableDepthTest) {
+                gl.enable(gl.DEPTH_TEST);
+            } else {
+                this.gl.disable(this.gl.DEPTH_TEST);
+            }
             this[_program] = this.createShaderProgram();
             var program = this[_program];
             this.shaderInformation = this.initShaderInformation(program);
@@ -307,8 +332,8 @@ var WebGLRender = function () {
             var normalAttribute = gl.getAttribLocation(program, "a_normal");
             gl.enableVertexAttribArray(normalAttribute);
 
-            var transformMatrixIndex = gl.getAttribLocation(program, "transform_matrix_index");
-            gl.enableVertexAttribArray(transformMatrixIndex);
+            // let transformMatrixIndex = gl.getAttribLocation(program, "transform_matrix_index");
+            // gl.enableVertexAttribArray(transformMatrixIndex);
 
             var colorAttribute = gl.getAttribLocation(program, 'color');
             gl.enableVertexAttribArray(colorAttribute);
@@ -350,7 +375,7 @@ var WebGLRender = function () {
                 indexDataBuffer: indexDataBuffer,
                 perspectiveMatrix: perspectiveMatrix,
                 transformMatrixArray: transformMatrixArray,
-                transformMatrixIndex: transformMatrixIndex,
+                // transformMatrixIndex: transformMatrixIndex,
                 singleCanvas: singleCanvas,
                 textureLocation: textureLocation,
                 blackTexture: blackTexture,
@@ -409,7 +434,7 @@ var WebGLRender = function () {
     }, {
         key: "getVertexShaderSource",
         value: function getVertexShaderSource(transformMatrixCount) {
-            var vsSource = ' attribute vec3 color;\n' + '     attribute vec4 a_position;\n' + '     attribute vec3 a_normal;\n' + '     attribute float alpha;\n' + '     attribute vec2 u_texCoord;\n' + '     varying vec3 v_position;\n' + '     attribute float transform_matrix_index;\n' + '     varying vec2 v_texcoord;\n' + '     varying vec4 currentColor;\n' + '     varying vec3 normal;\n' + '     uniform mat4 perspective_matrix;\n' + '     uniform mat4 transform_matrix_array[' + transformMatrixCount + '];\n' + '     void main() {\n' + '            normal = a_normal;\n' + '            vec4 yuandian = vec4(0,0,0,1);\n' + '            v_texcoord = u_texCoord;\n' + '            vec4 new_position = transform_matrix_array[int(transform_matrix_index)] * a_position;\n' + '            v_position = vec3(new_position.xyz);\n' + '            vec4 finalPosition = perspective_matrix* new_position;\n' + '            currentColor = vec4 (color.xyz/255.0,alpha);\n' + '            gl_Position = finalPosition;\n' + '    }';
+            var vsSource = ' attribute vec3 color;\n' + '     attribute vec4 a_position;\n' + '     attribute vec3 a_normal;\n' + '     attribute float alpha;\n' + '     attribute vec2 u_texCoord;\n' + '     varying vec3 v_position;\n' + '     attribute float transform_matrix_index;\n' + '     varying vec2 v_texcoord;\n' + '     varying vec4 currentColor;\n' + '     varying vec3 normal;\n' + '     uniform mat4 perspective_matrix;\n' + '     uniform mat4 transform_matrix_array[' + transformMatrixCount + '];\n' + '     void main() {\n' + '            normal = a_normal;\n' + '            vec4 yuandian = vec4(0,0,0,1);\n' + '            v_texcoord = u_texCoord;\n' + '            vec4 new_position = transform_matrix_array[0] * a_position;\n' + '            v_position = vec3(new_position.xyz);\n' + '            vec4 finalPosition = perspective_matrix* new_position;\n' + '            currentColor = vec4 (color.xyz/255.0,alpha);\n' + '            gl_Position = finalPosition;\n' + '    }';
             return vsSource;
         }
     }, {

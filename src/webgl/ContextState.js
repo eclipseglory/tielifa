@@ -18,8 +18,8 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-var _transformMatrix = Symbol('变换矩阵');
-
+// let _transformMatrix = Symbol('变换矩阵');
+// let _matrixList = [];
 var ContextState = function () {
     function ContextState(canvasDrawingStyle) {
         _classCallCheck(this, ContextState);
@@ -30,40 +30,60 @@ var ContextState = function () {
         this.strokeStyle = '#000000';
         this.globalAlpha = 1;
         this.id = -1;
-        this.matrixArray = [];
-        this.matrixArray.push(_Mat2.default.identity());
+        this.matrix = _Mat2.default.identity();
+        // this.matrixArray = [];
+        // this.matrixArray.push(Mat4.identity());
         this.dirty = false;
     }
+
+    // static get matrixList() {
+    //     // matrix list永不为空
+    //     if (_matrixList.length == 0)
+    //         _matrixList.push(Mat4.identity());
+    //     return _matrixList;
+    // }
+    //
+    // static set matrixList(list) {
+    //     _matrixList = list;
+    // }
+
+    /**@deprecated*/
+
 
     _createClass(ContextState, [{
         key: "fireDirty",
         value: function fireDirty() {
             this.dirty = true;
         }
+
+        /**@deprecated*/
+
     }, {
         key: "setTransformMatrix",
         value: function setTransformMatrix(value) {
-            var current = this.transformMatrix.matrix;
-            _Mat2.default.copy(value, current);
+            // let current = this.transformMatrix.matrix;
+            _Mat2.default.copy(value, this.matrix);
         }
+        /**@deprecated*/
+
     }, {
         key: "checkDirty",
         value: function checkDirty() {
             // 如果当前的矩阵会被应用到某些节点上，则说明这个矩阵脏了，
             // 一旦变换矩阵就要保存一下，并把这个矩阵的克隆放入数组底
-            if (this.dirty) {
-                var m1 = _Mat2.default.identity();
-                var lastMatrix = this.transformMatrix.matrix;
-                _Mat2.default.copy(lastMatrix, m1);
-                this.matrixArray.push(m1);
-                this.dirty = false;
-            }
+            // if (this.dirty) {
+            //     let m1 = Mat4.identity();
+            //     let lastMatrix = this.transformMatrix.matrix;
+            //     Mat4.copy(lastMatrix, m1);
+            //     ContextState.matrixList.push(m1);
+            //     this.dirty = false;
+            // }
         }
     }, {
         key: "applyTransform",
         value: function applyTransform(currentTransformMatrix) {
             this.checkDirty();
-            var lastMatrix = this.transformMatrix.matrix;
+            var lastMatrix = this.matrix;
             _Mat2.default.multiply(lastMatrix, lastMatrix, currentTransformMatrix);
         }
     }, {
@@ -128,22 +148,23 @@ var ContextState = function () {
             newState.fillStyle = this.fillStyle;
             newState.strokeStyle = this.strokeStyle;
             newState.globalAlpha = this.globalAlpha;
-            newState.matrixIndex = this.matrixIndex;
+            // newState.matrixIndex = this.matrixIndex;
             // 把当前的矩阵作为新矩阵的最后一个
-            newState.setTransformMatrix(this.transformMatrix.matrix);
+            newState.setTransformMatrix(this.transformMatrix);
             return newState;
         }
     }, {
         key: "transformMatrixId",
         get: function get() {
-            return this.matrixArray.length - 1;
+            return ContextState.matrixList.length - 1;
         }
     }, {
         key: "transformMatrix",
         get: function get() {
-            var index = this.matrixArray.length - 1;
-            var m = this.matrixArray[index];
-            return { matrix: m, id: index };
+            return this.matrix;
+            // let index = ContextState.matrixList.length - 1;
+            // let m = ContextState.matrixList[index];
+            // return {matrix: m, id: index};
         }
     }, {
         key: "lineWidth",

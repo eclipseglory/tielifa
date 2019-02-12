@@ -9,6 +9,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 var TempCanvas = function TempCanvas() {
     _classCallCheck(this, TempCanvas);
 
+    // 这是微信版本的代码：
+    // return wx.createCanvas();
     return document.createElement('canvas');
 };
 

@@ -65,13 +65,26 @@ var FragmentData = function () {
     }, {
         key: "resize",
         value: function resize(length) {
-            if (length < this.totalByteLength) throw Error('new length should not less than old length');
+            if (length <= this.totalByteLength) {
+                return;
+            }
             var oldBuffer = this.buffer;
             this.buffer = new ArrayBuffer(length);
             var dv1 = new Uint8Array(oldBuffer);
             var ndv = new Uint8Array(this.buffer);
             ndv.set(dv1, 0);
             this.dv = new DataView(this.buffer);
+        }
+    }, {
+        key: "append",
+        value: function append(fragmentData) {
+            var vertexNum = this.currentIndex;
+            var len = fragmentData.totalByteLength;
+            this.resize(len + vertexNum * SINGLE_DATA_BYTE_LENGTH);
+            var dv1 = new Uint8Array(fragmentData.buffer);
+            var ndv = new Uint8Array(this.buffer);
+            ndv.set(dv1, vertexNum * SINGLE_DATA_BYTE_LENGTH);
+            this.currentIndex += fragmentData.currentIndex;
         }
     }, {
         key: "addFragmentData",
@@ -83,31 +96,6 @@ var FragmentData = function () {
             this.setFragmentData(r, g, b, alpha, u, v, textureIndex, index);
             this.currentIndex++;
         }
-
-        // getTextureIndex(index) {
-        //     let offset = 3;
-        //     return this.getData(index, BaseBufferData.TYPE_INT8, offset);
-        // }
-        //
-        // getColorData(index) {
-        //     let r = this.getData(index, BaseBufferData.TYPE_UINT8);
-        //     let g = this.getData(index, BaseBufferData.TYPE_UINT8, 1);
-        //     let b = this.getData(index, BaseBufferData.TYPE_UINT8, 2);
-        //     return [r, g, b];
-        // }
-        //
-        // getTextureUV(index) {
-        //     let offset = 8;
-        //     let u = this.getData(index, BaseBufferData.TYPE_FLOAT32, offset);
-        //     let v = this.getData(index, BaseBufferData.TYPE_FLOAT32, offset + 4);
-        //     return [u, v];
-        // }
-        //
-        // getAlpha(index) {
-        //     let offset = 4;
-        //     return this.getData(index, BaseBufferData.TYPE_FLOAT32, offset);
-        // }
-
     }, {
         key: "totalByteLength",
         get: function get() {

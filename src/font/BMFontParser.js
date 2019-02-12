@@ -122,9 +122,6 @@ var BMFontParser = function () {
                 char.chnl = Number.parseInt(charNode.getAttribute("chnl"));
                 font.chars[char.id] = char;
             }
-            // font.chars.sort(function (a, b) {
-            //     return a.id - b.id;
-            // });
 
             //解析kernings
             var kerningsNodes = xmlDoc.getElementsByTagName('kernings');

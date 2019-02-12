@@ -36,6 +36,9 @@ var RenderAction = function () {
         this.renderPointNumber = 0;
         this.isRect = false;
         this.indexData = null;
+        this.applyMatrix = null;
+        this.applyColor = null;
+        this.applyOpacity = null;
     }
 
     _createClass(RenderAction, [{
@@ -67,7 +70,6 @@ var RenderAction = function () {
                     if (vertexCount < 2) continue;
                     pointArrayInterface.offset = this.verticesData.currentIndex;
                     var lineNum = _LineToRectangle2.default.generatePoints1(lineWidth, subPath.pointsCoordinateArray, subPath.isClosed, faceDirection, pointArrayInterface);
-                    // let pointsNum = rects.length / 3;
                     for (var k = 0; k < lineNum; k++) {
                         var index = k * 4;
                         this.indexData.addIndex(pointArrayInterface.offset + index);
@@ -77,17 +79,6 @@ var RenderAction = function () {
                         this.indexData.addIndex(pointArrayInterface.offset + index + 2);
                         this.indexData.addIndex(pointArrayInterface.offset + index + 3);
                         this.indexData.addIndex(pointArrayInterface.offset + index);
-                        // let index = k * 3;
-                        // if (this.verticesData != null) {
-                        //     this.verticesData.addVerticesData(rects[index], rects[index + 1], rects[index + 2], faceDirection[0], faceDirection[1], faceDirection[2]);
-                        // }
-                        // if (this.fragmentData != null) {
-                        //     this.fragmentData.addFragmentData(color[0], color[1], color[2], opacity, textureCoord[0], textureCoord[1], -1);
-                        // }
-                        // if (this.transformData != null) {
-                        //     // 记录转换矩阵数据
-                        //     this.transformData.addMatrixIndex(0);
-                        // }
                     }
                     this.renderPointNumber += lineNum * 6;
                 }
@@ -144,32 +135,12 @@ var RenderAction = function () {
                         var vertexIndex = vertexOrg[k];
                         this.indexData.addIndex(vertexIndex + offset);
                     }
+
                     var temp = k;
                     for (var _k = temp; _k < vertexOrg.length; _k++) {
                         var _vertexIndex = vertexOrg[_k];
                         this.indexData.addIndex(_vertexIndex + offset);
                     }
-
-                    // for (let k = 0; k < vertexOrg.length; k++) {
-                    //     let vertexIndex = vertexOrg[k];
-                    //     if (this.verticesData != null) {
-                    //         this.verticesData.addVerticesData(subPath.getPointX(vertexIndex), subPath.getPointY(vertexIndex),
-                    //             subPath.getPointZ(vertexIndex), faceDirection[0], faceDirection[1], faceDirection[2]);
-                    //     }
-                    //     if (this.fragmentData != null) {
-                    //         let t = undefined;
-                    //         if (textureCoord[0] instanceof Array) {
-                    //             t = textureCoord[vertexIndex];
-                    //         } else {
-                    //             t = textureCoord;
-                    //         }
-                    //         this.fragmentData.addFragmentData(color[0], color[1], color[2], opacity, t[0], t[1], this.textureIndex);
-                    //     }
-                    //     if (this.transformData != null) {
-                    //         // 记录转换矩阵数据
-                    //         this.transformData.addMatrixIndex(0);
-                    //     }
-                    // }
                 }
             }
         }

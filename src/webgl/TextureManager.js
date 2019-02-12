@@ -132,7 +132,6 @@ var TextureManager = function () {
         value: function createAllTexture(gl) {
             if (gl == undefined) return;
             var canvas = new _TempCanvas2.default();
-            var ctx = canvas.getContext('2d');
             for (var i = 0; i < this.textureArray.length; i++) {
                 this.createTexture(gl, i, canvas);
             }

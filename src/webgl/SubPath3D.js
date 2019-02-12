@@ -70,22 +70,22 @@ var SubPath3D = function () {
         }
     }, {
         key: 'setPoint',
-        value: function setPoint(index, x, y, z, stateId, matrixId) {
+        value: function setPoint(index, x, y, z, stateId) {
             stateId = stateId || 0;
-            matrixId = matrixId || 0;
+            // matrixId = matrixId || 0;
             var sIndex = index * 2;
             index = index * 3;
             this[_pointsCoordinateArray][index] = x;
             this[_pointsCoordinateArray][index + 1] = y;
             this[_pointsCoordinateArray][index + 2] = z;
-            this[_pointsTransformMatrixArray][sIndex] = stateId;
-            this[_pointsTransformMatrixArray][sIndex + 1] = matrixId;
+            // this[_pointsTransformMatrixArray][sIndex] = stateId;
+            // this[_pointsTransformMatrixArray][sIndex + 1] = matrixId;
         }
     }, {
         key: 'addPoint',
-        value: function addPoint(x, y, z, stateId, matrixId) {
+        value: function addPoint(x, y, z, stateId) {
             stateId = stateId || 0;
-            matrixId = matrixId || 0;
+            // matrixId = matrixId || 0;
             var index = this[_currentIndex];
             if (index * 3 >= this[_pointsCoordinateArray].length) {
                 this[_pointsCoordinateArray].push(x);
@@ -96,13 +96,13 @@ var SubPath3D = function () {
                 this[_pointsCoordinateArray][index + 1] = y;
                 this[_pointsCoordinateArray][index + 2] = z;
             }
-            if (index * 2 >= this[_pointsTransformMatrixArray].length) {
-                this[_pointsTransformMatrixArray].push(stateId);
-                this[_pointsTransformMatrixArray].push(matrixId);
-            } else {
-                this[_pointsTransformMatrixArray][index] = stateId;
-                this[_pointsTransformMatrixArray][index + 1] = matrixId;
-            }
+            // if (index * 2 >= this[_pointsTransformMatrixArray].length) {
+            //     this[_pointsTransformMatrixArray].push(stateId);
+            //     this[_pointsTransformMatrixArray].push(matrixId);
+            // } else {
+            //     this[_pointsTransformMatrixArray][index] = stateId;
+            //     this[_pointsTransformMatrixArray][index + 1] = matrixId;
+            // }
             this[_currentIndex]++;
         }
     }, {

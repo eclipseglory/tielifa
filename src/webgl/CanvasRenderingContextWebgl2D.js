@@ -80,11 +80,11 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 var _canvas = Symbol('对应的Canvas');
 var _stateStack = Symbol('状态栈');
-var _stateArray = Symbol('状态数组，记录全部状态');
 var _pathList = Symbol('路径列表');
 var _renderActionList = Symbol('绘制动作List');
 var _subpathCatch = Symbol('子Path缓存');
 
+var SPACE_CHAR_ID = " ".charCodeAt(0);
 var FACE_NORMAL4 = new Float32Array(4);
 var ORI_NORMAL4 = new Float32Array(4);
 var WHITE_COLOR = [255, 255, 255];
@@ -109,33 +109,47 @@ var CanvasRenderingContextWebgl2D = function () {
         if (this.gl == undefined) throw new Error('Current canvas doesnt support WebGL');
         // this.defaultDepth = -canvas.height * 2;
         var FOV = properties['FOV'] || 20;
-        // let t = Math.tan(FOV * Math.PI / 180);
-        // this.defaultDepth = -canvas.height / (2 * t);
+        var t = Math.tan(FOV * Math.PI / 180);
+        this.defaultDepth = -canvas.height / (2 * t);
         this.maxBufferByteLength = properties['maxMemorySize'] || 1024 * 1024;
         this[_stateStack] = [];
-        this[_stateArray] = [];
         this[_pathList] = [];
         this[_renderActionList] = [];
         this[_subpathCatch] = [];
-        this.webglRender = new _WebGLRender2.default(this.gl, properties['maxTransformNum'], properties['maxTextureSize'], properties['projectionType'], FOV);
+        this.webglRender = new _WebGLRender2.default(this.gl, properties['maxTransformNum'], properties['maxTextureSize'], properties['projectionType'], FOV, properties['enableLight'], properties['enableDepthTest']);
         var maxVertexNumber = this.maxBufferByteLength / 32;
         this.verticesData = new _VerticesData2.default(maxVertexNumber);
         // DEBUG :
         // console.log(maxVertexNumber,this.verticesData.totalByteLength);
         // this.verticesDataSet = new VerticesDataSet(maxVertexNumber);
         this.indexData = new _IndexData2.default(maxVertexNumber);
-        this.fragmetData = new _FragmentData2.default(maxVertexNumber);
+        this.fragmentData = new _FragmentData2.default(maxVertexNumber);
         this.transformMatrixData = new _TransformMatrixData2.default(maxVertexNumber);
         this.webglRender.verticesData = this.verticesData;
-        this.webglRender.fragmentData = this.fragmetData;
+        this.webglRender.fragmentData = this.fragmentData;
         this.webglRender.transformMatrixData = this.transformMatrixData;
         this.webglRender.indexData = this.indexData;
-        // this.translate(0, 0, this.defaultDepth);
         this.currentFaceNormal = new Float32Array(4);
         this.currentFaceNormal[2] = 1;
-
+        this._tempPathArray = null;
+        this._tempActionList = null;
+        this._tempGraphics = null;
+        this._painedGraphicsMap = {};
         this.fontManager = new _BMFontManager2.default();
-        this.fontManager.initDefaultFont(this.webglRender.textureManager, this.gl);
+
+        this.tempVDOArrays = {
+            verticesData: null,
+            fragmentData: null,
+            indexData: null,
+            transformMatrixData: null
+        };
+
+        this.currentVDOArrays = {
+            verticesData: this.verticesData,
+            fragmentData: this.fragmentData,
+            indexData: this.indexData,
+            transformMatrixData: this.transformMatrixData
+        };
     }
 
     _createClass(CanvasRenderingContextWebgl2D, [{
@@ -183,9 +197,9 @@ var CanvasRenderingContextWebgl2D = function () {
             var y = lastSubPath.getPointX(0);
             var z = lastSubPath.getPointX(0);
             var sid = lastSubPath.getPointStateId(0);
-            var mid = lastSubPath.getPointMatrixId(0);
+            // let mid = lastSubPath.getPointMatrixId(0);
             var newSubPath = new _SubPath3D2.default();
-            newSubPath.addPoint(x, y, z, sid, mid);
+            newSubPath.addPoint(x, y, z, sid);
             path.addSubPath(newSubPath);
         }
     }, {
@@ -206,7 +220,7 @@ var CanvasRenderingContextWebgl2D = function () {
         key: "addPointInPath",
         value: function addPointInPath(x, y, z, path, applyTransform) {
             var currentState = this.currentContextState;
-            var m = currentState.transformMatrix.matrix;
+            var m = currentState.transformMatrix;
             if (applyTransform && !_Mat2.default.isIdentity(m)) {
                 var tempVector = TEMP_VERTEX_COORD4DIM_ARRAY[0];
                 tempVector[0] = x;
@@ -217,9 +231,9 @@ var CanvasRenderingContextWebgl2D = function () {
                 x = tempVector[0];
                 y = tempVector[1];
                 z = tempVector[2];
-                currentState.fireDirty();
+                // currentState.fireDirty();
             }
-            path.addPoint(x, y, z, currentState.id, currentState.transformMatrixId);
+            path.addPoint(x, y, z, currentState.id);
         }
     }, {
         key: "addPointInLastSubPath",
@@ -235,7 +249,7 @@ var CanvasRenderingContextWebgl2D = function () {
             var lastSubPath = currentSubPath.lastSubPath;
             if (lastSubPath != undefined && lastSubPath.pointsNumber < 2) {
                 //这个subpath只要一个点，就用它作为新的subpath
-                var m = currentState.transformMatrix.matrix;
+                var m = currentState.transformMatrix;
                 var tempVector = TEMP_VERTEX_COORD4DIM_ARRAY[0];
                 tempVector[0] = x;
                 tempVector[1] = y;
@@ -243,9 +257,9 @@ var CanvasRenderingContextWebgl2D = function () {
                 tempVector[3] = 1;
                 var temp = _Mat2.default.multiplyWithVertex(m, tempVector, tempVector);
                 if (lastSubPath.pointsNumber != 0) {
-                    lastSubPath.setPoint(0, temp[0], temp[1], temp[2], currentState.id, currentState.transformMatrixId);
+                    lastSubPath.setPoint(0, temp[0], temp[1], temp[2], currentState.id);
                 } else {
-                    lastSubPath.addPoint(temp[0], temp[1], temp[2], currentState.id, currentState.transformMatrixId);
+                    lastSubPath.addPoint(temp[0], temp[1], temp[2], currentState.id);
                 }
             } else {
                 var subPath = new _SubPath3D2.default();
@@ -289,7 +303,7 @@ var CanvasRenderingContextWebgl2D = function () {
             tempVector[1] = cp1y;
             tempVector[2] = 0;
             tempVector[3] = 1;
-            var m1 = this.currentContextState.transformMatrix.matrix;
+            var m1 = this.currentContextState.transformMatrix;
             _Mat2.default.multiplyWithVertex(m1, tempVector, tempVector);
             cp1x = tempVector[0];
             cp1y = tempVector[1];
@@ -335,14 +349,12 @@ var CanvasRenderingContextWebgl2D = function () {
             delta = 0.01;
             var temp = TEMP_VERTEX_COORD4DIM_ARRAY[0];
             var segment = delta;
-            for (; segment < 1; segment += delta) {
+            for (; segment <= 1; segment += delta) {
                 _GeometryTools2.default.cubicBezier(segment, cp0x, cp0y, cp1x, cp1y, cp2x, cp2y, x, y, temp);
                 this.addPointInLastSubPath(temp[0], temp[1], defaultZ, false);
             }
-            if (segment > 1 && segment != 1) {
-                this.addPointInLastSubPath(x, y, defaultZ, false);
-            }
-            currentState.fireDirty();
+            this.addPointInLastSubPath(x, y, defaultZ, false);
+            // currentState.fireDirty();
         }
 
         /**
@@ -364,7 +376,7 @@ var CanvasRenderingContextWebgl2D = function () {
             m[1] = cpy;
             m[2] = 0;
             m[3] = 1;
-            var m1 = this.currentContextState.transformMatrix.matrix;
+            var m1 = this.currentContextState.transformMatrix;
             _Mat2.default.multiplyWithVertex(m1, m, m);
             cpx = m[0];
             cpy = m[1];
@@ -421,7 +433,7 @@ var CanvasRenderingContextWebgl2D = function () {
                 this.addPointInLastSubPath(temp[0], temp[1], cpz, false);
             }
             this.addPointInLastSubPath(x, y, z, false);
-            currentState.fireDirty();
+            // currentState.fireDirty();
         }
 
         // 没有实现这个椭圆的：arcTo(x1: number, y1: number, x2: number, y2: number, radiusX: number, radiusY: number, rotation: number): void;
@@ -455,7 +467,7 @@ var CanvasRenderingContextWebgl2D = function () {
                 testVertex[1] = sy;
                 testVertex[2] = sz;
                 testVertex[3] = 1;
-                var tm = this.currentContextState.transformMatrix.matrix;
+                var tm = this.currentContextState.transformMatrix;
                 var tempM = _Mat2.default.TEMP_MAT4[0];
                 _Mat2.default.copy(tm, tempM);
                 _Mat2.default.inverse(tempM, tempM);
@@ -539,7 +551,7 @@ var CanvasRenderingContextWebgl2D = function () {
 
             var currentMatrix = _Mat2.default.TEMP_MAT4[0];
             _Mat2.default.translationMatrix(currentMatrix, x, y, 0);
-            var tm = this.currentContextState.transformMatrix.matrix;
+            var tm = this.currentContextState.transformMatrix;
             _Mat2.default.multiply(currentMatrix, tm, currentMatrix);
             var transformMatrix = _Mat2.default.TEMP_MAT4[1];
             _Mat2.default.rotationZMatrix(transformMatrix, rotation);
@@ -676,9 +688,6 @@ var CanvasRenderingContextWebgl2D = function () {
             var currentState = this.currentContextState;
             var stateClone = currentState.clone();
             this[_stateStack].push(stateClone);
-            // TODO 可能要取消这个状态数组了
-            // this[_stateArray].push(stateClone);
-            stateClone.id = this[_stateArray].length - 1;
         }
 
         /**
@@ -739,8 +748,8 @@ var CanvasRenderingContextWebgl2D = function () {
     }, {
         key: "setTransform",
         value: function setTransform(scaleX, skewY, skewX, scaleY, tx, ty) {
-            _Mat2.default.identityMatrix(this.currentContextState.transformMatrix.matrix);
-            var m = this.currentContextState.transformMatrix.matrix;
+            _Mat2.default.identityMatrix(this.currentContextState.transformMatrix);
+            var m = this.currentContextState.transformMatrix;
             m[0] = scaleX;
             m[1] = skewY;
             m[4] = skewX;
@@ -869,29 +878,12 @@ var CanvasRenderingContextWebgl2D = function () {
             texCoordArray[2] = [tr, tb]; // 右下角
             texCoordArray[3] = [tx, tb]; // 左下角
             color = color || WHITE_COLOR; //白色，在glsl里会成为一个1,1,1的向量，这样就不会改变贴图数据了
-            // this.fillImage(left, top, right - left, bottom - top, depth,
-            //     texture.index, WHITE_COLOR, this.currentContextState.globalAlpha, texCoordArray);
-            action.verticesData = this.verticesData;
-            action.fragmentData = this.fragmetData;
-            action.indexData = this.indexData;
+            var vdo = this.getVDOArrays();
+            action.verticesData = vdo.verticesData;
+            action.fragmentData = vdo.fragmentData;
+            action.indexData = vdo.indexData;
             action.collectVertexDataForFill(pathList, color, opacity, texCoordArray, this.currentFaceVector);
         }
-
-        //
-        // fillImage(left, top, width, height, depth, textureIndex, color, opacity, texCoordArray) {
-        //     let action = new RenderAction(RenderAction.ACTION_FILL);
-        //     action.textureIndex = textureIndex;
-        //     this.beginPath();
-        //     this.rect(left, top, width, height, depth);
-        //     this.currentPath.subPathArray[this.currentPath.subPathNumber - 2].isRegularRect = true;
-        //     let pathList = this[_pathList];
-        //     this[_renderActionList].push(action);
-        //     action.verticesData = this.verticesData;
-        //     action.fragmentData = this.fragmetData;
-        //     action.collectVertexDataForFill(pathList, color, opacity, texCoordArray, this.currentFaceVector);
-        // }
-
-
     }, {
         key: "fill",
         value: function fill() {
@@ -899,9 +891,10 @@ var CanvasRenderingContextWebgl2D = function () {
             var opacity = this.currentContextState.globalAlpha;
             var pathList = this[_pathList];
             var action = new _RenderAction2.default(_RenderAction2.default.ACTION_FILL);
-            action.verticesData = this.verticesData;
-            action.fragmentData = this.fragmetData;
-            action.indexData = this.indexData;
+            var vdo = this.getVDOArrays();
+            action.verticesData = vdo.verticesData;
+            action.fragmentData = vdo.fragmentData;
+            action.indexData = vdo.indexData;
             this[_renderActionList].push(action);
             action.collectVertexDataForFill(pathList, fillColor, opacity * fillColor[3], [0, 0], this.currentFaceVector);
         }
@@ -973,7 +966,8 @@ var CanvasRenderingContextWebgl2D = function () {
             if (textBase == 'middle') {
                 y -= fontSize / 2 / scale;
             }
-            var spaceChar = bmfont.chars[" ".charCodeAt(0)];
+
+            var spaceChar = bmfont.chars[SPACE_CHAR_ID];
             for (var i = 0; i < string.length; i++) {
                 var id = string.charCodeAt(i);
                 var c = bmfont.chars[id];
@@ -986,7 +980,7 @@ var CanvasRenderingContextWebgl2D = function () {
                 w *= sw;
                 var img = this.fontManager.getFontImage(font, c.page);
                 if (img == null || img == undefined) continue;
-                if (id != 32) {
+                if (id != SPACE_CHAR_ID) {
                     this.drawImage(img, c.x, c.y, c.width, c.height, x + c.xoffset * sw, y + c.yoffset, w, h, 0, fillColor);
                 }
                 x += c.xadvance * sw;
@@ -1018,9 +1012,10 @@ var CanvasRenderingContextWebgl2D = function () {
             var pathList = this[_pathList];
             var lineWidth = this.currentContextState.lineWidth;
             var action = new _RenderAction2.default(_RenderAction2.default.ACTION_FILL);
-            action.verticesData = this.verticesData;
-            action.fragmentData = this.fragmetData;
-            action.indexData = this.indexData;
+            var vdo = this.getVDOArrays();
+            action.verticesData = vdo.verticesData;
+            action.fragmentData = vdo.fragmentData;
+            action.indexData = vdo.indexData;
             this[_renderActionList].push(action);
             action.collectVertexDataForStroke(pathList, strokeColor, opacity * strokeColor[3], [0, 0], lineWidth, this.currentFaceVector);
         }
@@ -1042,6 +1037,116 @@ var CanvasRenderingContextWebgl2D = function () {
 
         //******************** 扩展接口 *****************************//
 
+    }, {
+        key: "drawGraphics",
+        value: function drawGraphics(graphics, x, y) {
+            if (this._tempGraphics != null) return;
+            for (var i = 0; i < graphics.actionList.length; i++) {
+                var action = graphics.actionList[i];
+                var newAction = new _RenderAction2.default(action.type);
+                newAction.textureIndex = action.textureIndex;
+                newAction.renderPointNumber = action.renderPointNumber;
+                if (x != undefined && y != undefined) {
+                    if (x != 0 || y != 0) {
+                        var m = _Mat2.default.translation(x, y, 0);
+                        _Mat2.default.multiply(m, this.currentContextState.transformMatrix, m);
+                        newAction = m;
+                    }
+                } else {
+                    newAction.applyMatrix = this.currentContextState.transformMatrix;
+                }
+
+                this[_renderActionList].push(newAction);
+            }
+            var vdo = this.getVDOArrays();
+            var offset = vdo.verticesData.currentIndex;
+            var painedIndexData = this._painedGraphicsMap[graphics];
+            if (painedIndexData == undefined) {
+                vdo.verticesData.append(graphics.verticesData);
+                vdo.fragmentData.append(graphics.fragmentData);
+                painedIndexData = { start: vdo.indexData.currentIndex, length: graphics.indexData.currentIndex };
+                for (var _i = 0; _i < graphics.indexData.currentIndex; _i++) {
+                    vdo.indexData.addIndex(graphics.indexData.getIndex(_i) + offset);
+                }
+                this._painedGraphicsMap[graphics] = painedIndexData;
+            } else {
+                for (var _i2 = 0; _i2 < painedIndexData.length; _i2++) {
+                    var indexValue = vdo.indexData.getIndex(_i2 + painedIndexData.start);
+                    vdo.indexData.addIndex(indexValue);
+                }
+            }
+        }
+    }, {
+        key: "getVDOArrays",
+        value: function getVDOArrays() {
+            return this.currentVDOArrays;
+        }
+    }, {
+        key: "setVDOArrays",
+        value: function setVDOArrays(verticesData, fragmentData, transformData, indexData) {
+            this.currentVDOArrays.verticesData = verticesData;
+            this.currentVDOArrays.fragmentData = fragmentData;
+            this.currentVDOArrays.transformMatrixData = transformData;
+            this.currentVDOArrays.indexData = indexData;
+        }
+    }, {
+        key: "startGraphics",
+        value: function startGraphics(graphics, vertexNum) {
+            if (this._tempGraphics != null) return;
+            vertexNum = vertexNum || 4;
+            this._tempPathArray = this[_pathList];
+            this[_pathList] = [];
+            this[_pathList].push(new _Path3D2.default());
+
+            var state = new _ContextState2.default(new _CanvasDrawingStylesWebgl2D2.default());
+            this[_stateStack].push(state);
+            if (graphics != undefined) {
+                graphics.verticesData.init();
+                graphics.fragmentData.init();
+                graphics.indexData.init();
+                graphics.actionList.length = 0;
+            } else {
+                graphics = {
+                    verticesData: new _VerticesData2.default(vertexNum),
+                    fragmentData: new _FragmentData2.default(vertexNum),
+                    indexData: new _IndexData2.default(vertexNum),
+                    transformMatrixData: null,
+                    actionList: []
+                };
+            }
+
+            this.tempVDOArrays.verticesData = graphics.verticesData;
+            this.tempVDOArrays.fragmentData = graphics.fragmentData;
+            this.tempVDOArrays.indexData = graphics.indexData;
+
+            this._tempGraphics = graphics;
+
+            this._tempActionList = this[_renderActionList];
+            this[_renderActionList] = graphics.actionList;
+            this.setVDOArrays(this.tempVDOArrays.verticesData, this.tempVDOArrays.fragmentData, null, this.tempVDOArrays.indexData);
+        }
+    }, {
+        key: "endGraphics",
+        value: function endGraphics() {
+            this[_stateStack].pop();
+            this[_pathList] = this._tempPathArray;
+            this[_renderActionList] = this._tempActionList;
+            this.currentVDOArrays.verticesData = this.verticesData;
+            this.currentVDOArrays.fragmentData = this.fragmentData;
+            this.currentVDOArrays.transformMatrixData = this.transformMatrixData;
+            this.currentVDOArrays.indexData = this.indexData;
+
+            this._tempPathArray = null;
+            this._tempActionList = null;
+            this.tempVDOArrays.verticesData = null;
+            this.tempVDOArrays.fragmentData = null;
+            this.tempVDOArrays.indexData = null;
+            this.tempVDOArrays.transformMatrixData = null;
+
+            var tf = this._tempGraphics;
+            this._tempGraphics = null;
+            return tf;
+        }
     }, {
         key: "loadBMFont",
         value: function loadBMFont(fntUrl, callbacks) {
@@ -1081,12 +1186,14 @@ var CanvasRenderingContextWebgl2D = function () {
             this.save();
             this.beginPath();
             this.rect(x, y, w, h);
+            this.currentPath.subPathArray[this.currentPath.subPathNumber - 2].isRegularRect = true;
             this.fillOrStroke(fillColor, strokeColor);
             this.restore();
         }
     }, {
         key: "drawEllipse",
         value: function drawEllipse(x, y, r1, r2, fillColor, strokeColor, rotation) {
+            rotation = rotation || 0;
             this.save();
             this.beginPath();
             this.ellipse(x, y, r1, r2, rotation, 0, _Tools2.default.PI2, false);
@@ -1102,15 +1209,15 @@ var CanvasRenderingContextWebgl2D = function () {
     }, {
         key: "draw",
         value: function draw() {
+            if (this._tempGraphics != null) return;
             this.webglRender.initRending();
-            this.webglRender.executeRenderAction(this[_renderActionList], this[_stateArray]);
+            this.webglRender.executeRenderAction(this[_renderActionList]);
             this[_renderActionList] = [];
-            this[_stateArray] = [];
             this.verticesData.init();
-            this.fragmetData.init();
+            this.fragmentData.init();
             this.transformMatrixData.init();
             this.indexData.init();
-            // this.verticesDataSet.init();
+            this._painedGraphicsMap = {};
             // debug:
             // console.log("绘制调用次数：", this.webglRender.DEBUG_DRAW_COUNT);
         }
@@ -1121,8 +1228,6 @@ var CanvasRenderingContextWebgl2D = function () {
                 // 状态栈永远不为空
                 var state = new _ContextState2.default(new _CanvasDrawingStylesWebgl2D2.default());
                 this[_stateStack].push(state);
-                this[_stateArray].push(state);
-                state.id = this[_stateArray].length - 1;
             }
             return this[_stateStack][this[_stateStack].length - 1];
         }
@@ -1159,7 +1264,7 @@ var CanvasRenderingContextWebgl2D = function () {
     }, {
         key: "currentFaceVector",
         get: function get() {
-            var m = this.currentContextState.transformMatrix.matrix;
+            var m = this.currentContextState.transformMatrix;
             var temp1 = _Vector2.default.TEMP_VECTORS[0];
             var temp2 = _Vector2.default.TEMP_VECTORS[1];
             temp1.x = FACE_NORMAL4[0];

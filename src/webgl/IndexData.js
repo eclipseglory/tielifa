@@ -14,10 +14,10 @@ var _arrayBuffer = Symbol('存储顶点数组的buffer');
 var SINGLE_DATA_BYTE_LENGTH = 2;
 
 var IndexData = function () {
-    function IndexData(maxVertexNumber) {
+    function IndexData(vertexNumber) {
         _classCallCheck(this, IndexData);
 
-        this[_arrayBuffer] = new ArrayBuffer(maxVertexNumber * 2);
+        this[_arrayBuffer] = new ArrayBuffer(vertexNumber * 2);
         this[_dataArray] = new Uint16Array(this[_arrayBuffer]);
         this[_currentIndex] = 0;
     }
@@ -50,13 +50,26 @@ var IndexData = function () {
     }, {
         key: 'resize',
         value: function resize(length) {
-            if (length < this.totalByteLength) throw Error('new length should not less than old length');
+            if (length <= this.totalByteLength) {
+                return;
+            }
             var oldBuffer = this[_arrayBuffer];
             this[_arrayBuffer] = new ArrayBuffer(length);
             var dv1 = new Uint8Array(oldBuffer);
             var ndv = new Uint8Array(this[_arrayBuffer]);
             ndv.set(dv1, 0);
             this[_dataArray] = new Uint16Array(this[_arrayBuffer]);
+        }
+    }, {
+        key: 'append',
+        value: function append(indexData) {
+            var vertexNum = this.currentIndex;
+            var len = indexData.totalByteLength;
+            this.resize(len + vertexNum * SINGLE_DATA_BYTE_LENGTH);
+            var dv1 = new Uint8Array(indexData.buffer);
+            var ndv = new Uint8Array(this.buffer);
+            ndv.set(dv1, vertexNum * SINGLE_DATA_BYTE_LENGTH);
+            this[_currentIndex] += indexData.currentIndex;
         }
     }, {
         key: 'dataArray',
