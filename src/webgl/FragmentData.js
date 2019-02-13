@@ -38,24 +38,17 @@ var FragmentData = function () {
 
     _createClass(FragmentData, [{
         key: "setFragmentData",
-        value: function setFragmentData(r, g, b, alpha, u, v, textureIndex, index) {
+        value: function setFragmentData(r, g, b, alpha, u, v, textureIndex, filterType, index) {
             index = index * this.singleDataByteLength;
             this.dv.setUint8(index, r);
             this.dv.setUint8(index + 1, g);
             this.dv.setUint8(index + 2, b);
+            this.dv.setUint8(index + 3, filterType);
             index += 4;
 
             this.dv.setFloat32(index, alpha, this.isLittleEndian);
             this.dv.setFloat32(index + 4, u, this.isLittleEndian);
             this.dv.setFloat32(index + 8, v, this.isLittleEndian);
-            // this.setData(r, index, BaseBufferData.TYPE_UINT8);
-            // this.setData(g, index, BaseBufferData.TYPE_UINT8, 1);
-            // this.setData(b, index, BaseBufferData.TYPE_UINT8, 2);
-            // this.setData(textureIndex, index, BaseBufferData.TYPE_INT8, 3);
-            //
-            // this.setData(alpha, index, BaseBufferData.TYPE_FLOAT32, 4);
-            // this.setData(u, index, BaseBufferData.TYPE_FLOAT32, 8);
-            // this.setData(v, index, BaseBufferData.TYPE_FLOAT32, 12);
         }
     }, {
         key: "init",
@@ -88,12 +81,12 @@ var FragmentData = function () {
         }
     }, {
         key: "addFragmentData",
-        value: function addFragmentData(r, g, b, alpha, u, v, textureIndex) {
+        value: function addFragmentData(r, g, b, alpha, u, v, textureIndex, filterType) {
             var index = this.currentIndex;
             if (index * this.singleDataByteLength >= this.totalByteLength) {
                 this.resize(this.totalByteLength * 2);
             }
-            this.setFragmentData(r, g, b, alpha, u, v, textureIndex, index);
+            this.setFragmentData(r, g, b, alpha, u, v, textureIndex, filterType, index);
             this.currentIndex++;
         }
     }, {

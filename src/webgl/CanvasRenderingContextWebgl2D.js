@@ -882,7 +882,7 @@ var CanvasRenderingContextWebgl2D = function () {
             action.verticesData = vdo.verticesData;
             action.fragmentData = vdo.fragmentData;
             action.indexData = vdo.indexData;
-            action.collectVertexDataForFill(pathList, color, opacity, texCoordArray, this.currentFaceVector);
+            action.collectVertexDataForFill(pathList, color, opacity, texCoordArray, this.currentContextState.filterType, this.currentFaceVector);
         }
     }, {
         key: "fill",
@@ -896,7 +896,7 @@ var CanvasRenderingContextWebgl2D = function () {
             action.fragmentData = vdo.fragmentData;
             action.indexData = vdo.indexData;
             this[_renderActionList].push(action);
-            action.collectVertexDataForFill(pathList, fillColor, opacity * fillColor[3], [0, 0], this.currentFaceVector);
+            action.collectVertexDataForFill(pathList, fillColor, opacity * fillColor[3], [0, 0], this.currentContextState.filterType, this.currentFaceVector);
         }
     }, {
         key: "measureText",
@@ -1011,13 +1011,14 @@ var CanvasRenderingContextWebgl2D = function () {
             var opacity = this.currentContextState.globalAlpha;
             var pathList = this[_pathList];
             var lineWidth = this.currentContextState.lineWidth;
+            var filterType = this.currentContextState.filterType;
             var action = new _RenderAction2.default(_RenderAction2.default.ACTION_FILL);
             var vdo = this.getVDOArrays();
             action.verticesData = vdo.verticesData;
             action.fragmentData = vdo.fragmentData;
             action.indexData = vdo.indexData;
             this[_renderActionList].push(action);
-            action.collectVertexDataForStroke(pathList, strokeColor, opacity * strokeColor[3], [0, 0], lineWidth, this.currentFaceVector);
+            action.collectVertexDataForStroke(pathList, strokeColor, opacity * strokeColor[3], [0, 0], lineWidth, filterType, this.currentFaceVector);
         }
 
         //////////////////// ImageData相关 /////////////////////////////
@@ -1039,6 +1040,14 @@ var CanvasRenderingContextWebgl2D = function () {
 
     }, {
         key: "drawGraphics",
+
+
+        /**
+         * 绘制一个定义好的graphics，但性能还不如直接画，慎用
+         * @param graphics
+         * @param x
+         * @param y
+         */
         value: function drawGraphics(graphics, x, y) {
             if (this._tempGraphics != null) return;
             for (var i = 0; i < graphics.actionList.length; i++) {
@@ -1089,6 +1098,13 @@ var CanvasRenderingContextWebgl2D = function () {
             this.currentVDOArrays.transformMatrixData = transformData;
             this.currentVDOArrays.indexData = indexData;
         }
+
+        /**
+         * 定义一个graphics
+         * @param graphics
+         * @param vertexNum
+         */
+
     }, {
         key: "startGraphics",
         value: function startGraphics(graphics, vertexNum) {
@@ -1346,6 +1362,79 @@ var CanvasRenderingContextWebgl2D = function () {
         },
         set: function set(textBaseline) {
             this.currentContextState.textBaseline = textBaseline;
+        }
+    }, {
+        key: "filterType",
+        get: function get() {
+            return this.currentContextState.filterType;
+        },
+        set: function set(filter) {
+            this.currentContextState.filterType = filter;
+        }
+    }], [{
+        key: "Normal_Filter",
+        get: function get() {
+            return _ContextState2.default.Normal_Filter;
+        }
+    }, {
+        key: "GaussianBlur_Filter",
+        get: function get() {
+            return _ContextState2.default.GaussianBlur_Filter;
+        }
+    }, {
+        key: "Unsharpen_Filter",
+        get: function get() {
+            return _ContextState2.default.Unsharpen_Filter;
+        }
+    }, {
+        key: "Sharpness_Filter",
+        get: function get() {
+            return _ContextState2.default.Sharpen_Filter;
+        }
+    }, {
+        key: "Sharpen_Filter",
+        get: function get() {
+            return _ContextState2.default.Sharpen_Filter;
+        }
+    }, {
+        key: "EdgeDetect_Filter",
+        get: function get() {
+            return _ContextState2.default.EdgeDetect_Filter;
+        }
+    }, {
+        key: "SobelHorizontal_Filter",
+        get: function get() {
+            return _ContextState2.default.SobelHorizontal_Filter;
+        }
+    }, {
+        key: "SobelVertical_Filter",
+        get: function get() {
+            return _ContextState2.default.SobelVertical_Filter;
+        }
+    }, {
+        key: "PrevitHorizontal_Filter",
+        get: function get() {
+            return _ContextState2.default.PrevitHorizontal_Filter;
+        }
+    }, {
+        key: "PrevitVertical_Filter",
+        get: function get() {
+            return _ContextState2.default.PrevitVertical_Filter;
+        }
+    }, {
+        key: "BoxBlur_Filter",
+        get: function get() {
+            return _ContextState2.default.BoxBlur_Filter;
+        }
+    }, {
+        key: "TriangleBlur_Filter",
+        get: function get() {
+            return _ContextState2.default.TriangleBlur_Filter;
+        }
+    }, {
+        key: "Emboss_Filter",
+        get: function get() {
+            return _ContextState2.default.Emboss_Filter;
         }
     }]);
 

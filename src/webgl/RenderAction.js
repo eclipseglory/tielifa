@@ -43,7 +43,7 @@ var RenderAction = function () {
 
     _createClass(RenderAction, [{
         key: "collectVertexDataForStroke",
-        value: function collectVertexDataForStroke(pathList, color, opacity, textureCoord, lineWidth, faceDirection) {
+        value: function collectVertexDataForStroke(pathList, color, opacity, textureCoord, lineWidth, filterType, faceDirection) {
             var that = this;
             var pointArrayInterface = {
                 setPoint: function setPoint(p, index) {
@@ -54,7 +54,7 @@ var RenderAction = function () {
                         that.verticesData.addVerticesData(p.x, p.y, p.z, faceDirection[0], faceDirection[1], faceDirection[2]);
                     }
                     if (that.fragmentData != null) {
-                        that.fragmentData.addFragmentData(color[0], color[1], color[2], opacity, textureCoord[0], textureCoord[1], -1);
+                        that.fragmentData.addFragmentData(color[0], color[1], color[2], opacity, textureCoord[0], textureCoord[1], -1, filterType);
                     }
                     if (that.transformData != null) {
                         // 记录转换矩阵数据
@@ -86,7 +86,7 @@ var RenderAction = function () {
         }
     }, {
         key: "collectVertexDataForFill",
-        value: function collectVertexDataForFill(pathList, color, opacity, textureCoord, faceDirection) {
+        value: function collectVertexDataForFill(pathList, color, opacity, textureCoord, filterType, faceDirection) {
             for (var i = 0; i < pathList.length; i++) {
                 var path = pathList[i];
                 if (path.subPathNumber == 0) {
@@ -126,7 +126,7 @@ var RenderAction = function () {
                             } else {
                                 t = textureCoord;
                             }
-                            this.fragmentData.addFragmentData(color[0], color[1], color[2], opacity, t[0], t[1], this.textureIndex);
+                            this.fragmentData.addFragmentData(color[0], color[1], color[2], opacity, t[0], t[1], this.textureIndex, filterType);
                         }
                         if (this.transformData != null) {
                             // 记录转换矩阵数据

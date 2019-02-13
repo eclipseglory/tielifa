@@ -18,8 +18,20 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-// let _transformMatrix = Symbol('变换矩阵');
-// let _matrixList = [];
+var Normal_Filter = 0;
+var GaussianBlur_Filter = 1;
+var Unsharpen_Filter = 2;
+var Sharpness_Filter = 3;
+var Sharpen_Filter = 4;
+var EdgeDetect_Filter = 5;
+var SobelHorizontal_Filter = 6;
+var SobelVertical_Filter = 7;
+var PrevitHorizontal_Filter = 8;
+var PrevitVertical_Filter = 9;
+var BoxBlur_Filter = 10;
+var TriangleBlur_Filter = 11;
+var Emboss_Filter = 12;
+
 var ContextState = function () {
     function ContextState(canvasDrawingStyle) {
         _classCallCheck(this, ContextState);
@@ -31,58 +43,19 @@ var ContextState = function () {
         this.globalAlpha = 1;
         this.id = -1;
         this.matrix = _Mat2.default.identity();
-        // this.matrixArray = [];
-        // this.matrixArray.push(Mat4.identity());
+        this.filterType = Normal_Filter;
         this.dirty = false;
     }
 
-    // static get matrixList() {
-    //     // matrix list永不为空
-    //     if (_matrixList.length == 0)
-    //         _matrixList.push(Mat4.identity());
-    //     return _matrixList;
-    // }
-    //
-    // static set matrixList(list) {
-    //     _matrixList = list;
-    // }
-
-    /**@deprecated*/
-
-
     _createClass(ContextState, [{
-        key: "fireDirty",
-        value: function fireDirty() {
-            this.dirty = true;
-        }
-
-        /**@deprecated*/
-
-    }, {
         key: "setTransformMatrix",
         value: function setTransformMatrix(value) {
             // let current = this.transformMatrix.matrix;
             _Mat2.default.copy(value, this.matrix);
         }
-        /**@deprecated*/
-
-    }, {
-        key: "checkDirty",
-        value: function checkDirty() {
-            // 如果当前的矩阵会被应用到某些节点上，则说明这个矩阵脏了，
-            // 一旦变换矩阵就要保存一下，并把这个矩阵的克隆放入数组底
-            // if (this.dirty) {
-            //     let m1 = Mat4.identity();
-            //     let lastMatrix = this.transformMatrix.matrix;
-            //     Mat4.copy(lastMatrix, m1);
-            //     ContextState.matrixList.push(m1);
-            //     this.dirty = false;
-            // }
-        }
     }, {
         key: "applyTransform",
         value: function applyTransform(currentTransformMatrix) {
-            this.checkDirty();
             var lastMatrix = this.matrix;
             _Mat2.default.multiply(lastMatrix, lastMatrix, currentTransformMatrix);
         }
@@ -148,6 +121,7 @@ var ContextState = function () {
             newState.fillStyle = this.fillStyle;
             newState.strokeStyle = this.strokeStyle;
             newState.globalAlpha = this.globalAlpha;
+            newState.filterType = this.filterType;
             // newState.matrixIndex = this.matrixIndex;
             // 把当前的矩阵作为新矩阵的最后一个
             newState.setTransformMatrix(this.transformMatrix);
@@ -155,6 +129,9 @@ var ContextState = function () {
         }
     }, {
         key: "transformMatrixId",
+
+
+        /**@deprecated*/
         get: function get() {
             return ContextState.matrixList.length - 1;
         }
@@ -189,6 +166,71 @@ var ContextState = function () {
         },
         set: function set(textBaseline) {
             this.canvasDrawingStyle.textBaseline = textBaseline;
+        }
+    }], [{
+        key: "Normal_Filter",
+        get: function get() {
+            return Normal_Filter;
+        }
+    }, {
+        key: "GaussianBlur_Filter",
+        get: function get() {
+            return GaussianBlur_Filter;
+        }
+    }, {
+        key: "Unsharpen_Filter",
+        get: function get() {
+            return Unsharpen_Filter;
+        }
+    }, {
+        key: "Sharpness_Filter",
+        get: function get() {
+            return Sharpen_Filter;
+        }
+    }, {
+        key: "Sharpen_Filter",
+        get: function get() {
+            return Sharpen_Filter;
+        }
+    }, {
+        key: "EdgeDetect_Filter",
+        get: function get() {
+            return EdgeDetect_Filter;
+        }
+    }, {
+        key: "SobelHorizontal_Filter",
+        get: function get() {
+            return SobelHorizontal_Filter;
+        }
+    }, {
+        key: "SobelVertical_Filter",
+        get: function get() {
+            return SobelVertical_Filter;
+        }
+    }, {
+        key: "PrevitHorizontal_Filter",
+        get: function get() {
+            return PrevitHorizontal_Filter;
+        }
+    }, {
+        key: "PrevitVertical_Filter",
+        get: function get() {
+            return PrevitVertical_Filter;
+        }
+    }, {
+        key: "BoxBlur_Filter",
+        get: function get() {
+            return BoxBlur_Filter;
+        }
+    }, {
+        key: "TriangleBlur_Filter",
+        get: function get() {
+            return TriangleBlur_Filter;
+        }
+    }, {
+        key: "Emboss_Filter",
+        get: function get() {
+            return Emboss_Filter;
         }
     }]);
 
