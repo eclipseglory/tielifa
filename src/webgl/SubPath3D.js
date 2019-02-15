@@ -128,15 +128,6 @@ var SubPath3D = function () {
             this[_pointsTransformMatrixArray] = [];
             this.isClosed = false;
         }
-
-        /**
-         * @deprecated
-         * @param point
-         */
-        // pushPoint(point) {
-        //     this.pointsArray.push(point);
-        // }
-
     }, {
         key: 'pointsCoordinateArray',
         get: function get() {

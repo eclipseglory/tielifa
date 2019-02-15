@@ -30,7 +30,11 @@ var Tools = function () {
         value: function getDistance(point1, point2) {
             var dx = point1.x - point2.x;
             var dy = point1.y - point2.y;
-            return Math.sqrt(dx * dx + dy * dy);
+            var dz = 0;
+            if (point1.z != undefined && point2.z != undefined) {
+                dz = point1.z - point2.z;
+            }
+            return Math.sqrt(dx * dx + dy * dy + dz * dz);
         }
 
         // static collisionResponse(v1, m1, v2, m2, n, e) {

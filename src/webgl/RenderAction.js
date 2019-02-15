@@ -44,10 +44,12 @@ var RenderAction = function () {
     _createClass(RenderAction, [{
         key: "collectVertexDataForStroke",
         value: function collectVertexDataForStroke(pathList, color, opacity, textureCoord, lineWidth, filterType, faceDirection) {
+            var _this = this;
+
             var that = this;
-            var pointArrayInterface = {
+            var outputInterface = {
                 setPoint: function setPoint(p, index) {
-                    that.verticesData.setVerticesCoor(p.x, p.y, p.z, index + pointArrayInterface.offset);
+                    that.verticesData.setVerticesCoor(p.x, p.y, p.z, index + outputInterface.offset);
                 },
                 addPoint: function addPoint(p) {
                     if (that.verticesData != null) {
@@ -62,25 +64,51 @@ var RenderAction = function () {
                     }
                 }
             };
+
             for (var i = 0; i < pathList.length; i++) {
                 var path = pathList[i];
-                for (var j = 0; j < path.subPathNumber; j++) {
+
+                var _loop = function _loop(j) {
                     var subPath = path.subPathArray[j];
                     var vertexCount = subPath.pointsNumber;
-                    if (vertexCount < 2) continue;
-                    pointArrayInterface.offset = this.verticesData.currentIndex;
-                    var lineNum = _LineToRectangle2.default.generatePoints1(lineWidth, subPath.pointsCoordinateArray, subPath.isClosed, faceDirection, pointArrayInterface);
+                    if (vertexCount < 2) return "continue";
+                    outputInterface.offset = _this.verticesData.currentIndex;
+                    var pointsArray = subPath.pointsCoordinateArray;
+                    var inputInterface = {
+                        getX: function getX(index) {
+                            index = index * 3;
+                            return pointsArray[index];
+                        },
+                        getY: function getY(index) {
+                            index = index * 3;
+                            return pointsArray[index + 1];
+                        },
+                        getZ: function getZ(index) {
+                            index = index * 3;
+                            return pointsArray[index + 2];
+                        },
+                        getPointsNum: function getPointsNum() {
+                            return pointsArray.length / 3;
+                        }
+                    };
+                    var lineNum = _LineToRectangle2.default.generateRectanglesPoints(lineWidth, subPath.isClosed, faceDirection, outputInterface, inputInterface);
                     for (var k = 0; k < lineNum; k++) {
                         var index = k * 4;
-                        this.indexData.addIndex(pointArrayInterface.offset + index);
-                        this.indexData.addIndex(pointArrayInterface.offset + index + 1);
-                        this.indexData.addIndex(pointArrayInterface.offset + index + 2);
+                        _this.indexData.addIndex(outputInterface.offset + index);
+                        _this.indexData.addIndex(outputInterface.offset + index + 1);
+                        _this.indexData.addIndex(outputInterface.offset + index + 2);
 
-                        this.indexData.addIndex(pointArrayInterface.offset + index + 2);
-                        this.indexData.addIndex(pointArrayInterface.offset + index + 3);
-                        this.indexData.addIndex(pointArrayInterface.offset + index);
+                        _this.indexData.addIndex(outputInterface.offset + index + 2);
+                        _this.indexData.addIndex(outputInterface.offset + index + 3);
+                        _this.indexData.addIndex(outputInterface.offset + index);
                     }
-                    this.renderPointNumber += lineNum * 6;
+                    _this.renderPointNumber += lineNum * 6;
+                };
+
+                for (var j = 0; j < path.subPathNumber; j++) {
+                    var _ret = _loop(j);
+
+                    if (_ret === "continue") continue;
                 }
             }
         }

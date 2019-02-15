@@ -74,6 +74,10 @@ var _IndexData = require("./IndexData.js");
 
 var _IndexData2 = _interopRequireDefault(_IndexData);
 
+var _LineToRectangle = require("../geometry/LineToRectangle.js");
+
+var _LineToRectangle2 = _interopRequireDefault(_LineToRectangle);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -108,7 +112,7 @@ var CanvasRenderingContextWebgl2D = function () {
         this.gl = canvas.getContext('webgl');
         if (this.gl == undefined) throw new Error('Current canvas doesnt support WebGL');
         // this.defaultDepth = -canvas.height * 2;
-        var FOV = properties['FOV'] || 20;
+        var FOV = properties['FOV'] || 70;
         var t = Math.tan(FOV * Math.PI / 180);
         this.defaultDepth = -canvas.height / (2 * t);
         this.maxBufferByteLength = properties['maxMemorySize'] || 1024 * 1024;
@@ -1039,8 +1043,17 @@ var CanvasRenderingContextWebgl2D = function () {
         //******************** 扩展接口 *****************************//
 
     }, {
-        key: "drawGraphics",
-
+        key: "applyCurrentTransform",
+        value: function applyCurrentTransform(point) {
+            var m = this.currentContextState.transformMatrix;
+            var temp = TEMP_VERTEX_COORD4DIM_ARRAY[0];
+            temp[0] = point.x;
+            temp[1] = point.y;
+            temp[2] = point.z;
+            temp[3] = 1;
+            _Mat2.default.multiplyWithVertex(m, temp, temp);
+            return { x: temp[0], y: temp[1], z: temp[2] };
+        }
 
         /**
          * 绘制一个定义好的graphics，但性能还不如直接画，慎用
@@ -1048,6 +1061,9 @@ var CanvasRenderingContextWebgl2D = function () {
          * @param x
          * @param y
          */
+
+    }, {
+        key: "drawGraphics",
         value: function drawGraphics(graphics, x, y) {
             if (this._tempGraphics != null) return;
             for (var i = 0; i < graphics.actionList.length; i++) {
@@ -1195,6 +1211,127 @@ var CanvasRenderingContextWebgl2D = function () {
                 this.strokeStyle = strokeColor;
                 this.stroke();
             }
+        }
+    }, {
+        key: "drawPathRegion",
+        value: function drawPathRegion(points, fillColor, opactiy, image) {
+            if (!(points instanceof Array)) return;
+            if (points.length <= 1) return;
+        }
+    }, {
+        key: "fillStripe",
+        value: function fillStripe(points, stripeWidth, color, opacity, image, applyTransform) {
+            if (applyTransform == undefined) applyTransform = true;
+            if (applyTransform) {
+                var tempPoints = [];
+                for (var i = 0; i < points.length; i++) {
+                    var p = this.applyCurrentTransform(points[i]);
+                    tempPoints.push(p);
+                }
+                points = tempPoints;
+            }
+            var inputInterface = {
+                getX: function getX(index) {
+                    return points[index].x;
+                },
+                getY: function getY(index) {
+                    return points[index].y;
+                },
+                getZ: function getZ(index) {
+                    var z = points[index].z;
+                    if (z == undefined) return 0;
+                    return z;
+                },
+                getPointsNum: function getPointsNum() {
+                    return points.length;
+                }
+            };
+            this._rawFillLine(inputInterface, stripeWidth, color, opacity, undefined, image);
+        }
+    }, {
+        key: "_rawFillLine",
+        value: function _rawFillLine(inputInterface, lineWidth, color, opacity, filterType, image) {
+            var pointsNum = inputInterface.getPointsNum();
+            if (pointsNum < 2) return;
+            var vod = this.getVDOArrays();
+            var faceDirection = this.currentFaceVector;
+            opacity = opacity || this.currentContextState.globalAlpha;
+            filterType = filterType || this.currentContextState.filterType;
+            color = color || this.currentContextState.fillStyle;
+            var colorValue = _Color2.default.getInstance().convertStringToColor(color);
+            var offset = vod.verticesData.currentIndex;
+            var texture = null;
+            if (image) {
+                texture = this.webglRender.textureManager.getTexture(image, this.gl, true);
+            }
+            var plusTextureWidth = 0;
+            var plusTextureHeight = 0;
+            if (texture != null) {
+                plusTextureWidth = texture.width / (pointsNum - 1);
+                plusTextureHeight = texture.height;
+            }
+
+            var outputInterface = {
+                setPoint: function setPoint(p, index) {
+                    vod.verticesData.setVerticesCoor(p.x, p.y, p.z, index + offset);
+                },
+                addPoint: function addPoint(p, lineIndex, pointIndexInTheLine) {
+                    if (vod.verticesData != null) {
+                        vod.verticesData.addVerticesData(p.x, p.y, p.z, faceDirection[0], faceDirection[1], faceDirection[2]);
+                    }
+                    if (vod.fragmentData != null) {
+                        var uv = [0, 0];
+                        if (texture != null) {
+                            if (lineIndex == 0) {
+                                if (pointIndexInTheLine == 0) {
+                                    uv[0] = lineIndex * plusTextureWidth;
+                                    uv[1] = 0;
+                                }
+                                if (pointIndexInTheLine == 3) {
+                                    uv[0] = lineIndex * plusTextureWidth;
+                                    uv[1] = plusTextureHeight;
+                                }
+                            } else {
+                                if (pointIndexInTheLine == 0) {
+                                    uv[0] = (lineIndex - 1) * plusTextureWidth + plusTextureWidth;
+                                    uv[1] = 0;
+                                }
+                                if (pointIndexInTheLine == 3) {
+                                    uv[0] = (lineIndex - 1) * plusTextureWidth + plusTextureWidth;
+                                    uv[1] = plusTextureHeight;
+                                }
+                            }
+                            if (pointIndexInTheLine == 1) {
+                                uv[0] = lineIndex * plusTextureWidth + plusTextureWidth;
+                                uv[1] = 0;
+                            }
+
+                            if (pointIndexInTheLine == 2) {
+                                uv[0] = lineIndex * plusTextureWidth + plusTextureWidth;
+                                uv[1] = plusTextureHeight;
+                            }
+                        }
+                        vod.fragmentData.addFragmentData(colorValue[0], colorValue[1], colorValue[2], opacity, uv[0], uv[1], -1, filterType);
+                    }
+                }
+            };
+
+            var lineNum = _LineToRectangle2.default.generateRectanglesPoints(lineWidth, false, faceDirection, outputInterface, inputInterface);
+            for (var k = 0; k < lineNum; k++) {
+                var index = k * 4;
+                vod.indexData.addIndex(offset + index);
+                vod.indexData.addIndex(offset + index + 1);
+                vod.indexData.addIndex(offset + index + 2);
+
+                vod.indexData.addIndex(offset + index + 2);
+                vod.indexData.addIndex(offset + index + 3);
+                vod.indexData.addIndex(offset + index);
+            }
+            var action = new _RenderAction2.default(_RenderAction2.default.ACTION_FILL);
+            action.textureIndex = -1;
+            if (texture != null) action.textureIndex = texture.index;
+            action.renderPointNumber = lineNum * 6;
+            this[_renderActionList].push(action);
         }
     }, {
         key: "drawRectangle",
