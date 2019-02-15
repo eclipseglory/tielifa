@@ -59,23 +59,16 @@ var endIndex = 0;
 
 var LineToRectangle = function () {
     function LineToRectangle(lineWidth) {
-        // this.dim = 3;
-        // this.points = null;
-        // this.isClosed = false;
-        // this.lineWidth = lineWidth || 1;
-        // this.faceDirection = Vector3.TEMP_VECTORS[3];
-        // this.faceDirection.z = 1;
-
         _classCallCheck(this, LineToRectangle);
     }
 
     _createClass(LineToRectangle, null, [{
-        key: "generatePoints1",
-        value: function generatePoints1(lineWidth, points, isClosed, faceDirection, pointsArrayInterface) {
+        key: "generateRectanglesPoints",
+        value: function generateRectanglesPoints(lineWidth, isClosed, faceDirection, outputInterface, inputInterface) {
             if (lineWidth == undefined) lineWidth = 1;
-            pointsArrayInterface = pointsArrayInterface || {};
-            var setPoint = pointsArrayInterface.setPoint;
-            var addPoint = pointsArrayInterface.addPoint;
+            outputInterface = outputInterface || {};
+            var setPoint = outputInterface.setPoint;
+            var addPoint = outputInterface.addPoint;
             var rectPoints = [];
             if (setPoint == undefined) {
                 setPoint = function setPoint(point, index) {
@@ -95,13 +88,17 @@ var LineToRectangle = function () {
 
             halfWidth[0] = lineWidth / 2;
             endIndex = 0;
-            if (points == null || points.length / 3 < 2) {
-                return null;
+            if (inputInterface == null || inputInterface.getPointsNum() < 2) {
+                return 0;
             }
+            // if (points == null || points.length / 3 < 2) {
+            //     return null;
+            // }
             faceDirectionTemp.x = faceDirection[0];
             faceDirectionTemp.y = faceDirection[1];
             faceDirectionTemp.z = faceDirection[2];
-            var pointsCount = points.length / 3;
+            // let pointsCount = points.length / 3;
+            var pointsCount = inputInterface.getPointsNum();
             var preRectLastPoints = { r1: null, r2: null, r3: null, r4: null };
             var lineCount = pointsCount - 1;
             var that = this;
@@ -110,22 +107,37 @@ var LineToRectangle = function () {
             if (isClosed) lineCount++;
             var dim = 3;
             for (var i = 0; i < lineCount; i++) {
-                var index = i * dim;
-                var x1 = points[index];
-                var y1 = points[index + 1];
-                p1Temp.x = x1;
-                p1Temp.y = y1;
-                p1Temp.z = points[index + 2];
+                // let index = i * dim;
+                // let x1 = points[index];
+                // let y1 = points[index + 1];
+                // p1Temp.x = x1;
+                // p1Temp.y = y1;
+                // p1Temp.z = points[index + 2];
+                // p1Temp.z = inputInterface.getZ(i);
 
-                var nextIndex = (i + 1) * 3;
-                if (nextIndex >= points.length) nextIndex = 0;
-                var x2 = points[nextIndex];
-                var y2 = points[nextIndex + 1];
-                p2Temp.x = x2;
-                p2Temp.y = y2;
-                p2Temp.z = points[nextIndex + 2];
-                line1VectorTemp.x = x2 - x1;
-                line1VectorTemp.y = y2 - y1;
+                p1Temp.x = inputInterface.getX(i);
+                p1Temp.y = inputInterface.getY(i);
+                p1Temp.z = inputInterface.getZ(i);
+
+                // let nextIndex = ((i + 1) * 3);
+                // if (nextIndex >= points.length) nextIndex = 0;
+                var nextPointIndex = i + 1;
+                if (nextPointIndex >= pointsCount) nextPointIndex = 0;
+                // let x2 = points[nextIndex];
+                // let y2 = points[nextIndex + 1];
+                // x2 = inputInterface.getX(nextPointIndex);
+                // y2 = inputInterface.getY(nextPointIndex);
+                // p2Temp.x = x2;
+                // p2Temp.y = y2;
+                // p2Temp.z = points[nextIndex + 2];
+                // p2Temp.z = inputInterface.getZ(nextPointIndex);
+
+                p2Temp.x = inputInterface.getX(nextPointIndex);
+                p2Temp.y = inputInterface.getY(nextPointIndex);
+                p2Temp.z = inputInterface.getZ(nextPointIndex);
+
+                line1VectorTemp.x = p2Temp.x - p1Temp.x;
+                line1VectorTemp.y = p2Temp.y - p1Temp.y;
                 line1VectorTemp.z = p2Temp.z - p1Temp.z;
                 var temp = _Vector2.default.TEMP_VECTORS[0];
                 _Vector2.default.cross(temp, line1VectorTemp, faceDirectionTemp);
@@ -151,10 +163,10 @@ var LineToRectangle = function () {
                 }
 
                 //组织三角形
-                addPoint(r1Temp);
-                addPoint(r2Temp);
-                addPoint(r3Temp);
-                addPoint(r4Temp);
+                addPoint(r1Temp, i, 0);
+                addPoint(r2Temp, i, 1);
+                addPoint(r3Temp, i, 2);
+                addPoint(r4Temp, i, 3);
 
                 lastR1Temp.value[0] = r1Temp.value[0];
                 lastR1Temp.value[1] = r1Temp.value[1];
@@ -251,6 +263,9 @@ var LineToRectangle = function () {
             return rectPoints;
             // return {rects: rectPoints, end: rectPoints.length};
         }
+
+        /**@deprecated*/
+
     }, {
         key: "setPointValue",
         value: function setPointValue(x, y, z, index, rectPoints) {
@@ -275,35 +290,47 @@ var LineToRectangle = function () {
     }, {
         key: "updateConnectPoints",
         value: function updateConnectPoints(lastR1, lastR2, lastR3, lastR4, r1, r2, r3, r4, lineIndex, lineDirection, faceDirection, rectPoints, setPoint) {
+            var maxLength = _Tools2.default.getDistance(lastR2, r1) * 2;
             var temp = _Vector2.default.TEMP_VECTORS[0];
             var u1 = rayVectorTemp;
             u1.x = lastR2.x - lastR1.x;
             u1.y = lastR2.y - lastR1.y;
             u1.z = lastR2.z - lastR1.z;
             _Vector2.default.normalize(u1, u1);
-            _Vector2.default.normalize(lineDirection, lineDirection);
-            var dotValue = _Vector2.default.dot(lineDirection, u1);
-
-            /*
-             * TODO 逆向的情况暂不做处理，因为会产生一个bug，如下描述：
-             * 当逆向的时候，如果接近平行，交点会在很远的地方，这样形成的三角形就会很怪异
-             * TODO 逆向平行：未做处理
-             * TODO 如果逆向求交点，当两条线特别接近平行的时候，交点会在很远很远的地方，绘制的时候就会出现一条很长的射线，这个需要处理
-             */
-            if (dotValue < 0) return;
-            dotValue = Math.abs(dotValue);
-            /*
-             @TODO 目前如果平行就跳过
-             *@TODO 这里要计算一下如果两条线平行的情况该如何处理,目前只是简单的跳过这种情况，不做线的交点计算
-             *@TODO 同向平行：前一个线段的矩形的p2和p3改成当前线的p2,p3,当前线段不建立矩形。
-             */
-            if (_Tools2.default.equals(dotValue, 1)) {
-                return;
-            }
+            // Vector3.normalize(lineDirection, lineDirection);
             var n = planeNormalTemp;
             _Vector2.default.cross(n, lineDirection, faceDirection);
             _Vector2.default.normalize(n, n);
-            _GeometryTools2.default.calculateIntersectionOfPlane(n, u1, lastR2, r1, line2VectorTemp);
+
+            /*
+            * 几乎平行：无法做交点计算，当前线段的矩形的p1和p4改成前一条线的p2,p3
+            */
+            var down = _Vector2.default.dot(n, u1);
+            if (Math.abs(down) < _Tools2.default.EPSILON) {
+                r1.x = lastR2.x;
+                r1.y = lastR2.y;
+                r1.z = lastR2.z;
+                r4.x = lastR3.x;
+                r4.y = lastR3.y;
+                r4.z = lastR3.z;
+                return;
+            }
+            /*
+             * 这里计算出没有交点时两条线端点距离，作为最大的距离（计算交点时候的向量所放量）
+             * 如果距离过大则需要计算，因为有时候两条线趋于平行，会造成计算出的交点特别远，这就让整个图形看上去是错误的
+             */
+            _GeometryTools2.default.calculateIntersectionOfPlane(n, u1, lastR2, r1, line2VectorTemp, maxLength);
+            // 此时说明两条线几乎平行无法计算出交点.当前线段的矩形的p1和p4改成前一条线的p2,p3
+            if (line2VectorTemp == null) {
+                r1.x = lastR2.x;
+                r1.y = lastR2.y;
+                r1.z = lastR2.z;
+                r4.x = lastR3.x;
+                r4.y = lastR3.y;
+                r4.z = lastR3.z;
+                return;
+            }
+
             if (line2VectorTemp != null) {
                 //更新上个矩形r2和这个矩形的r1
                 r1.x = line2VectorTemp.x;
@@ -314,7 +341,7 @@ var LineToRectangle = function () {
             u1.y = lastR3.y - lastR4.y;
             u1.z = lastR3.z - lastR4.z;
             _Vector2.default.normalize(u1, u1);
-            _GeometryTools2.default.calculateIntersectionOfPlane(n, u1, lastR4, r4, temp);
+            _GeometryTools2.default.calculateIntersectionOfPlane(n, u1, lastR3, r4, temp, maxLength);
             if (temp != null) {
                 //更新上个矩形r3和这个矩形的r4
                 r4.x = temp.x;
@@ -323,6 +350,9 @@ var LineToRectangle = function () {
             }
             this.updateRectPoint(line2VectorTemp, temp, lineIndex - 1, rectPoints, setPoint);
         }
+
+        /**@deprecated*/
+
     }, {
         key: "addPoint",
         value: function addPoint(point, rectPoints) {

@@ -18,6 +18,10 @@ var _Vector3 = require("../math/Vector2.js");
 
 var _Vector4 = _interopRequireDefault(_Vector3);
 
+var _Tools = require("../utils/Tools.js");
+
+var _Tools2 = _interopRequireDefault(_Tools);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -191,17 +195,22 @@ var GeometryTools = function () {
         key: "calculateIntersectionOfPlane",
         value: function calculateIntersectionOfPlane(n, u, p, v, out, maxLength) {
             var down = _Vector2.default.dot(n, u);
-            if (down == 0) return null;
+            if (Math.abs(down) == 0) {
+                return null;
+            }
             var w = _Vector2.default.TEMP_VECTORS[0];
             w.x = v.x - p.x;
             w.y = v.y - p.y;
             w.z = v.z - p.z;
-            // let w = {x: v.x - p.x, y: v.y - p.y, z: v.z - p.z};
             var length = _Vector2.default.dot(w, n) / down;
+            var sign = length > 0 ? 1 : -1;
+            var realLength = length;
             if (maxLength != undefined) {
-                if (length > maxLength) length = maxLength;
+                if (Math.abs(length) > maxLength) {
+                    realLength = maxLength * sign;
+                }
             }
-            // let result = {x: 0, y: 0, z: 0};
+            length = realLength;
             _Vector2.default.multiplyValue(w, u, length);
             _Vector2.default.plus(out, w, p);
         }
