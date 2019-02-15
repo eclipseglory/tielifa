@@ -112,7 +112,7 @@ var CanvasRenderingContextWebgl2D = function () {
         this.gl = canvas.getContext('webgl');
         if (this.gl == undefined) throw new Error('Current canvas doesnt support WebGL');
         // this.defaultDepth = -canvas.height * 2;
-        var FOV = properties['FOV'] || 70;
+        var FOV = properties['FOV'] || 20;
         var t = Math.tan(FOV * Math.PI / 180);
         this.defaultDepth = -canvas.height / (2 * t);
         this.maxBufferByteLength = properties['maxMemorySize'] || 1024 * 1024;
@@ -1211,12 +1211,6 @@ var CanvasRenderingContextWebgl2D = function () {
                 this.strokeStyle = strokeColor;
                 this.stroke();
             }
-        }
-    }, {
-        key: "drawPathRegion",
-        value: function drawPathRegion(points, fillColor, opactiy, image) {
-            if (!(points instanceof Array)) return;
-            if (points.length <= 1) return;
         }
     }, {
         key: "fillStripe",

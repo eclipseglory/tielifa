@@ -305,16 +305,16 @@ var LineToRectangle = function () {
             /*
             * 几乎平行：无法做交点计算，当前线段的矩形的p1和p4改成前一条线的p2,p3
             */
-            var down = _Vector2.default.dot(n, u1);
-            if (Math.abs(down) < _Tools2.default.EPSILON) {
-                r1.x = lastR2.x;
-                r1.y = lastR2.y;
-                r1.z = lastR2.z;
-                r4.x = lastR3.x;
-                r4.y = lastR3.y;
-                r4.z = lastR3.z;
-                return;
-            }
+            // let down = Vector3.dot(n, u1);
+            // if (Math.abs(down) < Tools.EPSILON) {
+            //     r1.x = lastR2.x;
+            //     r1.y = lastR2.y;
+            //     r1.z = lastR2.z;
+            //     r4.x = lastR3.x;
+            //     r4.y = lastR3.y;
+            //     r4.z = lastR3.z;
+            //     return;
+            // }
             /*
              * 这里计算出没有交点时两条线端点距离，作为最大的距离（计算交点时候的向量所放量）
              * 如果距离过大则需要计算，因为有时候两条线趋于平行，会造成计算出的交点特别远，这就让整个图形看上去是错误的
