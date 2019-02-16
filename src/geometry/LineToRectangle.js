@@ -319,9 +319,9 @@ var LineToRectangle = function () {
              * 这里计算出没有交点时两条线端点距离，作为最大的距离（计算交点时候的向量所放量）
              * 如果距离过大则需要计算，因为有时候两条线趋于平行，会造成计算出的交点特别远，这就让整个图形看上去是错误的
              */
-            _GeometryTools2.default.calculateIntersectionOfPlane(n, u1, lastR2, r1, line2VectorTemp, maxLength);
+            var result1 = _GeometryTools2.default.calculateIntersectionOfPlane(n, u1, lastR2, r1, line2VectorTemp, maxLength);
             // 此时说明两条线几乎平行无法计算出交点.当前线段的矩形的p1和p4改成前一条线的p2,p3
-            if (line2VectorTemp == null) {
+            if (result1 == null) {
                 r1.x = lastR2.x;
                 r1.y = lastR2.y;
                 r1.z = lastR2.z;
@@ -341,7 +341,7 @@ var LineToRectangle = function () {
             u1.y = lastR3.y - lastR4.y;
             u1.z = lastR3.z - lastR4.z;
             _Vector2.default.normalize(u1, u1);
-            _GeometryTools2.default.calculateIntersectionOfPlane(n, u1, lastR3, r4, temp, maxLength);
+            var result2 = _GeometryTools2.default.calculateIntersectionOfPlane(n, u1, lastR3, r4, temp, maxLength);
             if (temp != null) {
                 //更新上个矩形r3和这个矩形的r4
                 r4.x = temp.x;

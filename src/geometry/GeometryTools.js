@@ -195,7 +195,7 @@ var GeometryTools = function () {
         key: "calculateIntersectionOfPlane",
         value: function calculateIntersectionOfPlane(n, u, p, v, out, maxLength) {
             var down = _Vector2.default.dot(n, u);
-            if (Math.abs(down) < _Tools2.default.EPSILON == 0) {
+            if (Math.abs(down) < _Tools2.default.EPSILON) {
                 return null;
             }
             var w = _Vector2.default.TEMP_VECTORS[0];
@@ -213,6 +213,7 @@ var GeometryTools = function () {
             length = realLength;
             _Vector2.default.multiplyValue(w, u, length);
             _Vector2.default.plus(out, w, p);
+            return out;
         }
 
         /**
