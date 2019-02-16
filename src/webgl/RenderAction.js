@@ -141,6 +141,7 @@ var RenderAction = function () {
                         }
                     }
                     this.renderPointNumber += vertexOrg.length;
+                    if (vertexOrg.length == 0) continue;
                     var offset = this.verticesData.currentIndex;
                     var k = void 0;
                     for (k = 0; k < pointsNumber; k++) {
