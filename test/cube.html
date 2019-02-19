@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>3d test</title>
+    <script src="test.js"></script>
+</head>
+<body>
+
+</body>
+<script type="module">
+    import CanvasRenderingContextWebgl2D from "../src/webgl/CanvasRenderingContextWebgl2D.js";
+
+    console.log(tielifa);
+    console.log(WebGL2D);
+    createOneFullCanvas();
+    let ctx = new CanvasRenderingContextWebgl2D(webgl, {projectionType: 1, enableDepthTest: true, enableLight: false});
+    // let ctx = new tielifa.WebGL2D(webgl, {projectionType: 1});
+    ctx.setLightPosition(ctx.canvas.width / 2, 0, ctx.defaultDepth + 1000);
+    var deltaX = 1;
+    var deltaR = 2;
+
+    function repeat() {
+        fillTest(ctx);
+        // fillTest(ctx2);
+        deltaX++;
+        deltaR += 1;
+        requestAnimationFrame(repeat);
+    }
+
+    function fillTest(ctx) {
+        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        let center = {x: ctx.canvas.width / 2, y: ctx.canvas.height / 2};
+        let width = 100;
+        ctx.save();
+        ctx.translate(center.x, center.y);
+        ctx.rotateX(deltaR * Math.PI / 180);
+        ctx.rotateY(deltaR * Math.PI / 180);
+        ctx.rotate(deltaR * Math.PI / 180);
+        ctx.translate(-center.x, -center.y);
+        ctx.fillStyle = 'white';
+        ctx.fillRect(center.x - width / 2, center.y - width / 2, width, width, width / 2);
+        ctx.fillRect(center.x - width / 2, center.y - width / 2, width, width, -width / 2);
+
+        ctx.save();
+        ctx.fillStyle = 'yellow';
+        ctx.translate(center.x, center.y);
+        ctx.rotateX(90 * Math.PI / 180);
+        ctx.translate(-center.x, -center.y);
+        ctx.fillRect(center.x - width / 2, center.y - width / 2, width, width, width / 2);
+        ctx.fillRect(center.x - width / 2, center.y - width / 2, width, width, -width / 2);
+        ctx.restore();
+
+        ctx.save();
+        ctx.fillStyle = 'blue';
+        ctx.translate(center.x, center.y);
+        ctx.rotateY(90 * Math.PI / 180);
+        ctx.translate(-center.x, -center.y);
+        ctx.fillRect(center.x - width / 2, center.y - width / 2, width, width, width / 2);
+        ctx.fillRect(center.x - width / 2, center.y - width / 2, width, width, -width / 2);
+        ctx.restore();
+
+        ctx.restore();
+        if (ctx.draw) {
+            ctx.draw();
+        }
+    }
+
+    repeat();
+</script>
+</html>

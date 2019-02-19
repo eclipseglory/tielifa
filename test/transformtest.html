@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>FillTest</title>
+</head>
+<body>
+<canvas id="webgl" width=500 height=500 style="background-color: black">
+
+</canvas>
+<canvas id="canvas" width=500 height=500 style="background-color: black">
+
+</canvas>
+</body>
+<script type="module">
+
+    import CanvasRenderingContextWebgl2D from "../src/webgl/CanvasRenderingContextWebgl2D.js";
+
+    let ctx = new CanvasRenderingContextWebgl2D(webgl);
+    let ctx1 = canvas.getContext('2d');
+    test(ctx1);
+    test(ctx);
+    function test(ctx) {
+        ctx.fillStyle = 'white';
+        ctx.translate(100, 10);
+        ctx.moveTo(0,0);
+        ctx.translate(100, 0);
+        ctx.lineTo(0,0);
+        ctx.translate(0, 100);
+        ctx.lineTo(0,0);
+        ctx.translate(-100, 0);
+        ctx.lineTo(0,0);
+        ctx.fill();
+        // ctx.translate(100, 10);
+        // ctx.translate(100, 10);
+        // ctx.translate(0, 100);
+        // ctx.rect(210, 10, 100, 100);
+
+        // ctx.save();
+        // ctx.translate(12, 1);
+        // ctx.restore();
+        //
+        // ctx.translate(1, 1);
+        // ctx.fill();
+        if (ctx.draw)
+            ctx.draw();
+    }
+
+</script>
+</html>

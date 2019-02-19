@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Color Test</title>
+</head>
+<body>
+<script type="module">
+
+    import Color from "../src/utils/Color.js";
+
+    let color = Color.getInstance();
+    let c = color.convertStringToColor('rgba(1,100,200,0.3)');
+    console.log(c);
+    c = Color.getInstance().convertStringToColor('#333121');
+    console.log(c);
+    c = Color.getInstance().convertStringToColor('rgb(1,100,200)');
+    console.log(c);
+</script>
+</body>
+</html>

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>动画测试</title>
+    <title>滤镜测试</title>
     <script src="test.js"></script>
 </head>
 <body>
@@ -10,11 +10,10 @@
 <script type="module">
     import CanvasRenderingContextWebgl2D from "../src/webgl/CanvasRenderingContextWebgl2D.js";
 
-    createCompareCanvas();
+    createOneFullCanvas();
     let c = new CanvasRenderingContextWebgl2D(webgl, {projectionType: 1});
     // c.turnOnLight();
     let ctx = c;
-    let ctx2 = canvas.getContext('2d');
     let test = 0b0011;
     let test2 = 0b0010;
     console.log((test & test2) == test2);
@@ -41,7 +40,7 @@
     }
 
     console.log(computeKernelWeight(edgeDetectKernel));
-    let texture;
+
     function repeat() {
         fillTest(ctx);
         // fillTest(ctx2);
@@ -66,11 +65,13 @@
         ctx.fillRect(0, 0, 100, 100);
         ctx.restore();
 
+
         for (let i = 0; i < 1; i++) {
             let x = i * 1;
             let y = i * 1;
             ctx.save();
             // ctx.translate(0, deltaX);
+            ctx.filterType = CanvasRenderingContextWebgl2D.SobelVertical_Filter;
             ctx.translate(x + 60, y + 60);
             // ctx.rotateAbout(deltaR * Math.PI / 180);
             // if (ctx.rotateX) {
@@ -84,8 +85,8 @@
             //     if (i % 3 == 0)
             //         ctx.rotateY(deltaR * Math.PI / 180);
             // }
-            ctx.translate(-y - 60, -y - 60);
-            ctx.drawImage(texture, x, y, 200, 200);
+            ctx.translate(-x - 60, -y - 60);
+            ctx.drawImage(img, x, y, img.width, img.height);
             ctx.restore();
         }
 
@@ -94,17 +95,10 @@
         }
     }
 
-    ctx.loadImage("images/background.png", {
-        success: function (t) {
-            texture = t;
-            ctx.clearImageCatches();
-            repeat();
-        }
-    });
-    // let img = new Image();
-    // img.onload = function (evt) {
-    //     repeat();
-    // }
-    // img.src = "images/background.png";
+    let img = new Image();
+    img.onload = function (evt) {
+        repeat();
+    }
+    img.src = "images/heart1.png";
 </script>
 </html>

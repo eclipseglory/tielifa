@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="test.js"></script>
+</head>
+<body>
+
+</body>
+<script type="module">
+
+
+    import LineToRectangle from "../src/geometry/LineToRectangle.js";
+    import CanvasRenderingContextWebgl2D from "../src/webgl/CanvasRenderingContextWebgl2D.js";
+    import Vector3 from "../src/math/Vector3.js";
+
+    createOneFullCanvas();
+    let dim = 3;
+
+    let radian = 0;
+
+    let v1 = new Vector3(1000,0,0);
+    let v2 = new Vector3(0,0,1);
+    let result = Vector3.TEMP_VECTORS[0];
+    Vector3.cross(result,v1,v2);
+    console.log(result.value);
+    Vector3.normalize(result,result);
+    console.log(result.value)
+    let ctx = new CanvasRenderingContextWebgl2D(webgl, {projectionType: 1});
+
+    function draw() {
+        ctx.save();
+        ctx.translate(150, 100);
+        ctx.rotateX(radian * Math.PI / 180);
+        ctx.translate(-150, -100);
+        ctx.strokeStyle = 'red';
+        ctx.lineWidth = 10;
+        ctx.beginPath();
+        // ctx.moveTo(100, 100);
+        // ctx.lineTo(200, 100);
+        ctx.rect(100,100,100,100);
+        ctx.stroke();
+
+        ctx.restore();
+        ctx.draw();
+
+        radian++;
+        requestAnimationFrame(draw);
+    }
+
+    draw();
+    // ctx.fillStyle = 'white';
+    // ctx.beginPath();
+    // ctx.rect(0, 100, 10, 10);
+    // ctx.fill();
+    //
+    //
+    // ctx.beginPath();
+    // ctx.rect(100, 100, 10, 10);
+    // ctx.fill();
+    //
+    //
+    // ctx.globalAlpha = 0.5;
+    // ctx.fillStyle = 'red';
+    // let p;
+    // for (let i = 0; i < (result.length / dim) / 3; i++) {
+    //     ctx.beginPath();
+    //     let index = i * dim;
+    //     p = getResultPoint(index);
+    //     ctx.moveTo(p.x, p.y);
+    //     p = getResultPoint(index + 1);
+    //     ctx.lineTo(p.x, p.y);
+    //     p = getResultPoint(index + 2);
+    //     ctx.lineTo(p.x, p.y);
+    //     ctx.closePath();
+    //     ctx.fill();
+    // }
+    // ctx.draw();
+    //
+    // function getResultPoint(index) {
+    //     return {x: result[index * 3], y: result[index * 3 + 1], z: result[index * 3 + 2]};
+    // }
+
+
+</script>
+</html>

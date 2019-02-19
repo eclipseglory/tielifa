@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <script src="test.js"></script>
+    <title>transform和setTransform测试</title>
+</head>
+<body>
+
+</body>
+<script type="module">
+    // Draw shapes
+    import CanvasRenderingContextWebgl2D from "../src/webgl/CanvasRenderingContextWebgl2D.js";
+
+    createCompareCanvas();
+    let gl = new CanvasRenderingContextWebgl2D(webgl, {projectionType: 1});
+    let ctx = canvas.getContext('2d');
+
+    function draw(ctx) {
+        ctx.fillStyle = 'white';
+        // Draw the ellipse
+        ctx.setTransform(1, .2, .8, 1, 0, 0);
+        ctx.fillRect(0, 0, 100, 100);
+
+        ctx.setTransform(1, 0, 0, 1, 200, 0);
+        ctx.translate(50, 50);
+        ctx.rotate(30);
+        ctx.transform(1, 0.1, 0.9, 1, 0, 0);
+        ctx.translate(-50, -50);
+        ctx.fillRect(0, 0, 100, 100);
+
+        let imgData = ctx.createImageData(100,100);
+        let imgData2 = ctx.createImageData(imgData);
+
+        if (ctx.draw) {
+            ctx.draw();
+        }
+    }
+
+    draw(gl);
+    draw(ctx);
+
+
+</script>
+</html>

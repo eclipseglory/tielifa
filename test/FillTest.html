@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>FillTest</title>
+</head>
+<body>
+<canvas id="webgl" width=500 height=300 style="background-color: black">
+
+</canvas>
+<canvas id="canvas" width=500 height=300 style="background-color: black">
+
+</canvas>
+</body>
+<script type="module">
+
+    // let c = w3color('rgba(0,0,0,.1)');
+    // console.log(c.toRgb());
+    import CanvasRenderingContextWebgl2D from "../src/webgl/CanvasRenderingContextWebgl2D.js";
+
+    let ctx = new CanvasRenderingContextWebgl2D(webgl);
+    // let ctx = new tielifa.WebGL2D(webgl);
+    let ctx2 = canvas.getContext('2d');
+
+    let i = 2;
+    let x , y;
+    x = y=40;
+    function drawtest(){
+
+        fillTest(ctx);
+        fillTest(ctx2);
+        x+=2;
+        // requestAnimationFrame(drawtest);
+    }
+
+    drawtest();
+
+    function fillTest(ctx){
+        // let ctx = main.getContext('2d');
+        // ctx.beginPath();
+        // ctx.strokeStyle = 'red';
+        // ctx.translate(100,10);
+        // ctx.rect(10,10,100,100);
+        // ctx.closePath();
+        // ctx.stroke();
+        ctx.fillStyle = 'rgba(0,255,0)';
+        ctx.globalAlpha =0.5;
+        // ctx.beginPath();
+        // ctx.rect(0,0,100,100);
+        // ctx.closePath();
+        // ctx.fill();
+
+        // ctx.beginPath();
+        // // if(ctx.rotateY){
+        // //     ctx.rotateY(30*Math.PI/180);
+        // // }
+        // ctx.rect(x,y,100,100);
+        // ctx.closePath();
+        // ctx.fill();
+        //
+        // ctx.translate(120,0);
+        ctx.beginPath();
+        ctx.arc(50,50,50,0,2*Math.PI);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = 'white';
+        ctx.translate(100,150);
+        ctx.beginPath();
+        ctx.moveTo(10,10);
+        ctx.lineTo(100,50);
+        ctx.lineTo(10,90);
+        ctx.lineTo(60,45);
+        ctx.closePath();
+        ctx.stroke();
+        ctx.fill();
+        if(ctx.draw){
+            ctx.draw();
+        }
+    }
+</script>
+</html>

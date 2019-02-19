@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>椭圆测试2</title>
+    <script src="test.js"></script>
+</head>
+<body>
+
+</body>
+<script type="module">
+    // Draw shapes
+    import CanvasRenderingContextWebgl2D from "../src/webgl/CanvasRenderingContextWebgl2D.js";
+
+    createCompareCanvas();
+    let gl = new CanvasRenderingContextWebgl2D(webgl, {projectionType: 1});
+    let ctx = canvas.getContext('2d');
+
+    function draw(ctx) {
+        ctx.strokeStyle = 'white';
+        // Draw the ellipse
+        ctx.beginPath();
+        ctx.ellipse(100, 100, 50, 75, Math.PI / 4, 0, 2 * Math.PI);
+        ctx.stroke();
+
+// Draw the ellipse's line of reflection
+        ctx.beginPath();
+        // ctx.setLineDash([5, 5]);
+        ctx.moveTo(0, 200);
+        ctx.lineTo(200, 0);
+        ctx.stroke();
+
+        ctx.fillStyle = 'red';
+        ctx.beginPath();
+        ctx.ellipse(60, 75, 50, 30, Math.PI * .25, 0, Math.PI * 1.5);
+        ctx.fill();
+
+        ctx.fillStyle = 'blue';
+        ctx.beginPath();
+        ctx.ellipse(150, 75, 50, 30, Math.PI * .25, 0, Math.PI);
+        ctx.fill();
+
+        ctx.fillStyle = 'green';
+        ctx.beginPath();
+        ctx.ellipse(240, 75, 50, 30, Math.PI * .25, 0, Math.PI, true);
+        ctx.fill();
+        if (ctx.draw) {
+            ctx.draw();
+        }
+    }
+
+    draw(gl);
+    draw(ctx);
+
+
+</script>
+</html>

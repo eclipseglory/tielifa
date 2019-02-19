@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>带的绘制</title>
+    <script src="test.js"></script>
+</head>
+<body>
+
+</body>
+<script type="module">
+    import CanvasRenderingContextWebgl2D from "../src/webgl/CanvasRenderingContextWebgl2D.js";
+    import Mat4 from "../src/math/Mat4.js";
+
+    createOneFullCanvas();
+    // let ctx = new tielifa.WebGL2D(webgl, {FOV: 20, projectionType: 1, enableDepthTest: true});
+    let ctx = new CanvasRenderingContextWebgl2D(webgl, {FOV: 20, projectionType: 1, enableDepthTest: true});
+    // ctx.turnOnLight();
+    let r = 30;
+    let points = [];
+    let offset = 0;
+
+    function draw() {
+        ctx.save();
+        ctx.translate(webgl.width / 2, webgl.height / 2);
+        ctx.rotateY(r * Math.PI / 180);
+        ctx.rotateX(r * Math.PI / 180);
+        ctx.rotate(r * Math.PI / 180);
+        ctx.translate(-webgl.width / 2, -webgl.height / 2);
+        points.length = 0;
+        let width = webgl.width / 2;
+        let height = (img.height / img.width) * width;
+        let delta = Math.PI / 15;
+        let pointsNum = 50;
+        let deltaX = width / pointsNum;
+        let totalPI = Math.PI * 2 * 3;
+        let deltaTheta = totalPI / pointsNum;
+        let startX = (webgl.width - width) / 2;
+        let start = {x: (webgl.width - width) / 2, y: webgl.height / 2, z: 0};
+        start.y = Math.cos(offset) * 5 + webgl.height / 2;
+        let pre = start;
+        for (let i = 0; i < pointsNum; i++) {
+            let x = startX + deltaX * i;
+            let y = Math.cos(i * deltaTheta + offset) + webgl.height / 2;//pre.y;
+            let z = Math.cos(i * deltaTheta + offset) * 10;
+            let p = {x: x, y: y, z: z};
+            pre = p;
+            points.push(p);
+        }
+        ctx.fillStripe(points, height / 3 * 2, 'white', 1, img, true);
+        r++;
+        // draw path points:
+        // let the points display on the flag
+        ctx.translate(0,0,10);
+        ctx.fillStyle = 'white';
+        for (let i = 0; i < points.length; i++) {
+            let p = points[i];
+            ctx.beginPath();
+            ctx.rect(p.x,p.y,2,2,p.z );
+            ctx.closePath();
+            ctx.fill();
+        }
+        ctx.restore();
+        ctx.draw();
+        offset += 0.1;
+        requestAnimationFrame(draw);
+    }
+
+    let img = new Image();
+    img.onload = function (evt) {
+        draw();
+    };
+    img.crossOrigin = '';
+    img.src = 'images/norway.png'
+
+
+</script>
+</html>

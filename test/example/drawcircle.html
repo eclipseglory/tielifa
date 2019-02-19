@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>带的绘制</title>
+    <script src="../test.js"></script>
+</head>
+<body>
+
+</body>
+<script type="module">
+
+    import CanvasRenderingContextWebgl2D from "../../src/webgl/CanvasRenderingContextWebgl2D.js";
+
+    createOneFullCanvas();
+    var ctx = new CanvasRenderingContextWebgl2D(webgl,{projectionType:1});
+    var img = new Image();
+    img.onload = function (evt) {
+        ctx.drawImage(img,100,100,400,200);
+        ctx.draw();
+    };
+    img.crossOrigin = '';
+    img.src = 'https://eclipseglory.github.io/norway.png'
+
+</script>
+</html>

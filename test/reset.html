@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+
+</body>
+<script type="module">
+
+
+    import Mat4 from "../src/math/Mat4.js";
+
+
+    let m = Mat4.identity();
+    let x = 10;
+    let y = 11;
+    let z = 0.09;
+
+    let x1 = 12.2;
+    let y1 = 0.21;
+    let z1 = 102;
+
+    let m1 = Mat4.translation(x,y,z);
+    let m2 = Mat4.translation(x1,y1,z1);
+
+    let x2 = x1+x;
+    let y2 = y1+y;
+    let z2 = z1+z;
+
+    console.log(x2,y2,z2);
+    console.log(Mat4.multiply(m1,m1,m2));
+
+    var edgeDetectKernel = [
+        0, 1, 0,
+        1, 1, 1,
+        0, 1, 0
+    ];
+    edgeDetectKernel = [
+        0, 1, 0, 2, 3,
+        1, 1, 1, 4, 1,
+        0, 1, 0, 12, 3,
+        0, 1, 0, 12, 3,
+        0, 1, 0, 12, 3,
+    ];
+    var length = edgeDetectKernel.length;
+
+    length = Math.sqrt(length);
+    let offset = -Math.floor(length / 2);
+    console.log(offset);
+    for (let i = 0; i < length; i++) {
+        for (let j = 0; j < length; j++) {
+            console.log("应用第" + (i * length + j) + "个数据", "对应坐标:" + "(" + (offset + j) + "," + (offset + i) + ")");
+
+        }
+    }
+    var kernels = {
+        normal: [
+            0, 0, 0,
+            0, 1, 0,
+            0, 0, 0
+        ],
+        gaussianBlur: [
+            0.045, 0.122, 0.045,
+            0.122, 0.332, 0.122,
+            0.045, 0.122, 0.045
+        ],
+        gaussianBlur2: [
+            1, 2, 1,
+            2, 4, 2,
+            1, 2, 1
+        ],
+        gaussianBlur3: [
+            0, 1, 0,
+            1, 1, 1,
+            0, 1, 0
+        ],
+        unsharpen: [
+            -1, -1, -1,
+            -1, 9, -1,
+            -1, -1, -1
+        ],
+        sharpness: [
+            0, -1, 0,
+            -1, 5, -1,
+            0, -1, 0
+        ],
+        sharpen: [
+            -1, -1, -1,
+            -1, 16, -1,
+            -1, -1, -1
+        ],
+        edgeDetect: [
+            -0.125, -0.125, -0.125,
+            -0.125, 1, -0.125,
+            -0.125, -0.125, -0.125
+        ],
+        edgeDetect2: [
+            -1, -1, -1,
+            -1, 8, -1,
+            -1, -1, -1
+        ],
+        edgeDetect3: [
+            -5, 0, 0,
+            0, 0, 0,
+            0, 0, 5
+        ],
+        edgeDetect4: [
+            -1, -1, -1,
+            0, 0, 0,
+            1, 1, 1
+        ],
+        edgeDetect5: [
+            -1, -1, -1,
+            2, 2, 2,
+            -1, -1, -1
+        ],
+        edgeDetect6: [
+            -5, -5, -5,
+            -5, 39, -5,
+            -5, -5, -5
+        ],
+        sobelHorizontal: [
+            1, 2, 1,
+            0, 0, 0,
+            -1, -2, -1
+        ],
+        sobelVertical: [
+            1, 0, -1,
+            2, 0, -2,
+            1, 0, -1
+        ],
+        previtHorizontal: [
+            1, 1, 1,
+            0, 0, 0,
+            -1, -1, -1
+        ],
+        previtVertical: [
+            1, 0, -1,
+            1, 0, -1,
+            1, 0, -1
+        ],
+        boxBlur: [
+            0.111, 0.111, 0.111,
+            0.111, 0.111, 0.111,
+            0.111, 0.111, 0.111
+        ],
+        triangleBlur: [
+            0.0625, 0.125, 0.0625,
+            0.125, 0.25, 0.125,
+            0.0625, 0.125, 0.0625
+        ],
+        emboss: [
+            -2, -1, 0,
+            -1, 1, 1,
+            0, 1, 2
+        ]
+    };
+
+    function computeKernelWeight(kernel) {
+        var weight = kernel.reduce(function (prev, curr) {
+            return prev + curr;
+        });
+        return weight <= 0 ? 1 : weight;
+    }
+
+    for(let p in kernels){
+        let m = kernels[p];
+        console.log(p,computeKernelWeight(m));
+    }
+
+    // var app = new PIXI.Application(800, 600, { antialias: true });
+    // document.body.appendChild(app.view);
+    //
+    // var graphics = new PIXI.Graphics();
+    //
+    // // set a fill and line style
+    // graphics.beginFill(0xFF3300);
+    // graphics.lineStyle(4, 0xffd900, 1);
+    //
+    // // draw a shape
+    // graphics.moveTo(50,50);
+    // graphics.lineTo(250, 50);
+    // graphics.lineTo(100, 100);
+    // graphics.lineTo(50, 50);
+    // graphics.endFill();
+    //
+    // // set a fill and a line style again and draw a rectangle
+    // graphics.lineStyle(2, 0x0000FF, 1);
+    // graphics.beginFill(0xFF700B, 1);
+    // graphics.drawRect(50, 250, 120, 120);
+    //
+    // // draw a rounded rectangle
+    // graphics.lineStyle(2, 0xFF00FF, 1);
+    // graphics.beginFill(0xFF00BB, 0.25);
+    // graphics.drawRoundedRect(150, 450, 300, 100, 15);
+    // graphics.endFill();
+    //
+    // // draw a circle, set the lineStyle to zero so the circle doesn't have an outline
+    // graphics.lineStyle(0);
+    // graphics.beginFill(0xFFFF0B, 0.5);
+    // graphics.drawCircle(470, 90,60);
+    // graphics.endFill();
+    //
+    // app.stage.addChild(graphics);
+
+</script>
+</html>

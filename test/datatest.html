@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+
+</body>
+<script type="module">
+    import VerticesData from "../src/webgl/VerticesData.js";
+    import FragmentData from "../src/webgl/FragmentData.js";
+
+    let data = new VerticesData(4);
+    let data2 = new FragmentData(1);
+    data.addVerticesData(0, 0, 0, 0, 0, 1);
+    data2.addFragmentData(2,123,1,1,10,100,-1);
+    data.addVerticesData(100, 0, 0, 0, 0, 1);
+    data2.addFragmentData(2,255,121,1,1.0,2100,0);
+    data.addVerticesData(100, 100, 0, 0, 0, 1);
+    data.addVerticesData(0, 100, 0, 0, 0, 1);
+
+    for(let i =0;i<data2.currentIndex;i++){
+        console.log(data2.getAlpha(i));
+        console.log(data2.getColorData(i));
+        console.log(data2.getTextureUV(i));
+        console.log(data2.getTextureIndex(i));
+    }
+
+    for(let i = 0 ; i < data.currentIndex; i++){
+        console.log(data.getVerticesData(i));
+    }
+
+    data.addVerticesData(0, 100,10, 0, 4, 1);
+
+    for(let i = 0 ; i < data.currentIndex; i++){
+        console.log(data.getVerticesData(i));
+    }
+</script>
+</html>

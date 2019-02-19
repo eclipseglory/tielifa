@@ -3,34 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <title>扩展接口测试</title>
-    <script src="../tielifa.min.js"></script>
+    <script src="test.js"></script>
 </head>
 <body>
-<canvas id="webgl" width=500 height=300 style="background-color: black">
 
-</canvas>
 </body>
 <script type="module">
+    import CanvasRenderingContextWebgl2D from "../src/webgl/CanvasRenderingContextWebgl2D.js";
 
-    let c =  new tielifa.WebGL2D(webgl);
-    let ctx = c;
+    createOneFullCanvas();
+    let ctx = new CanvasRenderingContextWebgl2D(webgl,{projectionType:1});
+    // let ctx = new tielifa.WebGL2D(webgl);
     var deltaX = 1;
-    var deltaR = 2;
+    var deltaR = 790;
 
     function repeat() {
         fillTest(ctx);
         // fillTest(ctx2);
         deltaX++;
-        deltaR++;
+        deltaR+=0.5;
         requestAnimationFrame(repeat);
     }
 
     function fillTest(ctx) {
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-        ctx.drawRectangle(10, 10, 100, 100, 'red', 'blue');
-        ctx.drawEllipse(120, 100, 100, 40, 'yellow',undefined,deltaR*Math.PI/180);
-        ctx.drawCircle(220, 120, 100, undefined,'red');
-        ctx.drawRectangle(120, 10, 100, 100);
+        // ctx.save();
+        // ctx.translate(60, 60);
+        // ctx.rotateX(deltaR * Math.PI / 180);
+        // ctx.rotateY(deltaR * Math.PI / 180);
+        // ctx.translate(-60, -60);
+        // ctx.drawRectangle(10, 10, 100, 100, 'red', 'blue');
+        // ctx.restore();
+        ctx.save();
+        ctx.translate(120+50,100+20);
+        ctx.rotateX(811*Math.PI/180);
+        ctx.translate(-170,-120);
+        ctx.globalAlpha = 0.5;
+        ctx.drawEllipse(120, 100, 100, 40, 'yellow', undefined, 0);
+        ctx.restore();
+
+        // ctx.save();
+        // ctx.scale(1.5, 1.5);
+        // ctx.drawCircle(220, 120, 100, undefined, 'red');
+        // ctx.restore();
+        ctx.drawRectangle(120, 10, 100, 100,'red');
         if (ctx.draw) {
             ctx.draw();
         }

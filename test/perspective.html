@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>透视和灯光测试</title>
+    <script src="test.js"></script>
+</head>
+<body>
+
+</body>
+<script type="module">
+    import CanvasRenderingContextWebgl2D from "../src/webgl/CanvasRenderingContextWebgl2D.js";
+
+    createCompareCanvas();
+    console.log(Math.tan(Math.PI / 2));
+    let ctx = new CanvasRenderingContextWebgl2D(webgl, {maxTransformNum: 10});
+    ctx.setLightPosition(ctx.canvas.width / 2, ctx.canvas.height / 2, 40);
+    ctx.turnOnLight();
+    let ctx1 = new CanvasRenderingContextWebgl2D(canvas, {maxTransformNum: 10, projectionType: 1});
+    let deltaX = 0;
+    let deltaR = 0;
+    let w = 100;
+    let h = w;
+    let x = (ctx.canvas.width - w) / 2;
+    let y = (ctx.canvas.height - h) / 2;
+
+
+    function repeat() {
+        fillTest(ctx);
+        fillTest(ctx1);
+        deltaX += 1;
+        requestAnimationFrame(repeat);
+    }
+
+    function fillTest(ctx) {
+        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        ctx.save();
+        // ctx.translate(-deltaX,0);
+        ctx.translate(x + w / 2, y + h / 2);
+        ctx.rotateX(deltaX * Math.PI / 180);
+        ctx.rotateY(deltaX * Math.PI / 180);
+        // ctx.rotateAbout(deltaX * Math.PI / 180);
+        ctx.translate(-x - w / 2, -y - h / 2);
+        ctx.drawImage(img, x, y, w, h);
+        ctx.restore();
+        if (ctx.draw) {
+            ctx.draw();
+        }
+    }
+
+    let img = new Image();
+    img.crossOrigin = '';
+    img.onload = function () {
+        repeat();
+    };
+    img.src = 'images/heart1.png';
+
+
+</script>
+</html>

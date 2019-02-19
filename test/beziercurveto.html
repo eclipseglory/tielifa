@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>贝塞尔曲线，4个控制点</title>
+    <script src="test.js"></script>
+</head>
+<body>
+
+</body>
+<script type="module">
+    // Draw shapes
+    import CanvasRenderingContextWebgl2D from "../src/webgl/CanvasRenderingContextWebgl2D.js";
+
+    createCompareCanvas();
+    let gl = new CanvasRenderingContextWebgl2D(webgl, {projectionType: 1});
+    let ctx = canvas.getContext('2d');
+
+    function draw(ctx) {
+        ctx.translate(300,300);
+        ctx.rotate(10,10);
+
+        ctx.strokeStyle = 'white';
+        // Define the points as {x, y}
+        let start = { x: 50,    y: 20  };
+        let cp1 =   { x: 230,   y: 30  };
+        let cp2 =   { x: 150,   y: 80  };
+        let end =   { x: 250,   y: 100 };
+
+// Cubic Bézier curve
+        ctx.beginPath();
+        // ctx.moveTo(start.x, start.y);
+        ctx.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, end.x, end.y);
+        ctx.stroke();
+
+// Start and end points
+        ctx.fillStyle = 'blue';
+        ctx.beginPath();
+        ctx.arc(start.x, start.y, 5, 0, 2 * Math.PI);  // Start point
+        ctx.arc(end.x, end.y, 5, 0, 2 * Math.PI);      // End point
+        ctx.fill();
+
+// Control points
+        ctx.fillStyle = 'red';
+        ctx.beginPath();
+        ctx.arc(cp1.x, cp1.y, 5, 0, 2 * Math.PI);  // Control point one
+        ctx.arc(cp2.x, cp2.y, 5, 0, 2 * Math.PI);  // Control point two
+        ctx.fill();
+        if (ctx.draw) {
+            ctx.draw();
+        }
+    }
+
+    draw(gl);
+    draw(ctx);
+
+
+</script>
+</html>

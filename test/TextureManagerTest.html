@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>TextureManager</title>
+</head>
+<body>
+<canvas id="main" width=0 height=0>
+
+</canvas>
+
+<a id="downloadLnk" style="position:absolute;left:20px;top:20px;width:100px;height:20px"
+   download="YourFileName.jpg">Download as image</a>
+</body>
+<script type="module">
+
+
+    import CanvasRenderingContextWebgl2D from "../src/webgl/CanvasRenderingContextWebgl2D.js";
+
+    let dt;
+
+    function download() {
+        this.href = dt;
+    };
+
+    downloadLnk.addEventListener('click', download, false);
+    var resources = [];
+
+    resources.push({id: 'fulltexture', path: 'images/fulltexture.png'});
+    resources.push({id: 'ink', path: 'images/ink.png'});
+    resources.push({id: 'introduce1', path: 'images/introduce1.png'});
+    resources.push({id: 'introduce2', path: 'images/introduce2.png'});
+    resources.push({id: 'introduce3', path: 'images/introduce3.png'});
+    resources.push({id: 'centerboom', path: 'images/fire_001.png', split: {column: 5, row: 4}});
+
+    resources.push({id: 'startImage', path: 'images/start-img.png'});
+    resources.push({id: 'titleImage', path: 'images/title.png'});
+
+    resources.push({id: 'rope', path: 'images/rope.png'});
+    resources.push({id: 'ropedis', path: 'images/ropedis.png'});
+
+    resources.push({id: 'number', path: 'images/bubble_number.png', split: {column: 13, row: 1}});
+    let ctx = new CanvasRenderingContextWebgl2D(main, {maxTextureSize: 2048});
+    let imgs = [];
+    var loadedResrouce = 0;
+    for (let i = 0; i < resources.length; i++) {
+        var resource = resources[i];
+        let img = new Image();
+        img.onload = function (evt) {
+            images.push(evt.target);
+            loadResourceCallback(evt);
+        }
+        img.src = resource.path;
+    }
+
+    let t = ctx.webglRender.textureManager;//(2048, 2048, 10);
+    let images = [];
+
+    function loadResourceCallback(evt) {
+        let img = evt.target;
+        loadedResrouce++;
+        if (loadedResrouce >= resources.length) {
+            for (let i = 0; i < images.length; i++) {
+                let textureInfo = t.registerImageData(images[i], ctx.webglRender.gl, true);
+            }
+
+            for (let i = 0; i < t.imageDataArray.length; i++) {
+                let imageData = t.imageDataArray[i];
+                if (imageData != undefined) {
+                    main.width += imageData.width;
+                    main.height = Math.max(main.height, imageData.height);
+                    main.style.width = main.width + "px";
+                    main.style.height = main.height + "px";
+                }
+            }
+            let x = 0;
+            let y = 0;
+            ctx.strokeStyle = 'red';
+            // for (let i = 0; i < t.imageDataArray.length; i++) {
+            //     let imageData = t.imageDataArray[i];
+            //     if (i != 0) continue;
+            //     if (imageData != undefined) {
+            //         ctx.putImageData(imageData.imageData, x, y);
+            //         ctx.beginPath();
+            //         ctx.rect(x, y, imageData.width, imageData.height);
+            //         ctx.stroke();
+            //         x += imageData.width;
+            //     }
+            // }
+            // for (let i = 0; i < images.length; i++) {
+            //     let tt = t.getTexture(images[i]);
+            //     if (tt.index != 2) continue;
+            //     let imageData = t.imageDataArray[tt.index];
+            //     console.log(tt.x, tt.y, tt.width, tt.height);
+            //     if (imageData != undefined) {
+            //         ctx.putImageData(imageData.imageData, x - tt.x, y - tt.y, tt.x, tt.y, tt.width, tt.height);
+            //         ctx.beginPath();
+            //         ctx.rect(x, y, tt.width, tt.height);
+            //         ctx.stroke();
+            //         x += tt.width;
+            //     }
+            // }
+            for (let i = 0; i < images.length; i++) {
+                let tt = t.getTexture(images[i]);
+                console.log(images[i].src);
+                if (tt.index != 1) continue;
+                // let imageData = t.imageDataArray[tt.index];
+                // console.log(tt.x, tt.y, tt.width, tt.height);
+                ctx.drawImage(images[i], x, y);
+                x += images[i].width;
+                // if (imageData != undefined) {
+                //     ctx.putImageData(imageData.imageData, x - tt.x, y - tt.y, tt.x, tt.y, tt.width, tt.height);
+                //     ctx.beginPath();
+                //     ctx.rect(x, y, tt.width, tt.height);
+                //     ctx.stroke();
+                //     x += tt.width;
+                // }
+                // break;
+            }
+            ctx.draw();
+        }
+    }
+
+</script>
+</html>

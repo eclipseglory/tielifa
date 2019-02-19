@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>drawImage测试</title>
+</head>
+<body>
+<canvas id="webgl" width=500 height=300 style="background-color: black">
+
+</canvas>
+<canvas id="canvas" width=500 height=300 style="background-color: black">
+
+</canvas>
+</body>
+<script type="module">
+    import CanvasRenderingContextWebgl2D from "../CanvasRenderingContextWebgl2D.js";
+
+    let ctx = new CanvasRenderingContextWebgl2D(webgl);
+    let ctx2 = canvas.getContext('2d');
+    var resources = [];
+    resources.push("images/background.png");
+    resources.push("images/boom.png");
+    resources.push("images/bubbles.png");
+    let imgs = [];
+    var loadedResrouce = 0;
+    for (let i = 0; i < resources.length; i++) {
+        var resource = resources[i];
+        let img = new Image();
+        img.onload = function (evt) {
+            imgs.push(evt.target);
+            loadResourceCallback(evt);
+        }
+        img.src = resource;
+    }
+    function loadResourceCallback(evt) {
+        let img = evt.target;
+        loadedResrouce++;
+        if (loadedResrouce >= resources.length) {
+            fillTest(ctx);
+            fillTest(ctx2);
+        }
+    }
+
+    function fillTest(ctx) {
+
+        ctx.beginPath();
+        ctx.fillStyle = 'yellow';
+        ctx.strokeStyle = 'red';
+        ctx.translate(100, 10);
+        ctx.rect(10, 10, 100, 100);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = 'yellow';
+        ctx.translate(0, 100);
+        ctx.rotateAbout(20 * Math.PI / 180);
+        ctx.beginPath();
+        ctx.rect(10, 15, 100, 100);
+        ctx.closePath();
+        ctx.stroke();
+        ctx.fill();
+
+        ctx.translate(120, 0);
+        ctx.beginPath();
+        ctx.arc(50, 50, 50, 0, 3 * Math.PI);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.translate(100, -50);
+        ctx.beginPath();
+        ctx.moveTo(10, 10);
+        ctx.lineTo(100, 50);
+        ctx.lineTo(10, 90);
+        ctx.lineTo(60, 45);
+        ctx.closePath();
+        ctx.stroke();
+        ctx.fill();
+
+        ctx.drawImage(imgs[0],0,0,100,100);
+        ctx.fillStyle = 'yellow';
+        ctx.fillRect(100,10,100,100);
+        ctx.drawImage(imgs[1],100,0,100,100);
+        ctx.fillRect(200,10,100,100);
+        ctx.drawImage(imgs[2],200,0,100,100);
+        if (ctx.draw) {
+            ctx.draw();
+        }
+    }
+</script>
+</html>

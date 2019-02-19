@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <script src="test.js"></script>
+    <title>transform和setTransform测试</title>
+</head>
+<body>
+
+</body>
+<script type="module">
+    // Draw shapes
+    import CanvasRenderingContextWebgl2D from "../src/webgl/CanvasRenderingContextWebgl2D.js";
+
+    createOneFullCanvas();
+    let gl = new CanvasRenderingContextWebgl2D(webgl, {projectionType: 1});
+    // gl.globalAlpha = 0.5;
+    // gl.translate(100,100);
+    // gl.rotate(45*Math.PI/180);
+    // gl.translate(-100,-100);
+    // gl.drawRectangle(100,100,100,100,undefined,'blue');
+    // gl.startGraphics();
+    // gl.drawCircle(100,100,100,'red');
+    // let figure = gl.endGraphics();
+    // console.log(figure);
+
+    gl.startGraphics();
+    gl.drawRectangle(0,0,100,100,'red');
+    let figure1 = gl.endGraphics();
+    console.log(figure1);
+    // console.log(figure1 == figure);
+
+
+    gl.save();
+    gl.translate(100,100);
+    gl.drawGraphics(figure1);
+    gl.restore();
+
+    gl.translate(100,400);
+    gl.rotate(45*Math.PI/180);
+    gl.translate(-100,-100);
+    gl.drawGraphics(figure1);
+    // gl.drawEllipse(100,100,100,150,'red');
+    gl.draw();
+
+</script>
+</html>

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<canvas id="webgl" width=500 height=300 style="background-color: black">
+
+</canvas>
+<canvas id="canvas" width=500 height=300 style="background-color: black">
+
+</canvas>
+</body>
+<script type = 'module'>
+    import EarClipping from "../../geometry/EarClipping.js";
+    import CanvasRenderingContextWebgl2D from "../CanvasRenderingContextWebgl2D.js";
+
+    let ctx = new CanvasRenderingContextWebgl2D(webgl);
+    ctx.beginPath();
+    ctx.arc(50,50,20,0,2*Math.PI);
+    let subPath = ctx.currentPath.lastSubPath;
+    let clipArray = new Array(subPath.pointsNumber*3);
+    for(let i = 0 ; i < subPath.pointsNumber;i++){
+        let p = subPath.getPoint(i);
+        let index = i*3;
+        clipArray[index] = p.x;
+        clipArray[index+1] = p.y;
+        clipArray[index+2] = p.z;
+    }
+    console.log(subPath);
+    var indices = EarClipping.earcut(clipArray,null,3);
+    console.log(indices);
+</script>
+</html>
