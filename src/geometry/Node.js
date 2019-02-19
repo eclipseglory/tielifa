@@ -1,14 +1,5 @@
-"use strict";
-
-Object.defineProperty(exports, "__esModule", {
-        value: true
-});
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-var Node = function Node(i, x, y) {
-        _classCallCheck(this, Node);
-
+export default class Node{
+    constructor(i, x, y){
         // vertex index in coordinates array
         this.i = i;
 
@@ -29,6 +20,5 @@ var Node = function Node(i, x, y) {
 
         // indicates whether this is a steiner point
         this.steiner = false;
-};
-
-exports.default = Node;
+    }
+}

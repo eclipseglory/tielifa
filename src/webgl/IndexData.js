@@ -1,104 +1,75 @@
-'use strict';
-
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-var _currentIndex = Symbol('当前顶点游标位置');
-var _dataArray = Symbol('Int16的typed数组');
-var _arrayBuffer = Symbol('存储顶点数组的buffer');
-var SINGLE_DATA_BYTE_LENGTH = 2;
-
-var IndexData = function () {
-    function IndexData(vertexNumber) {
-        _classCallCheck(this, IndexData);
-
+let _currentIndex = Symbol('当前顶点游标位置');
+let _dataArray = Symbol('Int16的typed数组');
+let _arrayBuffer = Symbol('存储顶点数组的buffer');
+const SINGLE_DATA_BYTE_LENGTH = 2;
+export default class IndexData {
+    constructor(vertexNumber) {
         this[_arrayBuffer] = new ArrayBuffer(vertexNumber * 2);
         this[_dataArray] = new Uint16Array(this[_arrayBuffer]);
         this[_currentIndex] = 0;
     }
 
-    _createClass(IndexData, [{
-        key: 'init',
-        value: function init() {
-            this[_currentIndex] = 0;
-        }
-    }, {
-        key: 'setIndex',
-        value: function setIndex(indexData, index) {
-            if (index * 2 >= this.totalByteLength) {
-                this.resize(this.totalByteLength * 2);
-            }
-            this[_dataArray][index] = indexData;
-        }
-    }, {
-        key: 'getIndex',
-        value: function getIndex(index) {
-            return this[_dataArray][index];
-        }
-    }, {
-        key: 'addIndex',
-        value: function addIndex(indexData) {
-            var index = this[_currentIndex];
-            this.setIndex(indexData, index);
-            this[_currentIndex]++;
-        }
-    }, {
-        key: 'resize',
-        value: function resize(length) {
-            if (length <= this.totalByteLength) {
-                return;
-            }
-            var oldBuffer = this[_arrayBuffer];
-            this[_arrayBuffer] = new ArrayBuffer(length);
-            var dv1 = new Uint8Array(oldBuffer);
-            var ndv = new Uint8Array(this[_arrayBuffer]);
-            ndv.set(dv1, 0);
-            this[_dataArray] = new Uint16Array(this[_arrayBuffer]);
-        }
-    }, {
-        key: 'append',
-        value: function append(indexData) {
-            var vertexNum = this.currentIndex;
-            var len = indexData.totalByteLength;
-            this.resize(len + vertexNum * SINGLE_DATA_BYTE_LENGTH);
-            var dv1 = new Uint8Array(indexData.buffer);
-            var ndv = new Uint8Array(this.buffer);
-            ndv.set(dv1, vertexNum * SINGLE_DATA_BYTE_LENGTH);
-            this[_currentIndex] += indexData.currentIndex;
-        }
-    }, {
-        key: 'dataArray',
-        get: function get() {
-            return this[_dataArray];
-        }
-    }, {
-        key: 'singleDataByteLength',
-        get: function get() {
-            return SINGLE_DATA_BYTE_LENGTH;
-        }
-    }, {
-        key: 'totalByteLength',
-        get: function get() {
-            return this[_arrayBuffer].byteLength;
-        }
-    }, {
-        key: 'buffer',
-        get: function get() {
-            return this[_arrayBuffer];
-        }
-    }, {
-        key: 'currentIndex',
-        get: function get() {
-            return this[_currentIndex];
-        }
-    }]);
+    get dataArray(){
+        return this[_dataArray];
+    }
 
-    return IndexData;
-}();
+    get singleDataByteLength() {
+        return SINGLE_DATA_BYTE_LENGTH;
+    }
 
-exports.default = IndexData;
+    get totalByteLength() {
+        return this[_arrayBuffer].byteLength;
+    }
+
+    get buffer() {
+        return this[_arrayBuffer];
+    }
+
+    get currentIndex() {
+        return this[_currentIndex];
+    }
+
+    init() {
+        this[_currentIndex] = 0;
+    }
+
+    setIndex(indexData, index) {
+        if (index * 2 >= this.totalByteLength) {
+            this.resize(this.totalByteLength * 2);
+        }
+        this[_dataArray][index] = indexData;
+    }
+
+    getIndex(index) {
+        return this[_dataArray][index];
+    }
+
+    addIndex(indexData) {
+        let index = this[_currentIndex];
+        this.setIndex(indexData, index);
+        this[_currentIndex]++;
+    }
+
+    resize(length) {
+        if (length <= this.totalByteLength) {
+            return;
+        }
+        let oldBuffer = this[_arrayBuffer];
+        this[_arrayBuffer] = new ArrayBuffer(length);
+        let dv1 = new Uint8Array(oldBuffer);
+        let ndv = new Uint8Array(this[_arrayBuffer]);
+        ndv.set(dv1, 0);
+        this[_dataArray] = new Uint16Array(this[_arrayBuffer]);
+    }
+
+
+    append(indexData) {
+        let vertexNum = this.currentIndex;
+        let len = indexData.totalByteLength;
+        this.resize(len + vertexNum * SINGLE_DATA_BYTE_LENGTH);
+        let dv1 = new Uint8Array(indexData.buffer);
+        let ndv = new Uint8Array(this.buffer);
+        ndv.set(dv1, vertexNum * SINGLE_DATA_BYTE_LENGTH);
+        this[_currentIndex] += indexData.currentIndex;
+    }
+}

@@ -1,257 +1,217 @@
-"use strict";
+/*
+ * Copyright (c) 2018. 老脸叔叔创建，版权归老脸叔叔所有
+ */
 
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }(); /*
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      * Copyright (c) 2018. 老脸叔叔创建，版权归老脸叔叔所有
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      */
+import Tools from "../utils/Tools.js";
 
-var _Tools = require("../utils/Tools.js");
-
-var _Tools2 = _interopRequireDefault(_Tools);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-var _value = Symbol('二维向量值数组,0是x，1是y');
+let _value = Symbol('二维向量值数组,0是x，1是y');
 // 这是一个可以临时使用的vector数组，便于计算的时候不浪费内存
-var TEMP_VECTORS = undefined;
+let TEMP_VECTORS = undefined;
+export default class Vector2 {
+    get x() {
+        return this[_value][0];
+    }
 
-var Vector2 = function () {
-    _createClass(Vector2, [{
-        key: "x",
-        get: function get() {
-            return this[_value][0];
-        },
-        set: function set(value) {
-            this[_value][0] = value;
-        }
-    }, {
-        key: "y",
-        get: function get() {
-            return this[_value][1];
-        },
-        set: function set(value) {
-            this[_value][1] = value;
-        }
-    }, {
-        key: "value",
-        get: function get() {
-            return this[_value];
-        },
-        set: function set(value) {
-            this[_value][0] = value[0];
-            this[_value][1] = value[1];
-        }
-    }, {
-        key: "radian",
-        get: function get() {
-            return Math.atan2(this.y, this.x);
-        }
-    }, {
-        key: "magnitude",
-        get: function get() {
-            return Math.sqrt(this.x * this.x + this.y * this.y);
-        }
+    set x(value) {
+        this[_value][0] = value;
+    }
 
-        // static vectorAngle(fromVector, toVector) {
-        //     return Math.atan2(toVector.y - fromVector.y, toVector.x - fromVector.x);
-        // }
+    get y() {
+        return this[_value][1];
+    }
 
-    }], [{
-        key: "rotate",
-        value: function rotate(out, sourceVector, radian) {
-            var cos = Math.cos(radian),
-                sin = Math.sin(radian);
-            if (!out) out = {};
-            out.y = sourceVector.x * sin + sourceVector.y * cos;
-            out.x = sourceVector.x * cos - sourceVector.y * sin;
-            return out;
+    set y(value) {
+        this[_value][1] = value;
+    }
+
+    get value() {
+        return this[_value];
+    }
+
+    set value(value) {
+        this[_value][0] = value[0];
+        this[_value][1] = value[1];
+    }
+
+    get radian() {
+        return Math.atan2(this.y, this.x);
+    }
+
+    get magnitude() {
+        return Math.sqrt(this.x * this.x + this.y * this.y);
+    }
+
+    // static vectorAngle(fromVector, toVector) {
+    //     return Math.atan2(toVector.y - fromVector.y, toVector.x - fromVector.x);
+    // }
+
+    static rotate(out, sourceVector, radian) {
+        let cos = Math.cos(radian), sin = Math.sin(radian);
+        if (!out) out = {x: 0, y: 0};
+        let y = sourceVector.x * sin + sourceVector.y * cos;
+        let x = sourceVector.x * cos - sourceVector.y * sin;
+        out.x = x;
+        out.y = y;
+        return out;
+    }
+
+    static rotateAbout(output, vector, rotatePoint, radian) {
+        let c = Math.cos(radian);
+        let s = Math.sin(radian);
+        if (!output) output = {};
+        output.x = rotatePoint.x + ((vector.x - rotatePoint.x) * c - (vector.y - rotatePoint.y) * s);
+        output.y = rotatePoint.y + ((vector.x - rotatePoint.x) * s + (vector.y - rotatePoint.y) * c);
+        return output;
+    }
+
+    static get TEMP_VECTORS() {
+        if (TEMP_VECTORS == undefined) {
+            TEMP_VECTORS = [new Vector2(0, 0), new Vector2(0, 0), new Vector2(0, 0), new Vector2(0, 0)];
         }
-    }, {
-        key: "rotateAbout",
-        value: function rotateAbout(output, vector, rotatePoint, radian) {
-            var c = Math.cos(radian);
-            var s = Math.sin(radian);
-            if (!output) output = {};
-            output.x = rotatePoint.x + ((vector.x - rotatePoint.x) * c - (vector.y - rotatePoint.y) * s);
-            output.y = rotatePoint.y + ((vector.x - rotatePoint.x) * s + (vector.y - rotatePoint.y) * c);
-            return output;
-        }
-    }, {
-        key: "normalize",
-        value: function normalize(out, vector) {
-            var magnitude = vector.magnitude;
-            if (out == undefined) out = vector.clone();else {
-                if (out != vector) {
-                    out.x = vector.x;
-                    out.y = vector.y;
-                }
+        return TEMP_VECTORS;
+    }
+
+    static normalize(out, vector) {
+        let magnitude = vector.magnitude;
+        if (out == undefined) out = vector.clone();
+        else {
+            if (out != vector) {
+                out.x = vector.x;
+                out.y = vector.y;
             }
-            if (magnitude == 0) {
-                out.x = 0;
-                out.y = 0;
-                return out;
-            }
-            out.x = out.x / magnitude;
-            out.y = out.y / magnitude;
+        }
+        if (magnitude == 0) {
+            out.x = 0;
+            out.y = 0;
             return out;
         }
-    }, {
-        key: "multiplyValue",
-        value: function multiplyValue(out, v, value) {
-            var v1 = v.x * value;
-            var v2 = v.y * value;
-            out.x = v1;
-            out.y = v2;
-        }
-    }, {
-        key: "dot",
-        value: function dot(v1, v2) {
-            return v1.x * v2.x + v1.y * v2.y;
-        }
-    }, {
-        key: "cross",
-        value: function cross(v1, v2) {
-            return v1.x * v2.y - v1.y * v2.x;
-        }
-    }, {
-        key: "crossZ",
-        value: function crossZ(out, v, z) {
-            // A x B = (AyBz - AzBy , AzBx - AxBz , AxBy - AyBx)
-            // 所以把这个二维向量看成(Vx,Vy,0),这个z就是(0,0,z)，得到：
-            out.x = v.y * z;
-            out.y = -(v.x * z);
-            return out;
-        }
-    }, {
-        key: "zCrossVector",
-        value: function zCrossVector(out, z, v) {
-            out.x = -z * v.y;
-            out.y = z * v.x;
-            return out;
-        }
-    }, {
-        key: "plus",
-        value: function plus(out, v1, v2) {
-            out.x = v1.x + v2.x;
-            out.y = v1.y + v2.y;
-            return out;
-        }
-    }, {
-        key: "sub",
-        value: function sub(out, v1, v2) {
-            out.x = v1.x - v2.x;
-            out.y = v1.y - v2.y;
-            return out;
-        }
-    }, {
-        key: "TEMP_VECTORS",
-        get: function get() {
-            if (TEMP_VECTORS == undefined) {
-                TEMP_VECTORS = [new Vector2(0, 0), new Vector2(0, 0), new Vector2(0, 0), new Vector2(0, 0)];
-            }
-            return TEMP_VECTORS;
-        }
-    }]);
+        out.x = out.x / magnitude;
+        out.y = out.y / magnitude;
+        return out;
+    }
 
-    function Vector2(x, y) {
-        _classCallCheck(this, Vector2);
+    static multiplyValue(out, v, value) {
+        let v1 = v.x * value;
+        let v2 = v.y * value;
+        out.x = v1;
+        out.y = v2;
+    }
 
+    static dot(v1, v2) {
+        return (v1.x * v2.x + v1.y * v2.y);
+    }
+
+    static cross(v1, v2) {
+        return (v1.x * v2.y) - (v1.y * v2.x);
+    }
+
+    static crossZ(out, v, z) {
+        // A x B = (AyBz - AzBy , AzBx - AxBz , AxBy - AyBx)
+        // 所以把这个二维向量看成(Vx,Vy,0),这个z就是(0,0,z)，得到：
+        out.x = v.y * z;
+        out.y = -(v.x * z);
+        return out;
+    }
+
+    static zCrossVector(out, z, v) {
+        out.x = -z * v.y;
+        out.y = z * v.x;
+        return out;
+    }
+
+
+    static plus(out, v1, v2) {
+        out.x = v1.x + v2.x;
+        out.y = v1.y + v2.y;
+        return out;
+    }
+
+    static sub(out, v1, v2) {
+        out.x = v1.x - v2.x;
+        out.y = v1.y - v2.y;
+        return out;
+    }
+
+    constructor(x, y) {
         this[_value] = new Float32Array(3);
         // this[_value] = [0, 0, 1];//多一位是免得和mat计算时还要自动加一个
-        if (x != null || x != undefined) this.x = x;
-        if (y != null || y != undefined) this.y = y;
+        if (x != null || x != undefined)
+            this.x = x;
+        if (y != null || y != undefined)
+            this.y = y;
         this[_value][2] = 1;
     }
 
-    _createClass(Vector2, [{
-        key: "add",
-        value: function add(vector) {
-            this.x += vector.x;
-            this.y += vector.y;
-            return this;
-        }
-    }, {
-        key: "subtract",
-        value: function subtract(vector) {
-            this.x -= vector.x;
-            this.y -= vector.y;
-            return this;
-        }
-    }, {
-        key: "multiply",
-        value: function multiply(value) {
-            this.x *= value;
-            this.y *= value;
-            return this;
-        }
-    }, {
-        key: "split",
-        value: function split(radian1, radian2) {
-            var maxRadian = Math.max(radian1, radian2);
-            var minRadian = Math.min(radian1, radian2);
-            console.log(maxRadian, minRadian);
-            var nr = Math.PI - (maxRadian - minRadian);
-            var d = this.magnitude / Math.sin(nr);
-            var nr2 = maxRadian - this.radian;
-            var nr1 = Math.PI - nr2 - nr;
-            var value1 = d * Math.sin(nr1);
-            var value2 = d * Math.sin(nr2);
-            var vectorMax = Vector2.createVector(value2, minRadian);
-            var vectorMin = Vector2.createVector(value1, maxRadian);
-            vectorMax.add(vectorMin);
-        }
-    }, {
-        key: "splitWithRightAngle",
-        value: function splitWithRightAngle(horizontalRadian) {
-            this.rotate(-horizontalRadian);
-            var hVector = new Vector2(this.x, 0);
-            var vVector = new Vector2(0, this.y);
-            hVector.rotate(horizontalRadian);
-            vVector.rotate(horizontalRadian);
-            this.rotate(horizontalRadian);
-            return { hVector: hVector, vVector: vVector };
-        }
-    }, {
-        key: "reverse",
-        value: function reverse() {
-            this.x = -this.x;
-            this.y = -this.y;
-            return this;
-        }
-    }, {
-        key: "rotate",
-        value: function rotate(radian) {
-            var nradian = this.radian + radian;
-            var value = this.magnitude;
-            this.x = Math.abs(value) * Math.cos(nradian);
-            this.y = Math.abs(value) * Math.sin(nradian);
-        }
-    }, {
-        key: "clone",
-        value: function clone() {
-            return new Vector2(this.x, this.y);
-        }
-    }], [{
-        key: "createVector",
-        value: function createVector(value, radian) {
-            var x = Math.abs(value) * Math.cos(radian);
-            if (Math.abs(x) < _Tools2.default.EPSILON) {
-                x = 0;
-            }
-            var y = Math.abs(value) * Math.sin(radian);
-            if (Math.abs(y) < _Tools2.default.EPSILON) {
-                y = 0;
-            }
-            return new Vector2(x, y);
-        }
-    }]);
+    add(vector) {
+        this.x += vector.x;
+        this.y += vector.y;
+        return this;
+    }
 
-    return Vector2;
-}();
+    subtract(vector) {
+        this.x -= vector.x;
+        this.y -= vector.y;
+        return this;
+    }
 
-exports.default = Vector2;
+    multiply(value) {
+        this.x *= value;
+        this.y *= value;
+        return this;
+    }
+
+    split(radian1, radian2) {
+        var maxRadian = Math.max(radian1, radian2);
+        var minRadian = Math.min(radian1, radian2);
+        console.log(maxRadian, minRadian);
+        var nr = Math.PI - (maxRadian - minRadian);
+        var d = this.magnitude / Math.sin(nr);
+        var nr2 = maxRadian - this.radian;
+        var nr1 = Math.PI - nr2 - nr;
+        var value1 = d * Math.sin(nr1);
+        var value2 = d * Math.sin(nr2);
+        var vectorMax = Vector2.createVector(value2, minRadian);
+        var vectorMin = Vector2.createVector(value1, maxRadian);
+        vectorMax.add(vectorMin);
+    }
+
+    splitWithRightAngle(horizontalRadian) {
+        this.rotate(-horizontalRadian);
+        let hVector = new Vector2(this.x, 0);
+        let vVector = new Vector2(0, this.y);
+        hVector.rotate(horizontalRadian);
+        vVector.rotate(horizontalRadian);
+        this.rotate(horizontalRadian);
+        return {hVector: hVector, vVector: vVector};
+    }
+
+    reverse() {
+        this.x = -this.x;
+        this.y = -this.y;
+        return this;
+    }
+
+    rotate(radian) {
+        let nradian = this.radian + radian;
+        let value = this.magnitude;
+        this.x = Math.abs(value) * Math.cos(nradian);
+        this.y = Math.abs(value) * Math.sin(nradian);
+    }
+
+    clone() {
+        return new Vector2(this.x, this.y);
+    }
+
+    static createVector(value, radian) {
+        let x = Math.abs(value) * Math.cos(radian);
+        if (Math.abs(x) < Tools.EPSILON) {
+            x = 0;
+        }
+        let y = Math.abs(value) * Math.sin(radian);
+        if (Math.abs(y) < Tools.EPSILON) {
+            y = 0;
+        }
+        return new Vector2(x, y);
+    }
+}
