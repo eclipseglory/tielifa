@@ -1424,15 +1424,19 @@ export default class CanvasRenderingContextWebgl2D {
         // console.log("绘制调用次数：", this.webglRender.DEBUG_DRAW_COUNT);
     }
 
-    loadImage(src, callbacks, id) {
-        this.webglRender.textureManager.registerTexture(id, this.gl, null, src, callbacks);
+    loadImage(id, src, callbacks, split) {
+        this.webglRender.textureManager.registerTexture(id, this.gl, null, src, callbacks, split);
+    }
+
+    getTexture(id,index) {
+        return this.webglRender.textureManager.getTextureById(id,index);
     }
 
     /**
      * 清除所有当前生成贴图数据的image以及对应的imageData
      * 慎用！
      */
-    clearImageCatches(){
+    clearImageCatches() {
         this.webglRender.textureManager.cleanImageData();
     }
 }

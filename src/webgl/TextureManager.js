@@ -34,11 +34,15 @@ export default class TextureManager {
         }
     }
 
-    getTextureById(id) {
-        return this[_textureMap][id];
+    getTextureById(id, index) {
+        let t = this[_textureMap][id];
+        if (index != undefined && t != undefined) {
+            return t.splitedTextures[index];
+        }
+        return t;
     }
 
-    registerTexture(id, gl, image, src, callbacks) {
+    registerTexture(id, gl, image, src, callbacks, split) {
         id = id || this.getMapLength(this[_textureMap]).toString();
         if (image == null) {
             if (src != null) {
@@ -56,6 +60,31 @@ export default class TextureManager {
                     let img = evt.target;
                     let texture = that.registerImageData(img.tid, img, gl, true);
                     if (callbacks) {
+                        if (split) {
+                            let column = split.column;
+                            let row = split.row;
+                            let total = row * column;
+                            if (total > 1) texture.splitedTextures.length = 0;
+                            let width = img.width;
+                            let height = img.height;
+                            let perWidth = width / column;
+                            let perHeight = height / row;
+                            for (let index = 0; index < total; index++) {
+                                let vIndex = Math.floor(index / column);
+                                let hIndex = Math.floor(index % column);
+                                let srcLeft = hIndex * perWidth;
+                                let srcTop = vIndex * perHeight;
+                                let child = new Texture({
+                                    id: img.tid + "_" + index,
+                                    x: srcLeft + texture.x,
+                                    y: srcTop + texture.y,
+                                    width: perWidth,
+                                    height: perHeight,
+                                    page: texture.page
+                                });
+                                texture.splitedTextures.push(child);
+                            }
+                        }
                         if (callbacks.success) {
                             callbacks.success(texture);
                         }

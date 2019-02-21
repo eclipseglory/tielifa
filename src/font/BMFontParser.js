@@ -46,7 +46,7 @@ export default class BMFontParser {
         font.outline = Number.parseInt(info.getAttribute("outline"));
 
         // 解析common节点
-        let commons = xmlDoc.getElementsByTagName('common');
+        let commons = xmlDoc.getElementsByTagName(TAG_COMMON);
         if (commons == null || commons.length == 0) return null;
         let c = commons[0];
         let common = {
