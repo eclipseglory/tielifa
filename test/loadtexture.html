@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>贴图载入绘制</title>
+    <script src="test.js"></script>
+</head>
+<body>
+
+</body>
+<script type="module">
+    import CanvasRenderingContextWebgl2D from "../src/webgl/CanvasRenderingContextWebgl2D.js";
+
+    createOneFullCanvas('load texture via src and draw it');
+    let ctx = new CanvasRenderingContextWebgl2D(webgl);
+    // ctx.loadImage('test', "images/norway.png", {
+    //     success: function (texture) {
+    //         console.log(texture);
+    //         let t = ctx.getTexture('test');
+    //         if (t != texture) console.log('error');
+    //         ctx.drawImage(t, 0, 0, 100, 100);
+    //         successed++;
+    //     },
+    //     failed: function (evt) {
+    //         console.log(evt)
+    //     },
+    //     complete: function () {
+    //         console.log('complete , but now success')
+    //     }
+    // });
+
+    ctx.loadImage('bubbles', "images/bubbles-pc.png", {
+        success: function (texture) {
+            console.log(texture);
+            let t = ctx.getTexture('bubbles', 17);
+            if (t == undefined) return;
+            ctx.drawImage(t, 0, 0, t.width, t.height);
+            let t1 = ctx.getTexture('bubbles');
+            ctx.drawImage(ctx.getTexture('bubbles'), 0, t.height, t1.width/5, t1.height/5);
+            ctx.draw();
+        },
+        failed: function (evt) {
+            console.log(evt)
+        },
+        complete: function () {
+            console.log('complete , but now success')
+        }
+    }, {
+        row: 3,
+        column: 6
+    });
+
+
+
+</script>
+</html>
