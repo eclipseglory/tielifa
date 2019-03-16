@@ -172,8 +172,8 @@ export default class Mat4 {
     }
 
     static identity() {
-        let m = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-        // let m = new Float32Array(16);
+        // let m = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        let m = new Float32Array(16);
         m[0] = 1;
         m[5] = 1;
         m[10] = 1;
