@@ -384,19 +384,24 @@ export default class CanvasRenderingContextWebgl2D {
                 cp0y = y0;
             }
         }
-        // 计算出三姐导数：6(p3 - 3p2 + 3p1-p0) 不知道算没算错 ：）
-        // TODO 这种算法是错误的
-        let sx = 6 * (x - 3 * cp2x + 3 * cp1x - cp0x);
-        let sy = 6 * (y - 3 * cp2y + 3 * cp1y - cp0y);
-        let r = 1 / (sx * sx + sy * sy);
-        let delta = Math.pow(r, 1 / 6);
-        // 上述算法是错误的
-        delta = 0.01;
+        // 一阶导数：3(1-t)^2(p1-p0) + 6t(1-t)(p2-p1)+3t^2(p3-p2)
+        let minLength = 1;
+        let delta = 9 * (cp1x - cp0x) * (cp1x - cp0x) + 9 * (cp1y - cp0y) * (cp1y - cp0y);
+        delta = Math.sqrt(minLength / delta);
+        if (delta === Infinity) delta = 0.01;
         let temp = TEMP_VERTEX_COORD4DIM_ARRAY[0];
         let segment = delta;
         for (; segment <= 1; segment += delta) {
             GeometryTools.cubicBezier(segment, cp0x, cp0y, cp1x, cp1y, cp2x, cp2y, x, y, temp);
             this.addPointInLastSubPath(temp[0], temp[1], defaultZ, false);
+            let c = 1 - segment;
+            let p1 = 3 * c * c;
+            let p2 = 6 * segment * c;
+            let p3 = 3 * segment * segment;
+            let a = p1 * (cp1x - cp0x) + p2 * (cp2x - cp1x) + p3 * (x - cp2x);
+            let b = p1 * (cp1y - cp0y) + p2 * (cp2y - cp1y) + p3 * (y - cp2y);
+            delta = minLength / (a * a + b * b);
+            delta = Math.sqrt(delta);
         }
         this.addPointInLastSubPath(x, y, defaultZ, false);
         // currentState.fireDirty();
@@ -452,23 +457,23 @@ export default class CanvasRenderingContextWebgl2D {
             this.addPointInLastSubPath(x, y, z, false);
             return;
         }
-        // 用泰勒展开计算近似
-        // B(t) = P0 + 2(P1 - P0)t + (P2-2P1+P0)t^2
-        let bx0 = cp0x, bx1 = 2 * (cpx - cp0x), bx3 = x - 2 * cpx + cp0x;
-        let by0 = cp0y, by1 = 2 * (cpx - cp0y), by3 = y - 2 * cpy + cp0y;
-        // 这里要是能让delta x平方加上delta y平方等于1，可以求出这个delta t的近似值
-        // 下面这个算法是错误的
-        let sx = 2 * (x - 2 * cpx + cp0x);
-        let sy = 2 * (y - 2 * cpy + cp0y);
-        let r = 1 / (sx * sx + sy * sy);
-        let delta = Math.pow(r, 0.25);
-        // 上面算法错误的
-        // delta = 0.01;
+        // 一阶导数：2(1-t)(p1-p0) + 2t(p2-p1)
+        let minLength = 1;
+        let delta = minLength / (4 * (cpx - cp0x) * (cpx - cp0x) + 4 * (cpy - cp0y) * (cpy - cp0y));
+        delta = Math.sqrt(delta);
+        if (delta === Infinity) delta = 0.01;
         let temp = TEMP_VERTEX_COORD4DIM_ARRAY[0];
         let segment = delta;
         for (; segment <= 1; segment += delta) {
+            // console.log(delta, segment);
             GeometryTools.quadraticBezier(segment, cp0x, cp0y, cpx, cpy, x, y, temp);
             this.addPointInLastSubPath(temp[0], temp[1], cpz, false);
+            let p1 = 2 * (1 - segment);
+            let p2 = 2 * segment;
+            let a = p1 * (cpx - cp0x) + p2 * (x - cpx);
+            let b = p1 * (cpy - cp0y) + p2 * (y - cpy);
+            delta = minLength / (a * a + b * b);
+            delta = Math.sqrt(delta);
         }
         this.addPointInLastSubPath(x, y, z, false);
         // currentState.fireDirty();
@@ -1428,8 +1433,8 @@ export default class CanvasRenderingContextWebgl2D {
         this.webglRender.textureManager.registerTexture(id, this.gl, null, src, callbacks, split);
     }
 
-    getTexture(id,index) {
-        return this.webglRender.textureManager.getTextureById(id,index);
+    getTexture(id, index) {
+        return this.webglRender.textureManager.getTextureById(id, index);
     }
 
     /**

@@ -39,7 +39,6 @@ function createCompareCanvas(text1, text2) {
         webglCanvas.style.width = webglCanvas.width + "px";
         webglCanvas.style.height = webglCanvas.height + "px";
         // webglCanvas.style.margin = margin + 'px';
-        console.log(webglCanvas.clientWidth, webglCanvas.clientHeight);
 
         let div = document.createElement('div');
         div.style.position = 'absolute';
