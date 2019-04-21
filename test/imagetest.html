@@ -13,7 +13,8 @@
 </canvas>
 </body>
 <script type="module">
-    import CanvasRenderingContextWebgl2D from "../CanvasRenderingContextWebgl2D.js";
+
+    import CanvasRenderingContextWebgl2D from "../src/webgl/CanvasRenderingContextWebgl2D.js";
 
     let ctx = new CanvasRenderingContextWebgl2D(webgl);
     let ctx2 = canvas.getContext('2d');
@@ -53,7 +54,7 @@
 
         ctx.fillStyle = 'yellow';
         ctx.translate(0, 100);
-        ctx.rotateAbout(20 * Math.PI / 180);
+        ctx.rotate(20 * Math.PI / 180);
         ctx.beginPath();
         ctx.rect(10, 15, 100, 100);
         ctx.closePath();

@@ -1,4 +1,3 @@
-import BaseBufferData from "./BaseBufferData.js";
 import Tools from "../utils/Tools.js";
 
 const SINGLE_DATA_BYTE_LENGTH = 16;
@@ -25,6 +24,11 @@ export default class FragmentData {
     }
 
     setFragmentData(r, g, b, alpha, u, v, textureIndex, filterType, index) {
+        let num = index + 1;
+        if (num * SINGLE_DATA_BYTE_LENGTH >= this.totalByteLength) {
+            let length = Math.max(num * SINGLE_DATA_BYTE_LENGTH, this.totalByteLength * 2);
+            this.increaseSize(length);
+        }
         index = index * this.singleDataByteLength;
         this.dv.setUint8(index, r);
         this.dv.setUint8(index + 1, g);
@@ -41,34 +45,68 @@ export default class FragmentData {
         this.currentIndex = 0;
     }
 
-    resize(length) {
+
+    increaseSize(length) {
         if (length <= this.totalByteLength) {
             return;
         }
+        this.resize(length);
+    }
+
+    resize(length) {
         let oldBuffer = this.buffer;
         this.buffer = new ArrayBuffer(length);
         let dv1 = new Uint8Array(oldBuffer);
         let ndv = new Uint8Array(this.buffer);
-        ndv.set(dv1, 0);
+        if (length < oldBuffer.byteLength) {
+            for (let i = 0; i < length; i++) {
+                ndv[i] = dv1[i];
+            }
+        } else {
+            ndv.set(dv1, 0);
+        }
         this.dv = new DataView(this.buffer);
     }
 
     append(fragmentData) {
         let vertexNum = this.currentIndex;
-        let len = fragmentData.totalByteLength;
-        this.resize(len + vertexNum * SINGLE_DATA_BYTE_LENGTH);
+        let len = fragmentData.currentIndex * fragmentData.singleDataByteLength;
+        if (len === 0) return;
+        this.increaseSize(len + vertexNum * SINGLE_DATA_BYTE_LENGTH);
         let dv1 = new Uint8Array(fragmentData.buffer);
         let ndv = new Uint8Array(this.buffer);
-        ndv.set(dv1, vertexNum * SINGLE_DATA_BYTE_LENGTH);
+        let offset = vertexNum * SINGLE_DATA_BYTE_LENGTH;
+        for (let i = 0; i < len; i++) {
+            ndv[i + offset] = dv1[i];
+        }
         this.currentIndex += fragmentData.currentIndex;
     }
 
     addFragmentData(r, g, b, alpha, u, v, textureIndex, filterType) {
         let index = this.currentIndex;
-        if (index * this.singleDataByteLength >= this.totalByteLength) {
-            this.resize(this.totalByteLength * 2);
-        }
         this.setFragmentData(r, g, b, alpha, u, v, textureIndex, filterType, index);
         this.currentIndex++;
+    }
+
+    copyFrom(fragmentData) {
+        let myLen = this.totalByteLength;
+        let len = fragmentData.currentIndex * fragmentData.singleDataByteLength;
+        if (myLen < len) {
+            this.buffer = new ArrayBuffer(len);
+            this.dv = new DataView(this.buffer);
+        }
+        let ndv = new Uint8Array(this.buffer);
+        let fdv = new Uint8Array(fragmentData.buffer);
+        for (let i = 0; i < len; i++) {
+            ndv[i] = fdv[i];
+        }
+        this.currentIndex = fragmentData.currentIndex;
+    }
+
+    fixLength() {
+        let realByteLength = this.currentIndex * SINGLE_DATA_BYTE_LENGTH;
+        if (realByteLength < this.buffer.byteLength) {
+            this.resize(realByteLength);
+        }
     }
 }

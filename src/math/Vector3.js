@@ -44,7 +44,7 @@ export default class Vector3 {
     }
 
     static normalize(out, v) {
-        let length = v.magnitude;
+        let length = Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
         if (Tools.equals(0, length)) {
             out.x = 0;
             out.y = 0;
@@ -66,6 +66,13 @@ export default class Vector3 {
         return out;
     }
 
+    static sub(out, v1, v2) {
+        out.x = v1.x - v2.x;
+        out.y = v1.y - v2.y;
+        out.z = v1.z - v2.z;
+        return out;
+    }
+
     static multiplyValue(out, v, value) {
         out.x = v.x * value;
         out.y = v.y * value;
@@ -80,7 +87,7 @@ export default class Vector3 {
         return temp;
     }
 
-    static copy(from,to){
+    static copy(from, to) {
         to.x = from.x;
         to.y = from.y;
         to.z = from.z;

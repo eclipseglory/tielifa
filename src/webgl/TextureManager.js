@@ -86,7 +86,7 @@ export default class TextureManager {
                             }
                         }
                         if (callbacks.success) {
-                            callbacks.success(texture);
+                            callbacks.success({texture: texture, img: img, target: img});
                         }
                     }
                 };

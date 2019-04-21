@@ -13,10 +13,10 @@
 
     createOneFullCanvas('load texture via src and draw it');
     let ctx = new CanvasRenderingContextWebgl2D(webgl);
-    // ctx.loadImage('test', "images/norway.png", {
+    // ctx.loadImage('calculateDataProperty', "images/norway.png", {
     //     success: function (texture) {
     //         console.log(texture);
-    //         let t = ctx.getTexture('test');
+    //         let t = ctx.getTexture('calculateDataProperty');
     //         if (t != texture) console.log('error');
     //         ctx.drawImage(t, 0, 0, 100, 100);
     //         successed++;
@@ -29,14 +29,14 @@
     //     }
     // });
 
-    ctx.loadImage('bubbles', "images/bubbles-pc.png", {
+    ctx.loadImage("images/bubbles-pc.png", {
         success: function (texture) {
             console.log(texture);
             let t = ctx.getTexture('bubbles', 17);
             if (t == undefined) return;
             ctx.drawImage(t, 0, 0, t.width, t.height);
             let t1 = ctx.getTexture('bubbles');
-            ctx.drawImage(ctx.getTexture('bubbles'), 0, t.height, t1.width/5, t1.height/5);
+            ctx.drawImage(ctx.getTexture('bubbles'), 0, t.height, t1.width / 5, t1.height / 5);
             ctx.draw();
         },
         failed: function (evt) {
@@ -48,8 +48,7 @@
     }, {
         row: 3,
         column: 6
-    });
-
+    }, 'bubbles');
 
 
 </script>

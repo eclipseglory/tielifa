@@ -5,17 +5,16 @@ const ACTION_STROKE = 0; // stroke动作
 const ACTION_FILL = 1; // fill动作
 
 const TRIANGLE_ORG = [0, 1, 2];
-const RECT_ORG = [0, 1, 2, 2, 3, 0];
+const RECT_ORG = [0, 1, 2, 0, 2, 3];
 export default class RenderAction {
     constructor(type) {
         this.type = type;
         this.textureIndex = -1;
-        this.verticesData = null;
-        this.fragmentData = null;
-        this.transformData = null;
+
+        this.vdo = null;
+
         this.renderPointNumber = 0;
-        this.isRect = false;
-        this.indexData = null;
+        this.opacityPointNumber = 0;
         this.applyMatrix = null;
         this.applyColor = null;
         this.applyOpacity = null;
@@ -31,23 +30,28 @@ export default class RenderAction {
 
     collectVertexDataForStroke(pathList, color, opacity, textureCoord, lineWidth, filterType, faceDirection) {
         let that = this;
+        this.vdo.switch(opacity < 1);
         let outputInterface = {
             setPoint: function (p, index) {
-                that.verticesData.setVerticesCoor(p.x, p.y, p.z, index + outputInterface.offset);
+                that.vdo.setVerticesCoor2(p, index + outputInterface.offset);
+                // that.verticesData.setVerticesCoor(p.x, p.y, p.z, index + outputInterface.offset);
             },
             addPoint: function (p) {
-                if (that.verticesData != null) {
-                    that.verticesData.addVerticesData(p.x, p.y, p.z, faceDirection[0], faceDirection[1], faceDirection[2]);
-                }
-                if (that.fragmentData != null) {
-                    that.fragmentData.addFragmentData(color[0], color[1], color[2], opacity, textureCoord[0], textureCoord[1], -1, filterType);
-                }
-                if (that.transformData != null) {
-                    // 记录转换矩阵数据
-                    that.transformData.addMatrixIndex(0);
-                }
+                that.vdo.addVerticesData3(p.x, p.y, p.z, faceDirection, color, opacity, textureCoord, -1, filterType)
+                // if (that.verticesData != null) {
+                //     that.verticesData.addVerticesData(p.x, p.y, p.z, faceDirection[0], faceDirection[1], faceDirection[2]);
+                // }
+                // if (that.fragmentData != null) {
+                //     that.fragmentData.addFragmentData(color[0], color[1], color[2], opacity, textureCoord[0], textureCoord[1], -1, filterType);
+                // }
+                // if (that.transformData != null) {
+                //     // 记录转换矩阵数据
+                //     that.transformData.addMatrixIndex(0);
+                // }
             }
         };
+
+        let indexData = null;
 
         for (let i = 0; i < pathList.length; i++) {
             let path = pathList[i];
@@ -55,7 +59,8 @@ export default class RenderAction {
                 let subPath = path.subPathArray[j];
                 let vertexCount = subPath.pointsNumber;
                 if (vertexCount < 2) continue;
-                outputInterface.offset = this.verticesData.currentIndex;
+                outputInterface.offset = this.vdo.currentIndex;
+                indexData = this.vdo.currentIndexData;
                 let pointsArray = subPath.pointsCoordinateArray;
                 let inputInterface = {
                     getX: function (index) {
@@ -74,26 +79,33 @@ export default class RenderAction {
                         return pointsArray.length / 3;
                     }
                 };
-                let lineNum = LineToRectangle.generateRectanglesPoints(lineWidth, subPath.isClosed, faceDirection, outputInterface,inputInterface);
+                let lineNum = LineToRectangle.generateRectanglesPoints(lineWidth, subPath.isClosed, faceDirection, outputInterface, inputInterface);
                 for (let k = 0; k < lineNum; k++) {
                     let index = k * 4;
-                    this.indexData.addIndex(outputInterface.offset + index);
-                    this.indexData.addIndex(outputInterface.offset + index + 1);
-                    this.indexData.addIndex(outputInterface.offset + index + 2);
+                    indexData.addIndex(outputInterface.offset + index);
+                    indexData.addIndex(outputInterface.offset + index + 1);
+                    indexData.addIndex(outputInterface.offset + index + 2);
 
-                    this.indexData.addIndex(outputInterface.offset + index + 2);
-                    this.indexData.addIndex(outputInterface.offset + index + 3);
-                    this.indexData.addIndex(outputInterface.offset + index);
+                    indexData.addIndex(outputInterface.offset + index + 2);
+                    indexData.addIndex(outputInterface.offset + index + 3);
+                    indexData.addIndex(outputInterface.offset + index);
                 }
-                this.renderPointNumber += lineNum * 6;
+                if (opacity >= 1) {
+                    this.renderPointNumber += lineNum * 6;
+                } else {
+                    this.opacityPointNumber += lineNum * 6;
+                }
             }
         }
+        this.vdo.switch(false);
     }
 
     collectVertexDataForFill(pathList, color, opacity, textureCoord, filterType, faceDirection) {
+        let indexData = null;
+        this.vdo.switch(opacity < 1);
         for (let i = 0; i < pathList.length; i++) {
             let path = pathList[i];
-            if (path.subPathNumber == 0) {
+            if (path.subPathNumber === 0) {
                 continue;
             }
             for (let j = 0; j < path.subPathNumber; j++) {
@@ -102,14 +114,14 @@ export default class RenderAction {
                 let vertexOrg;
                 let pointArray = subPath.pointsCoordinateArray;
                 let pointsNumber = subPath.pointsNumber;
-                if (pointsNumber == 3) {
+                if (pointsNumber === 3) {
                     vertexOrg = TRIANGLE_ORG;
 
                 } else {
-                    if (pointsNumber == 4 && subPath.isRegularRect) {
+                    if (pointsNumber === 4 && subPath.isRegularRect) {
                         vertexOrg = RECT_ORG;
                     } else {
-                        if (pointsNumber * 3 == pointArray.length) {
+                        if (pointsNumber * 3 === pointArray.length) {
                             vertexOrg = EarClipping.earcut(pointArray, null, 3);
                         } else {
                             let temp = pointArray.slice(0, pointsNumber * 3);
@@ -117,39 +129,39 @@ export default class RenderAction {
                         }
                     }
                 }
-                this.renderPointNumber += vertexOrg.length;
-                if(vertexOrg.length == 0) continue;
-                let offset = this.verticesData.currentIndex;
+                if (opacity >= 1) {
+                    this.renderPointNumber += vertexOrg.length;
+                } else {
+                    this.opacityPointNumber += vertexOrg.length;
+                }
+
+                if (vertexOrg.length === 0) continue;
+                // let offset = this.verticesData.currentIndex;
+                let offset = this.vdo.currentIndex;
+                indexData = this.vdo.currentIndexData;
                 let k;
                 for (k = 0; k < pointsNumber; k++) {
-                    if (this.verticesData != null) {
-                        this.verticesData.addVerticesData(subPath.getPointX(k), subPath.getPointY(k),
-                            subPath.getPointZ(k), faceDirection[0], faceDirection[1], faceDirection[2]);
+                    let UV = undefined;
+                    if (textureCoord[0] instanceof Array) {
+                        UV = textureCoord[k];
+                    } else {
+                        UV = textureCoord;
                     }
-                    if (this.fragmentData != null) {
-                        let t = undefined;
-                        if (textureCoord[0] instanceof Array) {
-                            t = textureCoord[k];
-                        } else {
-                            t = textureCoord;
-                        }
-                        this.fragmentData.addFragmentData(color[0], color[1], color[2], opacity, t[0], t[1], this.textureIndex, filterType);
-                    }
-                    if (this.transformData != null) {
-                        // 记录转换矩阵数据
-                        this.transformData.addMatrixIndex(0);
-                    }
+
+                    this.vdo.addVerticesData3(subPath.getPointX(k), subPath.getPointY(k),
+                        subPath.getPointZ(k), faceDirection, color, opacity, UV, this.textureIndex, filterType);
+
                     let vertexIndex = vertexOrg[k];
-                    this.indexData.addIndex(vertexIndex + offset);
+                    indexData.addIndex(vertexIndex + offset);
                 }
 
                 let temp = k;
                 for (let k = temp; k < vertexOrg.length; k++) {
                     let vertexIndex = vertexOrg[k];
-                    this.indexData.addIndex(vertexIndex + offset);
+                    indexData.addIndex(vertexIndex + offset);
                 }
             }
         }
-
+        this.vdo.switch(false);
     }
 }

@@ -61,7 +61,7 @@ export default class BMFontManager {
                         image.onload = function (evt) {
                             let img = evt.target;
                             that.fontImageMap[key][img.pageId] = img;
-                            textureManager.registerImageData(img, gl, true);
+                            textureManager.registerTexture(null, gl, image);
                             loadCount++;
                             if (loadCount == pageCount) {
                                 // 说明全部加载完毕

@@ -7,22 +7,23 @@ import RenderAction from "./RenderAction.js";
 import WebGLRender from "./WebGLRender.js";
 import Tools from "../utils/Tools.js";
 import Mat4 from "../math/Mat4.js";
-import VerticesData from "./VerticesData.js";
-import FragmentData from "./FragmentData.js";
-import TransformMatrixData from "./TransformMatrixData.js";
 import Vector3 from "../math/Vector3.js";
 import GeometryTools from "../geometry/GeometryTools.js";
 import Vector2 from "../math/Vector2.js";
 import BMFontManager from "../font/BMFontManager.js";
-import IndexData from "./IndexData.js";
 import LineToRectangle from "../geometry/LineToRectangle.js";
 import Texture from "./Texture.js";
+import Mat3 from "../math/Mat3.js";
+import VDO from "./VDO.js";
 
 let _canvas = Symbol('对应的Canvas');
 let _stateStack = Symbol('状态栈');
 let _pathList = Symbol('路径列表');
 let _renderActionList = Symbol('绘制动作List');
 let _subpathCatch = Symbol('子Path缓存');
+
+
+let TEMP_TRANFORM_MAT3 = Mat3.identity();
 
 const SPACE_CHAR_ID = " ".charCodeAt(0);
 const FACE_NORMAL4 = new Float32Array(4);
@@ -44,10 +45,7 @@ export default class CanvasRenderingContextWebgl2D {
         if (canvas == null || canvas == undefined) throw new Error('canvas can not be undefined or null');
         this.gl = canvas.getContext('webgl');
         if (this.gl == undefined) throw new Error('Current canvas doesnt support WebGL');
-        // this.defaultDepth = -canvas.height * 2;
-        let FOV = properties['FOV'] || 20;
-        let t = Math.tan(FOV * Math.PI / 180);
-        this.defaultDepth = -canvas.height / (2 * t);
+        let FOV = properties['FOV'] || 40;
         this.maxBufferByteLength = properties['maxMemorySize'] || 1024 * 1024;
         this[_stateStack] = [];
         this[_pathList] = [];
@@ -62,18 +60,12 @@ export default class CanvasRenderingContextWebgl2D {
             properties['enableDepthTest']
         );
         let maxVertexNumber = this.maxBufferByteLength / 32;
-        this.verticesData = new VerticesData(maxVertexNumber);
-        // DEBUG :
-        // console.log(maxVertexNumber,this.verticesData.totalByteLength);
-        // this.verticesDataSet = new VerticesDataSet(maxVertexNumber);
-        this.indexData = new IndexData(maxVertexNumber);
-        this.fragmentData = new FragmentData(maxVertexNumber);
-        this.transformMatrixData = new TransformMatrixData(maxVertexNumber);
-        this.webglRender.verticesData = this.verticesData;
-        this.webglRender.fragmentData = this.fragmentData;
-        this.webglRender.transformMatrixData = this.transformMatrixData;
-        this.webglRender.indexData = this.indexData;
+
+        this.vdo = new VDO(maxVertexNumber);
+        this.webglRender.vdo = this.vdo;
         this.currentFaceNormal = new Float32Array(4);
+        this.originalFaceNormal = new Float32Array(3);
+        this.originalFaceNormal[2] = 1;
         this.currentFaceNormal[2] = 1;
         this._tempPathArray = null;
         this._tempActionList = null;
@@ -81,19 +73,19 @@ export default class CanvasRenderingContextWebgl2D {
         this._painedGraphicsMap = {};
         this.fontManager = new BMFontManager();
 
-        this.tempVDOArrays = {
-            verticesData: null,
-            fragmentData: null,
-            indexData: null,
-            transformMatrixData: null
-        };
+        this._tempVDO = null;
+        // this.tempVDOArrays = {
+        //     verticesData: null,
+        //     fragmentData: null,
+        //     indexData: null,
+        //     transformMatrixData: null
+        // };
 
-        this.currentVDOArrays = {
-            verticesData: this.verticesData,
-            fragmentData: this.fragmentData,
-            indexData: this.indexData,
-            transformMatrixData: this.transformMatrixData
-        };
+
+    }
+
+    get defaultDepth() {
+        return this.webglRender.defaultDepth;
     }
 
     get currentContextState() {
@@ -109,6 +101,10 @@ export default class CanvasRenderingContextWebgl2D {
             this[_pathList].push(new Path3D());
         }
         return this[_pathList][this[_pathList].length - 1];
+    }
+
+    get renderActionList() {
+        return this[_renderActionList];
     }
 
     /**************** 下面是标准接口实现 *************************/
@@ -130,25 +126,18 @@ export default class CanvasRenderingContextWebgl2D {
         return this.currentContextState.strokeStyle;
     }
 
+    get cameraPosition() {
+        return this.webglRender.cameraPosition;
+    }
+
+    get lookAtTarget() {
+        return this.webglRender.lookTarget;
+    }
+
     get currentFaceVector() {
         let m = this.currentContextState.transformMatrix;
-        let temp1 = Vector3.TEMP_VECTORS[0];
-        let temp2 = Vector3.TEMP_VECTORS[1];
-        temp1.x = FACE_NORMAL4[0];
-        temp1.y = FACE_NORMAL4[1];
-        temp1.z = FACE_NORMAL4[2];
-        temp1.value[3] = 1;
-        temp2.x = ORI_NORMAL4[0];
-        temp2.y = ORI_NORMAL4[1];
-        temp2.z = ORI_NORMAL4[2];
-        temp2.value[3] = 1;
-        if (!Mat4.isIdentity(m)) {
-            Mat4.multiplyWithVertex(m, FACE_NORMAL4, temp1.value);
-            Mat4.multiplyWithVertex(m, ORI_NORMAL4, temp2.value);
-        }
-        this.currentFaceNormal[0] = temp1.x - temp2.x;
-        this.currentFaceNormal[1] = temp1.y - temp2.y;
-        this.currentFaceNormal[2] = temp1.z - temp2.z;
+        Mat4.mat4ToMat3(m, TEMP_TRANFORM_MAT3);
+        Mat3.multiplyWithVertex(this.currentFaceNormal, TEMP_TRANFORM_MAT3, this.originalFaceNormal);
         return this.currentFaceNormal;
     }
 
@@ -465,7 +454,6 @@ export default class CanvasRenderingContextWebgl2D {
         let temp = TEMP_VERTEX_COORD4DIM_ARRAY[0];
         let segment = delta;
         for (; segment <= 1; segment += delta) {
-            // console.log(delta, segment);
             GeometryTools.quadraticBezier(segment, cp0x, cp0y, cpx, cpy, x, y, temp);
             this.addPointInLastSubPath(temp[0], temp[1], cpz, false);
             let p1 = 2 * (1 - segment);
@@ -481,7 +469,7 @@ export default class CanvasRenderingContextWebgl2D {
 
     // 没有实现这个椭圆的：arcTo(x1: number, y1: number, x2: number, y2: number, radiusX: number, radiusY: number, rotation: number): void;
     /**
-     * TODO 这个方法有个bug，path中的最后一个点所应用的转换矩阵不一定就是当前矩阵
+     * FIXME 这个方法有个bug，path中的最后一个点所应用的转换矩阵不一定就是当前矩阵
      * @param x1
      * @param y1
      * @param x2
@@ -580,22 +568,11 @@ export default class CanvasRenderingContextWebgl2D {
         this.arc(rx, ry, radius, startTheta, endTheta, flag);
     }
 
-    ellipse(x, y, radiusX, radiusY, rotation, startAngle, endAngle, anticlockwise) {
-        if (radiusX < 0 || radiusY < 0) throw new Error('IndexError.半径必须不小于0. Radius should not be smaller than zero. BanJing BiXu BuXiaoYu Ling');
-        if (radiusX == 0 || radiusY == 0) return;
-        if (anticlockwise == undefined) anticlockwise = false;
-
-        let subpath = this.currentPath.lastSubPath;
-        if (subpath == undefined) {
-            subpath = new SubPath3D();
-            this.currentPath.addSubPath(subpath);
-        }
-
-        let currentMatrix = Mat4.TEMP_MAT4[0];
-        Mat4.translationMatrix(currentMatrix, x, y, 0);
-        let tm = this.currentContextState.transformMatrix;
+    getEllipseCalculateTempMatrix(x, y, z, radiusX, radiusY, rotation, tm) {
+        let currentMatrix = Mat4.identity();
+        Mat4.translationMatrix(currentMatrix, x, y, z);
         Mat4.multiply(currentMatrix, tm, currentMatrix);
-        let transformMatrix = Mat4.TEMP_MAT4[1];
+        let transformMatrix = Mat4.TEMP_MAT4[0];
         Mat4.rotationZMatrix(transformMatrix, rotation);
         Mat4.multiply(currentMatrix, currentMatrix, transformMatrix);
         /*
@@ -609,36 +586,29 @@ export default class CanvasRenderingContextWebgl2D {
         transformMatrix[0] = radiusX;
         transformMatrix[5] = radiusY;
         Mat4.multiply(currentMatrix, currentMatrix, transformMatrix);
+        return currentMatrix;
+    }
 
-        /*
-          这是一个笨方法(stupid method)，用一个长度为1的线，对它进行变换，然后计算线程长度的缩放情况来确定当前的缩放倍数
-         */
-        let testPoint1 = TEMP_VERTEX_COORD4DIM_ARRAY[0];
-        testPoint1[0] = 0;
-        testPoint1[1] = 0;
-        testPoint1[2] = 0;
-        testPoint1[3] = 1;
-        Mat4.multiplyWithVertex(tm, testPoint1, testPoint1);
-        let testX0 = testPoint1[0];
-        let testY0 = testPoint1[1];
+    ellipse(x, y, radiusX, radiusY, rotation, startAngle, endAngle, anticlockwise) {
+        if (radiusX < 0 || radiusY < 0) throw new Error('IndexError.半径必须不小于0. Radius should not be smaller than zero. BanJing BiXu BuXiaoYu Ling');
+        if (radiusX == 0 || radiusY == 0) return;
+        if (anticlockwise == null) anticlockwise = false;
 
-        testPoint1[0] = 1;
-        testPoint1[1] = 0;
-        testPoint1[2] = 0;
-        testPoint1[3] = 1;
-        Mat4.multiplyWithVertex(tm, testPoint1, testPoint1);
-        let testX1 = testPoint1[0];
-        let testY1 = testPoint1[1];
-        let scale = (testX1 - testX0) * (testX1 - testX0) + (testY1 - testY0) * (testY1 - testY0);
-        scale = Math.sqrt(scale);
+        let subpath = this.currentPath.lastSubPath;
+        if (subpath == null) {
+            subpath = new SubPath3D();
+            this.currentPath.addSubPath(subpath);
+        }
+        let tm = this.currentContextState.transformMatrix;
+        let currentMatrix = this.getEllipseCalculateTempMatrix(x, y, 0, radiusX, radiusY, rotation, tm);//Mat4.TEMP_MAT4[0];
 
-        let realRadius1 = Math.max(radiusX * scale, radiusY * scale); // 这个值要根据当前缩放算一下
+        let realRadius1 = Math.max(radiusX * this.currentContextState.scaleValue.x, radiusY * this.currentContextState.scaleValue.y); // 这个值要根据当前缩放算一下
         let deltaTheta = (Math.asin(1 / realRadius1) * 2);
 
         let thetaVector = new Vector3();
 
-        startAngle = adjustAngle(startAngle);
-        endAngle = adjustAngle(endAngle);
+        startAngle = this.adjustEllipseAngle(startAngle, anticlockwise);
+        endAngle = this.adjustEllipseAngle(endAngle, anticlockwise);
 
         if ((startAngle > endAngle && !anticlockwise) || (startAngle < endAngle && anticlockwise)) {
             if (startAngle < 0 || endAngle < 0) {
@@ -693,22 +663,19 @@ export default class CanvasRenderingContextWebgl2D {
         thetaVector.z = 0;
         Mat4.multiplyWithVertex(currentMatrix, thetaVector.value, thetaVector.value);
         this.addPointInLastSubPath(thetaVector.x, thetaVector.y, thetaVector.z, false)
-        // let nextPoint = TEMP_VERTEX_COORD4DIM_ARRAY[0];
-        // GeometryTools.getEllipsePointWithRadian(x, y, radiusX, radiusY, endAngle, rotation, nextPoint);
-        // this.lineTo(nextPoint[0], nextPoint[1]);
+    }
 
-        function adjustAngle(angle) {
-            let PI2 = 2 * Math.PI;
-            let beishu = Math.floor(Math.abs(angle / PI2)) + 1;
-            // if (Math.abs(angle) > PI2) beishu++;
-            if (angle < 0 && !anticlockwise) {
-                angle += beishu * PI2;
-            }
-            if (angle > 0 && anticlockwise) {
-                angle -= beishu * PI2;
-            }
-            return angle;
+    adjustEllipseAngle(angle, anticlockwise) {
+        let PI2 = Tools.PI2;//2 * Math.PI;
+        let beishu = Math.floor(Math.abs(angle / PI2)) + 1;
+        // if (Math.abs(angle) > PI2) beishu++;
+        if (angle < 0 && !anticlockwise) {
+            angle += beishu * PI2;
         }
+        if (angle > 0 && anticlockwise) {
+            angle -= beishu * PI2;
+        }
+        return angle;
     }
 
     arc(x, y, radius, startAngle, endAngle, anticlockwise) {
@@ -904,10 +871,11 @@ export default class CanvasRenderingContextWebgl2D {
         texCoordArray[2] = ([tr, tb]);// 右下角
         texCoordArray[3] = ([tx, tb]);// 左下角
         color = color || WHITE_COLOR; //白色，在glsl里会成为一个1,1,1的向量，这样就不会改变贴图数据了
-        let vdo = this.getVDOArrays();
-        action.verticesData = vdo.verticesData;
-        action.fragmentData = vdo.fragmentData;
-        action.indexData = vdo.indexData;
+        action.vdo = this.vdo;
+        // let vdo = this.getVDOArrays();
+        // action.verticesData = vdo.verticesData;
+        // action.fragmentData = vdo.fragmentData;
+        // action.indexData = vdo.indexData;
         action.collectVertexDataForFill(pathList, color, opacity, texCoordArray, this.currentContextState.filterType
             , this.currentFaceVector);
     }
@@ -918,10 +886,11 @@ export default class CanvasRenderingContextWebgl2D {
         let opacity = this.currentContextState.globalAlpha;
         let pathList = this[_pathList];
         let action = new RenderAction(RenderAction.ACTION_FILL);
-        let vdo = this.getVDOArrays();
-        action.verticesData = vdo.verticesData;
-        action.fragmentData = vdo.fragmentData;
-        action.indexData = vdo.indexData;
+        action.vdo = this.vdo;
+        // let vdo = this.getVDOArrays();
+        // action.verticesData = vdo.verticesData;
+        // action.fragmentData = vdo.fragmentData;
+        // action.indexData = vdo.indexData;
         this[_renderActionList].push(action);
         action.collectVertexDataForFill(pathList, fillColor, opacity * fillColor[3], [0, 0],
             this.currentContextState.filterType, this.currentFaceVector);
@@ -974,7 +943,7 @@ export default class CanvasRenderingContextWebgl2D {
         let totalWidth = this.measureText(text, bmfont);
         let sw = 1;
         let realWidth = totalWidth.width;
-        if ((maxWidth != undefined) && (maxWidth < totalWidth.width)) {
+        if ((maxWidth != null) && (maxWidth < totalWidth.width)) {
             if (maxWidth == 0) return;
             sw = maxWidth / totalWidth.width;
             realWidth = maxWidth;
@@ -1039,10 +1008,11 @@ export default class CanvasRenderingContextWebgl2D {
         let lineWidth = this.currentContextState.lineWidth;
         let filterType = this.currentContextState.filterType;
         let action = new RenderAction(RenderAction.ACTION_FILL);
-        let vdo = this.getVDOArrays();
-        action.verticesData = vdo.verticesData;
-        action.fragmentData = vdo.fragmentData;
-        action.indexData = vdo.indexData;
+        action.vdo = this.vdo;
+        // let vdo = this.getVDOArrays();
+        // action.verticesData = vdo.verticesData;
+        // action.fragmentData = vdo.fragmentData;
+        // action.indexData = vdo.indexData;
         this[_renderActionList].push(action);
         action.collectVertexDataForStroke(pathList, strokeColor, opacity * strokeColor[3], [0, 0],
             lineWidth, filterType, this.currentFaceVector);
@@ -1140,54 +1110,97 @@ export default class CanvasRenderingContextWebgl2D {
      * @param x
      * @param y
      */
-    drawGraphics(graphics, x, y) {
+    drawGraphics(graphics, applyCurrentTransform) {
         if (this._tempGraphics != null) return;
+        if (applyCurrentTransform == null) applyCurrentTransform = false;
+        if (applyCurrentTransform)
+            this.applyTransformForVDO(this.currentContextState.matrix, graphics.vdo, graphics.vdo);
         for (let i = 0; i < graphics.actionList.length; i++) {
             let action = graphics.actionList[i];
             let newAction = new RenderAction(action.type);
             newAction.textureIndex = action.textureIndex;
             newAction.renderPointNumber = action.renderPointNumber;
-            if (x != undefined && y != undefined) {
-                if (x != 0 || y != 0) {
-                    let m = Mat4.translation(x, y, 0);
-                    Mat4.multiply(m, this.currentContextState.transformMatrix, m);
-                    newAction = m;
-                }
-            } else {
-                newAction.applyMatrix = this.currentContextState.transformMatrix;
-            }
-
+            newAction.opacityPointNumber = action.opacityPointNumber;
             this[_renderActionList].push(newAction);
         }
-        let vdo = this.getVDOArrays();
+        let vdo = this.vdo;
         let offset = vdo.verticesData.currentIndex;
-        let painedIndexData = this._painedGraphicsMap[graphics];
-        if (painedIndexData == undefined) {
-            vdo.verticesData.append(graphics.verticesData);
-            vdo.fragmentData.append(graphics.fragmentData);
-            painedIndexData = {start: vdo.indexData.currentIndex, length: graphics.indexData.currentIndex};
-            for (let i = 0; i < graphics.indexData.currentIndex; i++) {
-                vdo.indexData.addIndex(graphics.indexData.getIndex(i) + offset);
-            }
-            this._painedGraphicsMap[graphics] = painedIndexData;
-        } else {
-            for (let i = 0; i < painedIndexData.length; i++) {
-                let indexValue = vdo.indexData.getIndex(i + painedIndexData.start);
-                vdo.indexData.addIndex(indexValue);
-            }
+        vdo.verticesData.append(graphics.vdo.verticesData);
+        vdo.fragmentData.append(graphics.vdo.fragmentData);
+        let indexData = graphics.vdo.indexData;
+        for (let i = 0; i < indexData.currentIndex; i++) {
+            vdo.indexData.addIndex(indexData.getIndex(i) + offset);
+        }
+        offset = vdo.opacityVerticesData.currentIndex;
+        vdo.opacityVerticesData.append(graphics.vdo.opacityVerticesData);
+        vdo.opacityFragmentData.append(graphics.vdo.opacityFragmentData);
+        let opIndexData = graphics.vdo.opacityIndexData;
+        for (let i = 0; i < opIndexData.currentIndex; i++) {
+            vdo.opacityIndexData.addIndex(opIndexData.getIndex(i) + offset);
         }
     }
 
-    getVDOArrays() {
-        return this.currentVDOArrays;
+    copyGraphicsVDO(graphics, out) {
+        let vdo = graphics.vdo;
+        if (out == null) {
+            out = new VDO(vdo.verticesData.currentIndex, vdo.indexData.currentIndex);
+        }
+        out.verticesData.copyFrom(vdo.verticesData);
+        out.fragmentData.copyFrom(vdo.fragmentData);
+        out.indexData.copyFrom(vdo.indexData);
+
+        out.opacityVerticesData.copyFrom(vdo.opacityVerticesData);
+        out.opacityFragmentData.copyFrom(vdo.opacityFragmentData);
+        out.opacityIndexData.copyFrom(vdo.opacityIndexData);
+        return out;
     }
 
-    setVDOArrays(verticesData, fragmentData, transformData, indexData) {
-        this.currentVDOArrays.verticesData = verticesData;
-        this.currentVDOArrays.fragmentData = fragmentData;
-        this.currentVDOArrays.transformMatrixData = transformData;
-        this.currentVDOArrays.indexData = indexData;
+    applyCurrentTransformForVDO(vdo, out) {
+        this.applyTransformForVDO(this.currentContextState.matrix, vdo, out);
     }
+
+    applyTransformForVDO(matrix, vdo, out) {
+        if (out == null) out = vdo;
+        Mat4.mat4ToMat3(matrix, TEMP_TRANFORM_MAT3);
+        let _normalTransformMatrix = TEMP_TRANFORM_MAT3;
+        //这里的数据需要从最开始记录的原始数据中进行计算：
+        let verticesData = vdo.verticesData;
+        let opacityVerticesData = vdo.opacityVerticesData;
+        let targetVerticesData = out.verticesData;
+        let targetOpaVerticesData = out.opacityVerticesData;
+        let _tempVertices = TEMP_VERTEX_COORD4DIM_ARRAY[0];
+        for (let i = 0; i < verticesData.currentIndex; i++) {
+            _tempVertices[0] = verticesData.getVerticesPositionXData(i);
+            _tempVertices[1] = verticesData.getVerticesPositionYData(i);
+            _tempVertices[2] = verticesData.getVerticesPositionZData(i);
+            Mat4.multiplyWithVertex(matrix, _tempVertices, _tempVertices);
+            let x = _tempVertices[0];
+            let y = _tempVertices[1];
+            let z = _tempVertices[2];
+
+            _tempVertices[0] = verticesData.getVerticesNormalXData(i);
+            _tempVertices[1] = verticesData.getVerticesNormalYData(i);
+            _tempVertices[2] = verticesData.getVerticesNormalZData(i);
+            Mat3.multiplyWithVertex(_tempVertices, _normalTransformMatrix, _tempVertices);
+            targetVerticesData.setVerticesData(x, y, z, _tempVertices[0], _tempVertices[1], _tempVertices[2], i);
+        }
+        for (let i = 0; i < opacityVerticesData.currentIndex; i++) {
+            _tempVertices[0] = opacityVerticesData.getVerticesPositionXData(i);
+            _tempVertices[1] = opacityVerticesData.getVerticesPositionYData(i);
+            _tempVertices[2] = opacityVerticesData.getVerticesPositionZData(i);
+            Mat4.multiplyWithVertex(matrix, _tempVertices, _tempVertices);
+            let x = _tempVertices[0];
+            let y = _tempVertices[1];
+            let z = _tempVertices[2];
+
+            _tempVertices[0] = opacityVerticesData.getVerticesNormalXData(i);
+            _tempVertices[1] = opacityVerticesData.getVerticesNormalYData(i);
+            _tempVertices[2] = opacityVerticesData.getVerticesNormalZData(i);
+            Mat3.multiplyWithVertex(_tempVertices, _normalTransformMatrix, _tempVertices);
+            targetOpaVerticesData.setVerticesData(x, y, z, _tempVertices[0], _tempVertices[1], _tempVertices[2], i);
+        }
+    }
+
 
     /**
      * 定义一个graphics
@@ -1203,48 +1216,34 @@ export default class CanvasRenderingContextWebgl2D {
 
         let state = new ContextState(new CanvasDrawingStylesWebgl2D());
         this[_stateStack].push(state);
-        if (graphics != undefined) {
-            graphics.verticesData.init();
-            graphics.fragmentData.init();
-            graphics.indexData.init();
+        if (graphics != null) {
+            graphics.vdo.init();
             graphics.actionList.length = 0;
         } else {
             graphics = {
-                verticesData: new VerticesData(vertexNum),
-                fragmentData: new FragmentData(vertexNum),
-                indexData: new IndexData(vertexNum),
+                vdo: new VDO(vertexNum),
                 transformMatrixData: null,
                 actionList: []
             };
         }
-
-        this.tempVDOArrays.verticesData = graphics.verticesData;
-        this.tempVDOArrays.fragmentData = graphics.fragmentData;
-        this.tempVDOArrays.indexData = graphics.indexData;
+        this._tempVDO = this.vdo;
+        this.vdo = graphics.vdo;
 
         this._tempGraphics = graphics;
 
         this._tempActionList = this[_renderActionList];
         this[_renderActionList] = graphics.actionList;
-        this.setVDOArrays(this.tempVDOArrays.verticesData, this.tempVDOArrays.fragmentData,
-            null, this.tempVDOArrays.indexData);
     }
 
     endGraphics() {
         this[_stateStack].pop();
         this[_pathList] = this._tempPathArray;
         this[_renderActionList] = this._tempActionList;
-        this.currentVDOArrays.verticesData = this.verticesData;
-        this.currentVDOArrays.fragmentData = this.fragmentData;
-        this.currentVDOArrays.transformMatrixData = this.transformMatrixData;
-        this.currentVDOArrays.indexData = this.indexData;
+        this.vdo = this._tempVDO;
 
         this._tempPathArray = null;
         this._tempActionList = null;
-        this.tempVDOArrays.verticesData = null;
-        this.tempVDOArrays.fragmentData = null;
-        this.tempVDOArrays.indexData = null;
-        this.tempVDOArrays.transformMatrixData = null;
+        this._tempVDO = null;
 
         let tf = this._tempGraphics;
         this._tempGraphics = null;
@@ -1305,19 +1304,21 @@ export default class CanvasRenderingContextWebgl2D {
                 return points.length;
             }
         };
-        this._rawFillLine(inputInterface, stripeWidth, color, opacity, undefined, image);
+        this._rawFillLine(inputInterface, stripeWidth, color, opacity, null, image);
     }
 
     _rawFillLine(inputInterface, lineWidth, color, opacity, filterType, image) {
         let pointsNum = inputInterface.getPointsNum();
         if (pointsNum < 2) return;
-        let vod = this.getVDOArrays();
+        if (opacity == null) opacity = 1;
+        opacity = opacity * this.currentContextState.globalAlpha;
+        let vod = this.vdo;
+        vod.switch(opacity < 1);
         let faceDirection = this.currentFaceVector;
-        opacity = opacity || this.currentContextState.globalAlpha;
         filterType = filterType || this.currentContextState.filterType;
         color = color || this.currentContextState.fillStyle;
         let colorValue = Color.getInstance().convertStringToColor(color);
-        let offset = vod.verticesData.currentIndex;
+        let offset = vod.currentIndex;
         let texture = null;
         if (image) {
             texture = this.webglRender.textureManager.getTexture(image, this.gl, true);
@@ -1331,11 +1332,11 @@ export default class CanvasRenderingContextWebgl2D {
 
         let outputInterface = {
             setPoint: function (p, index) {
-                vod.verticesData.setVerticesCoor(p.x, p.y, p.z, index + offset);
+                vod.currentVerticesData.setVerticesCoor(p.x, p.y, p.z, index + offset);
             },
             addPoint: function (p, lineIndex, pointIndexInTheLine) {
-                if (vod.verticesData != null) {
-                    vod.verticesData.addVerticesData(p.x, p.y, p.z, faceDirection[0], faceDirection[1], faceDirection[2]);
+                if (vod.currentVerticesData != null) {
+                    vod.currentVerticesData.addVerticesData(p.x, p.y, p.z, faceDirection[0], faceDirection[1], faceDirection[2]);
                 }
                 if (vod.fragmentData != null) {
                     let uv = [0, 0];
@@ -1369,7 +1370,7 @@ export default class CanvasRenderingContextWebgl2D {
                             uv[1] = plusTextureHeight;
                         }
                     }
-                    vod.fragmentData.addFragmentData(colorValue[0], colorValue[1], colorValue[2], opacity, uv[0], uv[1], -1, filterType);
+                    vod.currentFragmentData.addFragmentData(colorValue[0], colorValue[1], colorValue[2], opacity, uv[0], uv[1], -1, filterType);
                 }
             }
         };
@@ -1377,19 +1378,21 @@ export default class CanvasRenderingContextWebgl2D {
         let lineNum = LineToRectangle.generateRectanglesPoints(lineWidth, false, faceDirection, outputInterface, inputInterface);
         for (let k = 0; k < lineNum; k++) {
             let index = k * 4;
-            vod.indexData.addIndex(offset + index);
-            vod.indexData.addIndex(offset + index + 1);
-            vod.indexData.addIndex(offset + index + 2);
+            vod.currentIndexData.addIndex(offset + index);
+            vod.currentIndexData.addIndex(offset + index + 1);
+            vod.currentIndexData.addIndex(offset + index + 2);
 
-            vod.indexData.addIndex(offset + index + 2);
-            vod.indexData.addIndex(offset + index + 3);
-            vod.indexData.addIndex(offset + index);
+            vod.currentIndexData.addIndex(offset + index + 2);
+            vod.currentIndexData.addIndex(offset + index + 3);
+            vod.currentIndexData.addIndex(offset + index);
         }
         let action = new RenderAction(RenderAction.ACTION_FILL);
         action.textureIndex = -1;
         if (texture != null) action.textureIndex = texture.index;
         action.renderPointNumber = lineNum * 6;
         this[_renderActionList].push(action);
+
+        vod.switch(false);
     }
 
     drawRectangle(x, y, w, h, fillColor, strokeColor) {
@@ -1415,21 +1418,22 @@ export default class CanvasRenderingContextWebgl2D {
         this.drawEllipse(x, y, r, r, fillColor, strokeColor, 0);
     }
 
+    update() {
+        this.draw();
+    }
+
     draw() {
         if (this._tempGraphics != null) return;
         this.webglRender.initRending();
         this.webglRender.executeRenderAction(this[_renderActionList]);
         this[_renderActionList] = [];
-        this.verticesData.init();
-        this.fragmentData.init();
-        this.transformMatrixData.init();
-        this.indexData.init();
+        this.vdo.init();
         this._painedGraphicsMap = {};
         // debug:
         // console.log("绘制调用次数：", this.webglRender.DEBUG_DRAW_COUNT);
     }
 
-    loadImage(id, src, callbacks, split) {
+    loadImage(src, callbacks, split, id) {
         this.webglRender.textureManager.registerTexture(id, this.gl, null, src, callbacks, split);
     }
 
@@ -1443,5 +1447,520 @@ export default class CanvasRenderingContextWebgl2D {
      */
     clearImageCatches() {
         this.webglRender.textureManager.cleanImageData();
+    }
+
+    /**********************************************3d部分绘制*****************************************/
+
+    drawCube(x, y, z, width, height, depth, properties) {
+
+        let defaultColor = this.fillStyle;
+        let frontColor = defaultColor;
+        let backColor = defaultColor;
+        let rightColor = defaultColor;
+        let leftColor = defaultColor;
+        let bottomColor = defaultColor;
+        let topColor = defaultColor;
+        let defaultOpacity = this.globalAlpha;
+        let topOpa = defaultOpacity;
+        let bottomOpa = defaultOpacity;
+        let leftOpa = defaultOpacity;
+        let rightOpa = defaultOpacity;
+        let frontOpa = defaultOpacity;
+        let backOpa = defaultOpacity;
+        if (properties !== undefined) {
+            frontColor = properties.frontColor || defaultColor;
+            backColor = properties.backColor || defaultColor;
+            rightColor = properties.rightColor || defaultColor;
+            leftColor = properties.leftColor || defaultColor;
+            bottomColor = properties.bottomColor || defaultColor;
+            topColor = properties.topColor || defaultColor;
+            if (properties.topOpacity != null)
+                topOpa *= properties.topOpacity;
+            if (properties.bottomOpacity != null)
+                bottomOpa *= properties.bottomOpacity;
+            if (properties.rightOpacity != null)
+                rightOpa *= properties.rightOpacity;
+            if (properties.leftOpacity != null)
+                leftOpa *= properties.leftOpacity;
+            if (properties.frontOpacity != null)
+                frontOpa *= properties.frontOpacity;
+            if (properties.backOpacity != null)
+                backOpa *= properties.backOpacity;
+        }
+        //正面：
+        this.save();
+        this.globalAlpha = frontOpa;
+        this.fillStyle = frontColor;
+        this.translate(x, y, z);
+        this.fillRect(-width / 2, -height / 2, width, height, depth / 2);
+        this.restore();
+
+        //背面
+        this.save();
+        this.fillStyle = backColor;
+        this.globalAlpha = backOpa;
+        this.translate(x, y, z);
+        //这里是为了面的朝向发生改变，其实不考虑法向量的话直接画都行
+        this.rotateY(Math.PI);
+        this.fillRect(-width / 2, -height / 2, width, height, depth / 2);
+        this.restore();
+
+        //左侧：
+        this.save();
+        this.fillStyle = leftColor;
+        this.globalAlpha = leftOpa;
+        this.translate(x, y, z);
+        this.rotateY(-Math.PI / 2);
+        this.fillRect(-depth / 2, -height / 2, depth, height, width / 2);
+        this.restore();
+
+        //右侧：
+        this.save();
+        this.fillStyle = rightColor;
+        this.globalAlpha = rightOpa;
+        this.translate(x, y, z);
+        this.rotateY(Math.PI / 2);
+        this.fillRect(-depth / 2, -height / 2, depth, height, width / 2);
+        this.restore();
+
+        //底部：
+        this.save();
+        this.fillStyle = bottomColor;
+        this.globalAlpha = bottomOpa;
+        this.translate(x, y, z);
+        this.rotateX(-Math.PI / 2);
+        this.fillRect(-width / 2, -depth / 2, width, depth, height / 2);
+        this.restore();
+
+        //顶部：
+        this.save();
+        this.fillStyle = topColor;
+        this.globalAlpha = topOpa;
+        this.translate(x, y, z);
+        this.rotateX(Math.PI / 2);
+        this.fillRect(-width / 2, -depth / 2, width, depth, height / 2);
+        this.restore();
+    }
+
+    drawCylinder(x, y, z, height, radiusX, radiusY, startAngle, endAngle, properties) {
+        if (startAngle === endAngle) return;
+        if (radiusX < 0 || radiusY < 0) throw new Error('IndexError.半径必须不小于0. Radius should not be smaller than zero. BanJing BiXu BuXiaoYu Ling');
+        let anticlockwise = false;
+        if (radiusX == 0 || radiusY == 0) return;
+        let bottomColor = Color.getInstance().convertStringToColor(this.currentContextState.fillStyle);
+        let topColor = Color.getInstance().convertStringToColor(this.currentContextState.fillStyle);
+        let surfaceColor = Color.getInstance().convertStringToColor(this.currentContextState.fillStyle);
+
+        let opacity = this.globalAlpha;
+        let topOpa = opacity;
+        let bottomOpa = opacity;
+        let surfaceOpa = opacity;
+        if (properties !== undefined) {
+            if (properties.bottomColor !== undefined) {
+                bottomColor = Color.getInstance().convertStringToColor(properties.bottomColor);
+            }
+            if (properties.topColor !== undefined) {
+                topColor = Color.getInstance().convertStringToColor(properties.topColor);
+            }
+            if (properties.surfaceColor !== undefined) {
+                surfaceColor = Color.getInstance().convertStringToColor(properties.surfaceColor);
+            }
+
+            if (properties.topOpacity != undefined)
+                topOpa *= properties.topOpacity;
+            if (properties.bottomOpacity != undefined)
+                bottomOpa *= properties.bottomOpacity;
+            if (properties.surfaceOpacity != undefined)
+                surfaceOpa *= properties.surfaceOpacity;
+        }
+
+        let UV = [0, 0];
+        let action = new RenderAction(RenderAction.ACTION_FILL);
+        this.renderActionList.push(action);
+        //清空当前的路径坐标
+        this.beginPath();
+
+        // let vd = this.getVDOArrays().verticesData;
+        // let fd = this.getVDOArrays().fragmentData;
+        // let id = this.getVDOArrays().indexData;
+        let vdo = this.vdo;
+
+        let tempMat = Mat4.identity();
+        let tempMat1 = Mat4.TEMP_MAT4[0];
+        let currentMatrix = this.currentContextState.transformMatrix;
+
+        // 面朝下:
+        Mat4.translationMatrix(tempMat1, x, y + height / 2, z);
+        Mat4.multiply(tempMat, currentMatrix, tempMat1);
+        Mat4.rotationXMatrix(tempMat1, -Math.PI / 2);
+        Mat4.multiply(tempMat, tempMat, tempMat1);
+        let bottomEllipseMat = this.getEllipseCalculateTempMatrix(0, 0, 0, radiusX, radiusY, 0, tempMat);
+
+        //计算法向量：
+        let tempPoint = {x: 0, y: 0, z: 0};
+        let tempPoint2 = {x: 0, y: 0, z: 1};
+        Mat4.multiplyWithVet3(tempMat, tempPoint, tempPoint);
+        Mat4.multiplyWithVet3(tempMat, tempPoint2, tempPoint2);
+
+        let bottomNormal = {x: 0, y: 0, z: 0};
+        Vector3.sub(bottomNormal, tempPoint2, tempPoint);
+        Vector3.normalize(bottomNormal, bottomNormal);
+        let topNormal = {x: -bottomNormal.x, y: -bottomNormal.y, z: -bottomNormal.z};
+
+
+        //添加圆心坐标点
+        let center1 = {x: 0, y: 0, z: 0};
+        Vector3.copy(tempPoint, center1);
+        let center2 = {x: 0, y: 0, z: 0};
+        vdo.switch(bottomOpa < 1);
+        let bottomCenterIndex = vdo.currentIndex;
+        vdo.addVerticesData2(center1, bottomNormal, bottomColor, bottomOpa, UV, -1, 0);
+        vdo.switch(false);
+
+        let scaleVet = {x: 0, y: 0, z: 0};
+        Vector3.multiplyValue(scaleVet, topNormal, height);
+
+        Vector3.plus(center2, center1, scaleVet);
+        vdo.switch(topOpa < 1);
+        let topCenterIndex = vdo.currentIndex;
+        vdo.addVerticesData2(center2, topNormal, topColor, topOpa, UV, -1, 0);
+        vdo.switch(false);
+
+        let realRadius1 = Math.max(radiusX * this.currentContextState.scaleValue.x,
+            radiusY * this.currentContextState.scaleValue.y); // 这个值要根据当前缩放算一下
+        let deltaTheta = (Math.asin(1 / realRadius1) * 2);
+        // deltaTheta = Math.PI/2;
+
+        startAngle = this.adjustEllipseAngle(startAngle, anticlockwise);
+        endAngle = this.adjustEllipseAngle(endAngle, anticlockwise);
+
+        if ((startAngle > endAngle && !anticlockwise) || (startAngle < endAngle && anticlockwise)) {
+            if (startAngle < 0 || endAngle < 0) {
+                endAngle -= 2 * Math.PI;
+                if (endAngle == startAngle || Math.abs(endAngle - startAngle) <= Tools.EPSILON) endAngle -= 2 * Math.PI;
+            }
+            if (startAngle > 0 || endAngle > 0) {
+                endAngle += 2 * Math.PI;
+                if (endAngle == startAngle || Math.abs(endAngle - startAngle) <= Tools.EPSILON) endAngle += 2 * Math.PI;
+            }
+        }
+        let tempVet = {x: 0, y: 0, z: 0};
+        let tempVet2 = {x: 0, y: 0, z: 0};
+        let preBottomPoint = undefined;
+        let preTopPoint = undefined;
+
+        let currentBottomIndex = vdo.originalCurrentIndex;
+        if (bottomOpa < 1) currentBottomIndex = vdo.opacityCurrentIndex;
+        let currentTopIndex = vdo.originalCurrentIndex;
+        if (topOpa < 1) currentTopIndex = vdo.opacityCurrentIndex;
+        let preBottomIndex = -1;
+        let preTopIndex = -1;
+
+        let firstBottomIndex = -1;
+        let firstTopIndex = -1;
+        let tempNormal = {x: 0, y: 0, z: 0};
+        let currentSurfaceIndex = -1;
+        let firstSurfacePoint1;
+        let firstSurfacePoint2;
+        let lastSurfacePoint1 = {x: 0, y: 0, z: 0};
+        let lastSurfacePoint2 = {x: 0, y: 0, z: 0};
+        let tempSurfaceNormal = {x: 0, y: 0, z: 0};
+        let isFullEllipse = Math.abs(endAngle - startAngle) >= Tools.PI2;
+        let theta = 0;
+        let bottomCirclePoints = [];
+        let topCirclePoints = [];
+        for (theta = startAngle; theta < endAngle; theta += deltaTheta) {
+            if (Math.abs(theta - startAngle) >= Tools.PI2) {
+                return;
+            }
+
+            let s = Math.sin(theta);
+            let c = Math.cos(theta);
+            tempVet.x = c;
+            tempVet.y = s;
+            tempVet.z = 0;
+            Mat4.multiplyWithVet3(bottomEllipseMat, tempVet, tempVet);
+
+            bottomCirclePoints.push({x: tempVet.x, y: tempVet.y, z: tempVet.z});
+            Vector3.plus(tempVet2, tempVet, scaleVet);
+            topCirclePoints.push({x: tempVet2.x, y: tempVet2.y, z: tempVet2.z});
+        }
+
+        //组织bottom面：
+        vdo.switch(bottomOpa < 1);
+        let bottomStartIndex = vdo.currentIndex;
+        for (let i = 0; i < bottomCirclePoints.length; i++) {
+            let p = bottomCirclePoints[i];
+            vdo.addVerticesData2(p, bottomNormal, bottomColor, bottomOpa, UV, -1, 0);
+            vdo.addIndex(bottomCenterIndex);
+            vdo.addIndex(bottomStartIndex + i);
+            let nextIndex = i + 1;
+            if (nextIndex >= bottomCirclePoints.length) nextIndex = 0;
+            vdo.addIndex(bottomStartIndex + nextIndex);
+        }
+        if (vdo.useOpacityBuffer) {
+            action.opacityPointNumber += bottomCirclePoints.length * 3;
+        } else {
+            action.renderPointNumber += bottomCirclePoints.length * 3;
+        }
+        vdo.switch(false);
+
+
+        //组织top面：
+        vdo.switch(topOpa < 1);
+        let topStartIndex = vdo.currentIndex;
+        for (let i = 0; i < topCirclePoints.length; i++) {
+            let p = topCirclePoints[i];
+            vdo.addVerticesData2(p, topNormal, topColor, topOpa, UV, -1, 0);
+            vdo.addIndex(topCenterIndex);
+            vdo.addIndex(topStartIndex + i);
+            let nextIndex = i + 1;
+            if (nextIndex >= bottomCirclePoints.length) nextIndex = 0;
+            vdo.addIndex(topStartIndex + nextIndex);
+        }
+        if (vdo.useOpacityBuffer) {
+            action.opacityPointNumber += bottomCirclePoints.length * 3;
+        } else {
+            action.renderPointNumber += bottomCirclePoints.length * 3;
+        }
+        vdo.switch(false);
+
+        //组织侧面：
+        vdo.switch(surfaceOpa < 1);
+        for (let i = 0; i < topCirclePoints.length; i++) {
+
+            let nextIndex = i + 1;
+            if (nextIndex >= bottomCirclePoints.length) {
+                nextIndex = 0;
+            }
+
+            let p1 = bottomCirclePoints[i];
+            let p2 = topCirclePoints[i];
+            let p3 = topCirclePoints[nextIndex];
+            let p4 = bottomCirclePoints[nextIndex];
+
+            Vector3.sub(tempSurfaceNormal, p4, p1);
+            Vector3.normalize(tempSurfaceNormal, tempSurfaceNormal);
+            Vector3.cross(tempNormal, tempSurfaceNormal, bottomNormal);
+            let surfaceStartIndex = vdo.addVerticesData2(p1, tempNormal, surfaceColor, surfaceOpa, UV, -1, 0);
+            vdo.addVerticesData2(p2, tempNormal, surfaceColor, surfaceOpa, UV, -1, 0);
+            vdo.addVerticesData2(p3, tempNormal, surfaceColor, surfaceOpa, UV, -1, 0);
+            vdo.addVerticesData2(p4, tempNormal, surfaceColor, surfaceOpa, UV, -1, 0);
+
+            vdo.addIndex(surfaceStartIndex);
+            vdo.addIndex(surfaceStartIndex + 1);
+            vdo.addIndex(surfaceStartIndex + 2);
+
+            vdo.addIndex(surfaceStartIndex + 2);
+            vdo.addIndex(surfaceStartIndex + 3);
+            vdo.addIndex(surfaceStartIndex);
+        }
+        if (vdo.useOpacityBuffer) {
+            action.opacityPointNumber += bottomCirclePoints.length * 6;
+        } else {
+            action.renderPointNumber += bottomCirclePoints.length * 6;
+        }
+        vdo.switch(false);
+
+
+        /****下面的方法快，而且少耗内存，但是由于没有不透明的深度排序，会出问题，目前采用上面那种分别绘制底面、顶面和侧面****/
+        // for (theta = startAngle; theta < endAngle; theta += deltaTheta) {
+        //  if (Math.abs(theta - startAngle) >= Tools.PI2) {
+        //         return;
+        //     }
+        //
+        //  // 底面圆坐标计算：
+        //  let s = Math.sin(theta);
+        //  let c = Math.cos(theta);
+        //  tempVet.x = c;
+        //  tempVet.y = s;
+        //  tempVet.z = 0;
+        //  Mat4.multiplyWithVet3(bottomEllipseMat, tempVet, tempVet);
+        //  vdo.switch(bottomOpa < 1);
+        //  currentBottomIndex = vdo.currentIndex;
+        //  vdo.addVerticesData2(tempVet, bottomNormal, bottomColor, bottomOpa, UV, -1, 0);
+        //  vdo.switch(false);
+        //
+        //  //顶层圆坐标计算：
+        //  Vector3.plus(tempVet2, tempVet, scaleVet);
+        //  vdo.switch(topOpa < 1);
+        //  currentTopIndex = vdo.currentIndex;
+        //  vdo.addVerticesData2(tempVet2, topNormal, topColor, topOpa, UV, -1, 0);
+        //  vdo.switch(false);
+        //
+        //  if (preBottomPoint === undefined && preTopPoint === undefined) {
+        //         // 无法形成面,记录
+        //         firstBottomIndex = currentBottomIndex;
+        //         firstTopIndex = currentTopIndex;
+        //         preBottomIndex = currentBottomIndex;
+        //         preTopIndex = currentTopIndex;
+        //
+        //         preBottomPoint = {x: 0, y: 0, z: 0};
+        //         preTopPoint = {x: 0, y: 0, z: 0};
+        //         Vector3.copy(tempVet, preBottomPoint);
+        //         Vector3.copy(tempVet2, preTopPoint);
+        //         firstSurfacePoint1 = {x: 0, y: 0, z: 0};
+        //         firstSurfacePoint2 = {x: 0, y: 0, z: 0};
+        //         Vector3.copy(tempVet, firstSurfacePoint1);
+        //         Vector3.copy(tempVet2, firstSurfacePoint2);
+        //
+        //     } else {
+        //         //由于圆柱侧面的法线不同，需要重新添加坐标：
+        //
+        //         //计算面的法线：
+        //         Vector3.sub(tempSurfaceNormal, tempVet, preBottomPoint);
+        //         Vector3.normalize(tempSurfaceNormal, tempSurfaceNormal);
+        //         Vector3.cross(tempNormal, tempSurfaceNormal, bottomNormal);
+        //         currentSurfaceIndex = vdo.originalCurrentIndex;
+        //         vdo.switch(surfaceOpa < 1);
+        //         currentSurfaceIndex = vdo.currentIndex;
+        //         Vector3.copy(tempVet, lastSurfacePoint1);
+        //         Vector3.copy(tempVet2, lastSurfacePoint2);
+        //         vdo.addVerticesData2(preBottomPoint, tempNormal, surfaceColor, surfaceOpa, UV, -1, 0);
+        //         vdo.addVerticesData2(tempVet, tempNormal, surfaceColor, surfaceOpa, UV, -1, 0);
+        //         vdo.addVerticesData2(tempVet2, tempNormal, surfaceColor, surfaceOpa, UV, -1, 0);
+        //         vdo.addVerticesData2(preTopPoint, tempNormal, surfaceColor, surfaceOpa, UV, -1, 0);
+        //
+        //
+        //         //建立侧面：
+        //         vdo.addIndex(currentSurfaceIndex);
+        //         vdo.addIndex(currentSurfaceIndex + 1);
+        //         vdo.addIndex(currentSurfaceIndex + 2);
+        //
+        //         vdo.addIndex(currentSurfaceIndex + 2);
+        //         vdo.addIndex(currentSurfaceIndex + 3);
+        //         vdo.addIndex(currentSurfaceIndex);
+        //         if (vdo.useOpacityBuffer) {
+        //             action.opacityPointNumber += 6;
+        //         } else {
+        //             action.renderPointNumber += 6;
+        //         }
+        //         vdo.switch(false);
+        //
+        //         vdo.switch(bottomOpa < 1);
+        //         //建立底层圆索引：
+        //         vdo.addIndex(bottomCenterIndex);
+        //         vdo.addIndex(preBottomIndex);
+        //         vdo.addIndex(currentBottomIndex);
+        //         if (vdo.useOpacityBuffer) {
+        //             action.opacityPointNumber += 3;
+        //         } else {
+        //             action.renderPointNumber += 3;
+        //         }
+        //         vdo.switch(false);
+        //
+        //         vdo.switch(topOpa < 1);
+        //         //建立顶层圆索引：
+        //         vdo.addIndex(topCenterIndex);
+        //         vdo.addIndex(preTopIndex);
+        //         vdo.addIndex(currentTopIndex);
+        //         if (vdo.useOpacityBuffer) {
+        //             action.opacityPointNumber += 3;
+        //         } else {
+        //             action.renderPointNumber += 3;
+        //         }
+        //         vdo.switch(false);
+        //
+        //         Vector3.copy(tempVet, preBottomPoint);
+        //         Vector3.copy(tempVet2, preTopPoint);
+        //         preBottomIndex = currentBottomIndex;
+        //         preTopIndex = currentTopIndex;
+        //     }
+        //  }
+        //  //封边：
+        //  if (isFullEllipse) {
+        //
+        //     // 完成圆形第一个点的底面/顶面
+        //     vdo.switch(bottomOpa < 1);
+        //     vdo.addIndex(bottomCenterIndex);
+        //     vdo.addIndex(currentBottomIndex);
+        //     vdo.addIndex(firstBottomIndex);
+        //     if (vdo.useOpacityBuffer) {
+        //         action.opacityPointNumber += 3;
+        //     } else {
+        //         action.renderPointNumber += 3;
+        //     }
+        //     vdo.switch(false);
+        //
+        //     vdo.switch(topOpa < 1);
+        //     vdo.addIndex(topCenterIndex);
+        //     vdo.addIndex(currentTopIndex);
+        //     vdo.addIndex(firstTopIndex);
+        //     if (vdo.useOpacityBuffer) {
+        //         action.opacityPointNumber += 3;
+        //     } else {
+        //         action.renderPointNumber += 3;
+        //     }
+        //     vdo.switch(false);
+        //
+        //     //首尾相连：
+        //     Vector3.sub(tempSurfaceNormal, lastSurfacePoint1, firstSurfacePoint1);
+        //     Vector3.normalize(tempSurfaceNormal, tempSurfaceNormal);
+        //     Vector3.cross(tempNormal, tempSurfaceNormal, bottomNormal);
+        //
+        //     vdo.switch(surfaceOpa < 1);
+        //     let index = vdo.currentIndex;
+        //     vdo.addVerticesData2(lastSurfacePoint1, tempNormal, surfaceColor, surfaceOpa, UV, -1, 0);
+        //     vdo.addVerticesData2(firstSurfacePoint1, tempNormal, surfaceColor, surfaceOpa, UV, -1, 0);
+        //     vdo.addVerticesData2(firstSurfacePoint2, tempNormal, surfaceColor, surfaceOpa, UV, -1, 0);
+        //     vdo.addVerticesData2(lastSurfacePoint2, tempNormal, surfaceColor, surfaceOpa, UV, -1, 0);
+        //     //建立侧面：
+        //     vdo.indexData.addIndex(index);
+        //     vdo.indexData.addIndex(index + 1);
+        //     vdo.indexData.addIndex(index + 2);
+        //
+        //     vdo.indexData.addIndex(index + 2);
+        //     vdo.indexData.addIndex(index + 3);
+        //     vdo.indexData.addIndex(index);
+        //     if (vdo.useOpacityBuffer) {
+        //         action.opacityPointNumber += 6;
+        //     } else {
+        //         action.renderPointNumber += 6;
+        //     }
+        //     vdo.switch(false);
+        // } else {
+        //     //侧面各自和中心完成封边：
+        //     Vector3.sub(tempSurfaceNormal, firstSurfacePoint1, center1);
+        //     Vector3.cross(tempNormal, bottomNormal, tempSurfaceNormal);
+        //     Vector3.normalize(tempNormal, tempNormal);
+        //     vdo.switch(surfaceOpa < 1);
+        //     let index = vdo.currentIndex;
+        //     vdo.addVerticesData2(center1, tempNormal, surfaceColor, surfaceOpa, UV, -1, 0);
+        //     vdo.addVerticesData2(center2, tempNormal, surfaceColor, surfaceOpa, UV, -1, 0);
+        //     vdo.addVerticesData2(firstSurfacePoint2, tempNormal, surfaceColor, surfaceOpa, UV, -1, 0);
+        //     vdo.addVerticesData2(firstSurfacePoint1, tempNormal, surfaceColor, surfaceOpa, UV, -1, 0);
+        //     //建立侧面：
+        //     vdo.addIndex(index);
+        //     vdo.addIndex(index + 1);
+        //     vdo.addIndex(index + 2);
+        //
+        //     vdo.addIndex(index + 2);
+        //     vdo.addIndex(index + 3);
+        //     vdo.addIndex(index);
+        //     let temp = {x: 0, y: 0, z: 0};
+        //     Vector3.sub(temp, lastSurfacePoint1, center1);
+        //     Vector3.cross(tempNormal, bottomNormal, temp);
+        //     Vector3.normalize(tempNormal, tempNormal);
+        //     index = vdo.currentIndex;
+        //     vdo.addVerticesData2(center1, tempNormal, surfaceColor, surfaceOpa, UV, -1, 0);
+        //     vdo.addVerticesData2(center2, tempNormal, surfaceColor, surfaceOpa, UV, -1, 0);
+        //     vdo.addVerticesData2(lastSurfacePoint2, tempNormal, surfaceColor, surfaceOpa, UV, -1, 0);
+        //     vdo.addVerticesData2(lastSurfacePoint1, tempNormal, surfaceColor, surfaceOpa, UV, -1, 0);
+        //     //建立侧面：
+        //     vdo.addIndex(index);
+        //     vdo.addIndex(index + 1);
+        //     vdo.addIndex(index + 2);
+        //
+        //     vdo.addIndex(index + 2);
+        //     vdo.addIndex(index + 3);
+        //     vdo.addIndex(index);
+        //
+        //     if (vdo.useOpacityBuffer) {
+        //         action.opacityPointNumber += 12;
+        //     } else {
+        //         action.renderPointNumber += 12;
+        //     }
+        //     vdo.switch(false);
+        // }
     }
 }

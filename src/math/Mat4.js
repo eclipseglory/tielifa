@@ -1,4 +1,6 @@
 import Tools from "../utils/Tools.js";
+import Vector3 from "./Vector3.js";
+import Mat3 from "./Mat3.js";
 
 let temp_mat4 = undefined;
 export default class Mat4 {
@@ -142,7 +144,7 @@ export default class Mat4 {
             Math.abs(a4 - b4) <= Tools.EPSILON * Math.max(1.0, Math.abs(a4), Math.abs(b4)) &&
             Math.abs(a5 - b5) <= Tools.EPSILON * Math.max(1.0, Math.abs(a5), Math.abs(b5)) &&
             Math.abs(a6 - b6) <= Tools.EPSILON * Math.max(1.0, Math.abs(a6), Math.abs(b6)) &&
-            Math.abs(a7 - b7) <= Tools.EPSILON.EPSILON * Math.max(1.0, Math.abs(a7), Math.abs(b7)) &&
+            Math.abs(a7 - b7) <= Tools.EPSILON * Math.max(1.0, Math.abs(a7), Math.abs(b7)) &&
             Math.abs(a8 - b8) <= Tools.EPSILON * Math.max(1.0, Math.abs(a8), Math.abs(b8)) &&
             Math.abs(a9 - b9) <= Tools.EPSILON * Math.max(1.0, Math.abs(a9), Math.abs(b9)) &&
             Math.abs(a10 - b10) <= Tools.EPSILON * Math.max(1.0, Math.abs(a10), Math.abs(b10)) &&
@@ -277,6 +279,11 @@ export default class Mat4 {
         m[13] = 0;
         m[14] = 0;
         m[15] = 1;
+        /* [1,0,0,0
+            0,c,s,0
+            0,-s,c,0
+            0,0,0,1]
+         */
 
         let c = Math.cos(radian);
         let s = Math.sin(radian);
@@ -311,6 +318,12 @@ export default class Mat4 {
         m[13] = 0;
         m[14] = 0;
         m[15] = 1;
+
+        /* [c,0,-s,0
+           0,1,0,0
+           s,0,c,0
+           0,0,0,1]
+        */
 
         let c = Math.cos(radian);
         let s = Math.sin(radian);
@@ -351,6 +364,55 @@ export default class Mat4 {
         m[15] = 1;
     }
 
+    static mat4ToMat3(mat4, out) {
+        if (out === undefined) {
+            out = Mat3.identity();
+        }
+        out[0] = mat4[0];
+        out[1] = mat4[1];
+        out[2] = mat4[2];
+        out[3] = mat4[4];
+        out[4] = mat4[5];
+        out[5] = mat4[6];
+        out[6] = mat4[8];
+        out[7] = mat4[9];
+        out[8] = mat4[10];
+        return out;
+    }
+
+    static lookAt(cameraPosition, target, up, out) {
+        if (out === undefined) {
+            out = this.identity();
+        }
+        if (up === undefined) {
+            up = {x: 0, y: 1, z: 0};
+        }
+        let zAxis = {x: 0, y: 0, z: 0};
+        Vector3.sub(zAxis, cameraPosition, target);
+        Vector3.normalize(zAxis, zAxis);
+        out[8] = zAxis.x;
+        out[9] = zAxis.y;
+        out[10] = zAxis.z;
+
+        let xAxis = {x: 0, y: 0, z: 0};
+        Vector3.cross(xAxis, up, zAxis);
+        out[0] = xAxis.x;
+        out[1] = xAxis.y;
+        out[2] = xAxis.z;
+
+        let yAxis = {x: 0, y: 0, z: 0};
+        Vector3.cross(yAxis, zAxis, xAxis);
+        out[4] = yAxis.x;
+        out[5] = yAxis.y;
+        out[6] = yAxis.z;
+
+        out[12] = cameraPosition.x;
+        out[13] = cameraPosition.y;
+        out[14] = cameraPosition.z;
+
+        return out;
+    }
+
 
     static scaling(sx, sy, sz) {
         let m = this.identity();
@@ -358,6 +420,34 @@ export default class Mat4 {
         m[5] = sy;
         m[10] = sz;
         return m;
+    }
+
+    static multiplyWithVet3(matrix, vet3, out) {
+        let a00 = matrix[0];
+        let a01 = matrix[1];
+        let a02 = matrix[2];
+        let a03 = matrix[3];
+        let a10 = matrix[4];
+        let a11 = matrix[5];
+        let a12 = matrix[6];
+        let a13 = matrix[7];
+        let a20 = matrix[8];
+        let a21 = matrix[9];
+        let a22 = matrix[10];
+        let a23 = matrix[11];
+        let a30 = matrix[12];
+        let a31 = matrix[13];
+        let a32 = matrix[14];
+        let a33 = matrix[15];
+
+        let b00 = vet3.x;
+        let b01 = vet3.y;
+        let b02 = vet3.z;
+        let b03 = 1;
+        out.x = b00 * a00 + b01 * a10 + b02 * a20 + b03 * a30;
+        out.y = b00 * a01 + b01 * a11 + b02 * a21 + b03 * a31;
+        out.z = b00 * a02 + b01 * a12 + b02 * a22 + b03 * a32;
+        return out;
     }
 
     static multiplyWithVertex(matrix, vertex, out) {
@@ -482,6 +572,23 @@ export default class Mat4 {
         out[13] = (a00 * b09 - a01 * b07 + a02 * b06) * det;
         out[14] = (a31 * b01 - a30 * b03 - a32 * b00) * det;
         out[15] = (a20 * b03 - a21 * b01 + a22 * b00) * det;
+
+        return out;
+    }
+
+    static transformMat3ToMat4(m3, out) {
+        if (out === undefined) out = Mat4.identity();
+        out[0] = m3[0];
+        out[1] = m3[1];
+        out[2] = m3[2];
+
+        out[4] = m3[3];
+        out[5] = m3[4];
+        out[6] = m3[5];
+
+        out[8] = m3[6];
+        out[9] = m3[7];
+        out[10] = m3[8];
 
         return out;
     }

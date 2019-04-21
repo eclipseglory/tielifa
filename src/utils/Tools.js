@@ -1,9 +1,24 @@
 const EPSILON = 0.00001;
 const PI2 = Math.PI * 2;
+const HALFPI = Math.PI / 2;
+const PIDIV180 = Math.PI / 180;
+const ONE80DIVPI = 180 / Math.PI;
 let littleEndian = undefined;
 export default class Tools {
     constructor() {
         this.instance = null;
+    }
+
+    static get HALFPI() {
+        return HALFPI;
+    }
+
+    static get ONE80DIVPI() {
+        return ONE80DIVPI;
+    }
+
+    static get PIDIV180() {
+        return PIDIV180;
     }
 
     static get PI2() {
@@ -17,6 +32,37 @@ export default class Tools {
     static equals(a, b) {
         // return Math.abs(a - b) <= EPSILON * Math.max(1.0, Math.abs(a), Math.abs(b));
         return Math.abs(a - b) <= EPSILON;
+    }
+
+    static insertSort(array) {
+        let n = array.length;
+        if (n <= 1) {
+            return array;
+        }
+        for (let i = 1; i < n; i++) {
+            let temp = array[i];
+            let j = i - 1;
+            for (; j >= 0; j--) {
+                if (array[j] > temp) {
+                    array[j + 1] = array[j]; // 比temp 大的已排序数据后移一位
+                } else {
+                    break;
+                }
+            }
+            array[j + 1] = temp; // 空出来的位置，把temp放进去
+        }
+        return array;
+    }
+
+    static removeObjFromArray(obj, array) {
+        for (let i = 0; i < array.length; i++) {
+            if (obj === array[i]) {
+                array.splice(i, 1);
+                return true;
+            }
+        }
+
+        return false;
     }
 
     static get littleEndian() {

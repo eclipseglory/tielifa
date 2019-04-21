@@ -25,6 +25,7 @@ export default class ContextState {
         this.matrix = Mat4.identity();
         this.filterType = Normal_Filter;
         this.dirty = false;
+        this.scaleValue = {x: 1, y: 1, z: 1};
     }
 
     static get Normal_Filter() {
@@ -146,6 +147,9 @@ export default class ContextState {
         }
         let m = Mat4.TEMP_MAT4[0];
         Mat4.scalingMatrix(m, scaleX, scaleY, scaleZ);
+        this.scaleValue.x*=scaleX;
+        this.scaleValue.y*=scaleY;
+        this.scaleValue.z*=scaleZ;
         this.applyTransform(m);
     }
 
@@ -179,6 +183,10 @@ export default class ContextState {
         newState.strokeStyle = this.strokeStyle;
         newState.globalAlpha = this.globalAlpha;
         newState.filterType = this.filterType;
+        newState.scaleValue.x = this.scaleValue.x;
+        newState.scaleValue.y = this.scaleValue.y;
+        newState.scaleValue.z = this.scaleValue.z;
+
         // newState.matrixIndex = this.matrixIndex;
         // 把当前的矩阵作为新矩阵的最后一个
         newState.setTransformMatrix(this.transformMatrix);

@@ -125,18 +125,69 @@ export default class Mat3 {
             m = outMatrix;
             vertex = matrix;
         }
-        if (out == undefined) out = Mat3.identity();
+        if (out == null) out = Mat3.identity();
         let a00 = m[0], a01 = m[1], a02 = m[2];
         let a10 = m[3], a11 = m[4], a12 = m[5];
         let a20 = m[6], a21 = m[7], a22 = m[8];
 
         let b0 = vertex[0], b1 = vertex[1], b2 = vertex[2];
-        if (b2 == undefined) b2 = 1;
+        if (b2 == null) b2 = 1;
 
         out[0] = b0 * a00 + b1 * a10 + b2 * a20;
         out[1] = b0 * a01 + b1 * a11 + b2 * a21;
         out[2] = b0 * a02 + b1 * a12 + b2 * a22;
         return out;
+    }
+
+    static rotateMatrix(out, m) {
+        let a00 = m[0], a01 = m[1] , a02=m[2];
+        let a10 = m[3], a11 = m[4] , a12=m[5];
+        let a20 = m[6], a21 = m[7] , a22=m[8];
+
+        out[0] = a00;
+        out[1] = a10;
+        out[2] = a20;
+
+        out[3] = a01;
+        out[4] = a11;
+        out[5] = a21;
+
+        out[6] = a02;
+        out[7] = a12;
+        out[8] = a22;
+        // let a00 = m[0];
+        // let a00 = m[0];
+        // let a00 = m[0];
+        // let a00 = m[0];
+        // let a00 = m[0];
+        // let a00 = m[0];
+        // let a00 = m[0];
+        // let a00 = m[0];
+
+    }
+
+    static multiplyWithValue(out, m, value) {
+        out[0] = m[0] * value;
+        out[1] = m[1] * value;
+        out[2] = m[2] * value;
+        out[3] = m[3] * value;
+        out[4] = m[4] * value;
+        out[5] = m[5] * value;
+        out[6] = m[6] * value;
+        out[7] = m[7] * value;
+        out[8] = m[8] * value;
+    }
+
+    static plus(out, m1, m2) {
+        out[0] = m1[0] + m2[0];
+        out[1] = m1[1] + m2[1];
+        out[2] = m1[2] + m2[2];
+        out[3] = m1[3] + m2[3];
+        out[4] = m1[4] + m2[4];
+        out[5] = m1[5] + m2[5];
+        out[6] = m1[6] + m2[6];
+        out[7] = m1[7] + m2[7];
+        out[8] = m1[8] + m2[8];
     }
 
     static multiply(out, a, b) {

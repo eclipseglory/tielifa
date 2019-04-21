@@ -18,24 +18,25 @@
     // console.log(c.toRgb());
     import CanvasRenderingContextWebgl2D from "../src/webgl/CanvasRenderingContextWebgl2D.js";
 
-    let ctx = new CanvasRenderingContextWebgl2D(webgl);
+    let ctx = new CanvasRenderingContextWebgl2D(webgl, {enableDepthTest: true});
     // let ctx = new tielifa.WebGL2D(webgl);
     let ctx2 = canvas.getContext('2d');
 
     let i = 2;
-    let x , y;
-    x = y=40;
-    function drawtest(){
+    let x, y;
+    x = y = 40;
+
+    function drawtest() {
 
         fillTest(ctx);
         fillTest(ctx2);
-        x+=2;
+        x += 2;
         // requestAnimationFrame(drawtest);
     }
 
     drawtest();
 
-    function fillTest(ctx){
+    function fillTest(ctx) {
         // let ctx = main.getContext('2d');
         // ctx.beginPath();
         // ctx.strokeStyle = 'red';
@@ -44,7 +45,7 @@
         // ctx.closePath();
         // ctx.stroke();
         ctx.fillStyle = 'rgba(0,255,0)';
-        ctx.globalAlpha =0.5;
+        // ctx.globalAlpha =0.5;
         // ctx.beginPath();
         // ctx.rect(0,0,100,100);
         // ctx.closePath();
@@ -60,20 +61,22 @@
         //
         // ctx.translate(120,0);
         ctx.beginPath();
-        ctx.arc(50,50,50,0,2*Math.PI);
+        ctx.arc(200, 200, 50, 0, 2 * Math.PI);
         ctx.closePath();
         ctx.fill();
-        ctx.strokeStyle = 'white';
-        ctx.translate(100,150);
+        ctx.strokeStyle = 'red';
+        ctx.translate(100, 150);
+        ctx.fillStyle = 'red';
         ctx.beginPath();
-        ctx.moveTo(10,10);
-        ctx.lineTo(100,50);
-        ctx.lineTo(10,90);
-        ctx.lineTo(60,45);
+        ctx.moveTo(10, 10);
+        ctx.lineTo(100, 50);
+        ctx.lineTo(10, 90);
+        ctx.lineTo(60, 45);
         ctx.closePath();
         ctx.stroke();
+        ctx.globalAlpha = 0.5;
         ctx.fill();
-        if(ctx.draw){
+        if (ctx.draw) {
             ctx.draw();
         }
     }

@@ -14,8 +14,8 @@
 
     createOneFullCanvas();
     // let ctx = new tielifa.WebGL2D(webgl, {FOV: 20, projectionType: 1, enableDepthTest: true});
-    let ctx = new CanvasRenderingContextWebgl2D(webgl, {FOV: 20, projectionType: 1, enableDepthTest: true});
-    // ctx.turnOnLight();
+    let ctx = new CanvasRenderingContextWebgl2D(webgl, {FOV: 40, projectionType: 1, enableDepthTest: true});
+    ctx.turnOnLight();
     let r = 30;
     let points = [];
     let offset = 0;
@@ -47,16 +47,23 @@
             pre = p;
             points.push(p);
         }
+        // let deltaTheta1 = Math.PI*2/pointsNum;
+        // for (let i = 0; i < Math.PI*2; i+=deltaTheta1) {
+        //     let p = {x:0,y:0};
+        //     p.x = Math.cos(i)*30;
+        //     p.y = Math.sin(i) * 30;
+        //     points.push(p);
+        // }
         ctx.fillStripe(points, height / 3 * 2, 'white', 1, img, true);
         r++;
-        // draw path points:
+        // update path points:
         // let the points display on the flag
-        ctx.translate(0,0,10);
+        ctx.translate(0, 0, 10);
         ctx.fillStyle = 'white';
         for (let i = 0; i < points.length; i++) {
             let p = points[i];
             ctx.beginPath();
-            ctx.rect(p.x,p.y,2,2,p.z );
+            ctx.rect(p.x, p.y, 2, 2, p.z);
             ctx.closePath();
             ctx.fill();
         }

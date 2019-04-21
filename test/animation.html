@@ -15,33 +15,34 @@
     // c.turnOnLight();
     let ctx = c;
     let ctx2 = canvas.getContext('2d');
-    let test = 0b0011;
-    let test2 = 0b0010;
-    console.log((test & test2) == test2);
+    // let test = 0b0011;
+    // let test2 = 0b0010;
+    // console.log((test & test2) == test2);
     var deltaX = 1;
     var deltaR = 2;
     var deltaY = 0.01;
-    var edgeDetectKernel = [
-        0, 1, 0,
-        1, 1, 1,
-        0, 1, 0
-    ];
-
-    for (let i = 0; i < 3; i++) {
-        for (let j = 0; j < 3; j++) {
-            console.log(i * 3 + j, edgeDetectKernel[i * 3 + j]);
-        }
-    }
-
-    function computeKernelWeight(kernel) {
-        var weight = kernel.reduce(function (prev, curr) {
-            return prev + curr;
-        });
-        return weight <= 0 ? 1 : weight;
-    }
-
-    console.log(computeKernelWeight(edgeDetectKernel));
+    // var edgeDetectKernel = [
+    //     0, 1, 0,
+    //     1, 1, 1,
+    //     0, 1, 0
+    // ];
+    //
+    // for (let i = 0; i < 3; i++) {
+    //     for (let j = 0; j < 3; j++) {
+    //         console.log(i * 3 + j, edgeDetectKernel[i * 3 + j]);
+    //     }
+    // }
+    //
+    // function computeKernelWeight(kernel) {
+    //     var weight = kernel.reduce(function (prev, curr) {
+    //         return prev + curr;
+    //     });
+    //     return weight <= 0 ? 1 : weight;
+    // }
+    //
+    // console.log(computeKernelWeight(edgeDetectKernel));
     let texture;
+
     function repeat() {
         fillTest(ctx);
         // fillTest(ctx2);
@@ -96,7 +97,7 @@
 
     ctx.loadImage("images/background.png", {
         success: function (t) {
-            texture = t;
+            texture = t.texture;
             ctx.clearImageCatches();
             repeat();
         }

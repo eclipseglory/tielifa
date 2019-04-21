@@ -66,7 +66,6 @@ export default class SubPath3D {
     }
 
     addPoint(x, y, z, stateId) {
-        stateId = stateId || 0;
         // matrixId = matrixId || 0;
         let index = this[_currentIndex];
         if (index * 3 >= this[_pointsCoordinateArray].length) {

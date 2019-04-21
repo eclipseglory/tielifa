@@ -30,9 +30,11 @@ export default class VerticesData {
     }
 
     setVerticesData(x, y, z, nx, ny, nz, index) {
+        let num = index + 1;
         index = index * 8;
-        if (index * 4 >= this.totalByteLength) {
-            this.resize(this.totalByteLength * 2);
+        if (num * SINGLE_DATA_BYTE_LENGTH >= this.totalByteLength) {
+            let length = Math.max(num * SINGLE_DATA_BYTE_LENGTH, this.totalByteLength * 2);
+            this.increaseSize(length);
         }
         this[_dataArray][index] = x;
         this[_dataArray][index + 1] = y;
@@ -44,9 +46,11 @@ export default class VerticesData {
     }
 
     setVerticesCoor(x, y, z, index) {
+        let num = index + 1;
         index = index * 8;
-        if (index * 4 >= this.totalByteLength) {
-            this.resize(this.totalByteLength * 2);
+        if (num * SINGLE_DATA_BYTE_LENGTH >= this.totalByteLength) {
+            let length = Math.max(num * SINGLE_DATA_BYTE_LENGTH, this.totalByteLength * 2);
+            this.increaseSize(length);
         }
         this[_dataArray][index] = x;
         this[_dataArray][index + 1] = y;
@@ -74,6 +78,21 @@ export default class VerticesData {
         return [x, y, z];
     }
 
+    getVerticesPositionXData(index) {
+        index = index * 8;
+        return this[_dataArray][index];
+    }
+
+    getVerticesPositionYData(index) {
+        index = index * 8;
+        return this[_dataArray][index + 1];
+    }
+
+    getVerticesPositionZData(index) {
+        index = index * 8;
+        return this[_dataArray][index + 2];
+    }
+
     getVerticesNormalData(index) {
         index = index * 8;
         let nx = this[_dataArray][index + 4];
@@ -82,31 +101,85 @@ export default class VerticesData {
         return [nx, ny, nz];
     }
 
+    getVerticesNormalXData(index) {
+        index = index * 8;
+        return this[_dataArray][index + 4];
+    }
+
+    getVerticesNormalYData(index) {
+        index = index * 8;
+        return this[_dataArray][index + 5];
+    }
+
+    getVerticesNormalZData(index) {
+        index = index * 8;
+        return this[_dataArray][index + 6];
+    }
+
     addVerticesData(x, y, z, nx, ny, nz) {
         let index = this[_currentIndex];
         this.setVerticesData(x, y, z, nx, ny, nz, index);
         this[_currentIndex]++;
     }
 
-    resize(length) {
+    increaseSize(length) {
+        if (length === 0) return;
         if (length <= this.totalByteLength) {
             return;
         }
+        this.resize(length);
+    }
+
+    resize(length) {
         let oldBuffer = this[_arrayBuffer];
         this[_arrayBuffer] = new ArrayBuffer(length);
         let dv1 = new Uint8Array(oldBuffer);
         let ndv = new Uint8Array(this[_arrayBuffer]);
-        ndv.set(dv1, 0);
+        if (length < oldBuffer.byteLength) {
+            for (let i = 0; i < length; i++) {
+                ndv[i] = dv1[i];
+            }
+        } else {
+            ndv.set(dv1, 0);
+        }
+
         this[_dataArray] = new Float32Array(this[_arrayBuffer]);
     }
 
     append(verticesData) {
         let vertexNum = this.currentIndex;
-        let len = verticesData.totalByteLength;
-        this.resize(len + vertexNum * SINGLE_DATA_BYTE_LENGTH);
+        let len = verticesData.currentIndex * verticesData.singleDataByteLength;
+        if (len === 0) return;
+        this.increaseSize(len + vertexNum * SINGLE_DATA_BYTE_LENGTH);
         let dv1 = new Uint8Array(verticesData.buffer);
         let ndv = new Uint8Array(this[_arrayBuffer]);
-        ndv.set(dv1, vertexNum * SINGLE_DATA_BYTE_LENGTH);
+        let offset = vertexNum * SINGLE_DATA_BYTE_LENGTH;
+        for (let i = 0; i < len; i++) {
+            ndv[i + offset] = dv1[i];
+        }
         this[_currentIndex] += verticesData.currentIndex;
+    }
+
+    copyFrom(verticesData) {
+        let myLen = this.totalByteLength;
+        let len = verticesData.currentIndex * verticesData.singleDataByteLength;
+        if (myLen < len) {
+            this[_arrayBuffer] = new ArrayBuffer(len);
+            this[_dataArray] = new Float32Array(this[_arrayBuffer]);
+        }
+        let ndv = new Uint8Array(this[_arrayBuffer]);
+        let fdv = new Uint8Array(verticesData.buffer);
+        for (let i = 0; i < len; i++) {
+            ndv[i] = fdv[i];
+        }
+        // ndv.set(fdv, 0);
+        this[_currentIndex] = verticesData.currentIndex;
+    }
+
+    fixLength() {
+        let realByteLength = this.currentIndex * SINGLE_DATA_BYTE_LENGTH;
+        if (realByteLength < this.buffer.byteLength) {
+            this.resize(realByteLength);
+        }
     }
 }

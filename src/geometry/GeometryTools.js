@@ -1,8 +1,10 @@
 import Vector3 from "../math/Vector3.js";
 import Mat3 from "../math/Mat3.js";
 import Vector2 from "../math/Vector2.js";
-import Tools from "../utils/Tools.js";
+import Mat4 from "../math/Mat4.js";
 
+const TEMP_VET3 = [new Vector3()];
+const TEMP_MAT3 = [Mat3.identity()];
 export default class GeometryTools {
     constructor() {
     }
@@ -75,7 +77,7 @@ export default class GeometryTools {
         let fa = 0;
         let fs = 1;
         let v = [(x1 - x2) / 2, (y1 - y2) / 2, 1];
-        let m = Mat3.TEMP_MAT3[0];
+        let m = TEMP_MAT3[0];
         if (rotation != 0) {
             Mat3.rotate(m, -rotation);
             Mat3.multiplyWithVertex(m, m, v);
@@ -133,12 +135,12 @@ export default class GeometryTools {
      */
     static getEllipsePointWithRadian(x, y, radiusX, radiusY, radian, rotation, output) {
         output = output || [0, 0];
-        let v = Vector3.TEMP_VECTORS[0];
+        let v = TEMP_VET3[0];
         v.x = radiusX * Math.cos(radian);
         v.y = radiusY * Math.sin(radian);
         v.z = 0;
         if (rotation != 0) {
-            let m = Mat3.TEMP_MAT3[0];
+            let m = TEMP_MAT3[0];
             Mat3.rotate(m, rotation);
             Mat3.multiplyWithVertex(m, m, v.value);
             v.x = m[0];
@@ -147,6 +149,44 @@ export default class GeometryTools {
         output[0] = v.x + x;
         output[1] = v.y + y;
         return output;
+    }
+
+    static getRodriguesRotateMatrix(v1, v2) {
+        // R = I + K sin(theta) + (1- cos(theta)) K^2
+        // K = [0 , -k2 , k1
+        //      k2 , 0 , -k0
+        //      -k1, k0,0 ]
+        // k = normalize(v1 x v2) = [k0,k1,k2]
+        let cos = Vector3.dot(v1, v2);
+        let sin = Math.sin(Math.acos(cos));
+        let k = TEMP_VET3[0];
+        Vector3.cross(k, v1, v2);
+        Vector3.normalize(k, k);
+
+        let r = TEMP_MAT3[0];
+        r[0] = 0;
+        r[1] = -k.value[2];
+        r[2] = k.value[1];
+        r[3] = k.value[2];
+        r[4] = 0;
+        r[5] = -k.value[0];
+        r[6] = -k.value[1];
+        r[7] = k.value[0];
+        r[8] = 0;
+
+        let k1 = Mat3.identity();
+        Mat3.copy(r, k1);
+        let I = Mat3.identity();
+        Mat3.multiplyWithValue(r, r, sin);
+
+        Mat3.multiply(k1, k1, k1);
+        Mat3.multiplyWithValue(k1, k1, (1 - cos));
+        Mat3.plus(k1, k1, r);
+        Mat3.plus(k1, k1, I);
+
+        Mat3.rotateMatrix(k1,k1);
+
+        return Mat4.transformMat3ToMat4(k1);
     }
 
 
@@ -164,7 +204,7 @@ export default class GeometryTools {
         if (Math.abs(down) == 0) {
             return null;
         }
-        let w = Vector3.TEMP_VECTORS[0];
+        let w = TEMP_VET3[0];
         w.x = v.x - p.x;
         w.y = v.y - p.y;
         w.z = v.z - p.z;
@@ -173,7 +213,7 @@ export default class GeometryTools {
         let realLength = length;
         if (maxLength != undefined) {
             if (Math.abs(length) > maxLength) {
-                realLength = maxLength*sign;
+                realLength = maxLength * sign;
             }
         }
         length = realLength;

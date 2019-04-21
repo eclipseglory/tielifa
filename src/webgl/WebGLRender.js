@@ -255,11 +255,15 @@ let fsSource = `
         // colorSum = texture2D(u_texture, coord);
         vec3 r_normal = normalize(normal);    
         vec3 forward = u_lightPosition - v_position;
+        // vec3 lightLocation = vec3(0.0,0.0,1.0); 
         vec3 lightLocation = normalize(forward);    
         gl_FragColor = color * colorSum;//texture2D(u_texture, coord);
-        gl_FragColor.w = opacity;
+        gl_FragColor.a = opacity;
+        float light = abs(dot(r_normal,lightLocation));
+        //if(opacity < 1.0) light = abs(light);
         if(enableLight == 1.0){
-            gl_FragColor.rgb *= abs(dot(r_normal,lightLocation));
+            gl_FragColor.rgb *= light;
+            // gl_FragColor.rgb = vec3(light,light,light);
         }
   }
   `;
@@ -286,6 +290,8 @@ export default class WebGLRender {
         this.defaultTransformMatrix = Mat4.identity();
         this.orthoProjectionMatrix = Mat4.identity();
         this.perspectiveMatrix = Mat4.identity();
+        this.cameraPosition = {x: 0, y: 0, z: 0};
+        this.lookTarget = {x: undefined, y: undefined, z: undefined};
         projectionType = projectionType || 0;
         textureMaxSize = textureMaxSize || gl.getParameter(this.gl.MAX_TEXTURE_SIZE);
         let maxVectors = gl.getParameter(gl.MAX_VERTEX_UNIFORM_VECTORS);
@@ -296,10 +302,11 @@ export default class WebGLRender {
         this[_maxTransformMatrixNum] = maxTransformNum;
         this.enableDepthTest = enableDepthTest || false;
         this.textureManager = null;
-        this.verticesData = null;
-        this.fragmentData = null;
-        this.indexData = null;
-        this.transformMatrixData = null;
+        this.vdo = null;
+        // this.verticesData = null;
+        // this.fragmentData = null;
+        // this.indexData = null;
+        // this.transformMatrixData = null;
         this.canvasWidth = -1;
         this.canvasHeight = -1;
         this.lightPosition = new Float32Array(3);
@@ -308,11 +315,13 @@ export default class WebGLRender {
         this.lightPosition[2] = 0;
         this.projectionType = projectionType;
         this.fov = fov;
+        this.defaultDepth = 0;
         this.init();
         this.textureManager.maxHeight = textureMaxSize;
         this.textureManager.maxWidth = this.textureManager.maxHeight;
         enableLight = enableLight || false;
         this.enableLight(enableLight);
+
     }
 
     get maxTransformMatrixNum() {
@@ -328,7 +337,8 @@ export default class WebGLRender {
 
     clean() {
         this.DEBUG_DRAW_COUNT = 0;
-        this.gl.clearColor(0, 0, 0, 0);
+        this.gl.clearColor(0, 0, 0, 1);
+        // this.gl.colorMask(false, false, false, true);
         this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
     }
 
@@ -343,12 +353,22 @@ export default class WebGLRender {
     }
 
 
-    prepareWebGLBuffer() {
+    prepareWebGLBuffer(opacity) {
+        if (opacity == undefined) opacity = false;
+        let vbuffer = this.vdo.verticesData.buffer;
+        let fbuffer = this.vdo.fragmentData.buffer;
+        let ibuffer = this.vdo.indexData.dataArray;
+        if (opacity) {
+            vbuffer = this.vdo.opacityVerticesData.buffer;
+            fbuffer = this.vdo.opacityFragmentData.buffer;
+            ibuffer = this.vdo.opacityIndexData.dataArray;
+        }
         let gl = this.gl;
         let shaderInfo = this.shaderInformation;
         gl.enableVertexAttribArray(shaderInfo.vertexAttribute);
         gl.bindBuffer(gl.ARRAY_BUFFER, shaderInfo.verticesBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, this.verticesData.buffer, gl.DYNAMIC_DRAW);
+        // gl.bufferData(gl.ARRAY_BUFFER, this.verticesData.buffer, gl.DYNAMIC_DRAW);
+        gl.bufferData(gl.ARRAY_BUFFER, vbuffer, gl.DYNAMIC_DRAW);
 
         let size = 3;
         let type = gl.FLOAT;
@@ -368,10 +388,11 @@ export default class WebGLRender {
         gl.enableVertexAttribArray(shaderInfo.colorAttribute);
         gl.enableVertexAttribArray(shaderInfo.textureCoordAttribute);
         gl.bindBuffer(gl.ARRAY_BUFFER, shaderInfo.fragmentBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, this.fragmentData.buffer, gl.DYNAMIC_DRAW);
+        // gl.bufferData(gl.ARRAY_BUFFER, this.fragmentData.buffer, gl.DYNAMIC_DRAW);
+        gl.bufferData(gl.ARRAY_BUFFER, fbuffer, gl.DYNAMIC_DRAW);
 
         type = gl.UNSIGNED_BYTE;
-        stride = this.fragmentData.singleDataByteLength;
+        stride = this.vdo.fragmentData.singleDataByteLength;
         size = 3;
         offset = 0;
         normalize = false;
@@ -379,7 +400,7 @@ export default class WebGLRender {
             shaderInfo.colorAttribute, size, type, normalize, stride, offset);
 
         type = gl.UNSIGNED_BYTE;
-        stride = this.fragmentData.singleDataByteLength;
+        // stride = this.vdo.fragmentData.singleDataByteLength;
         size = 1;
         offset = 3;
         normalize = false;
@@ -408,21 +429,26 @@ export default class WebGLRender {
         // stride = 4;
         // gl.vertexAttribPointer(shaderInfo.transformMatrixIndex, size, type, normalize, stride, offset);
 
-        // test:
+        // calculateDataProperty:
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, shaderInfo.indexDataBuffer);
-        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, this.indexData.dataArray, gl.DYNAMIC_DRAW);
+        // gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, this.indexData.dataArray, gl.DYNAMIC_DRAW);
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, ibuffer, gl.DYNAMIC_DRAW);
     }
 
 
     executeRenderAction(actionList) {
+        if (this.vdo == null) return;
         this.prepareWebGLBuffer();
         let matrixIndex = 1; // 每次绘制都要重新设置矩阵的索引
-        let lastAction = undefined;
+        let lastAction = null;
         let startIndex = 0;
         let rendNumber = 0;
+        let opacityActionArray = [];
         for (let i = 0; i < actionList.length; i++) {
             let currentAction = actionList[i];
-            if (lastAction == undefined) lastAction = currentAction;
+            if (currentAction.opacityPointNumber !== 0) opacityActionArray.push(currentAction);
+            if (currentAction.renderPointNumber === 0) continue;
+            if (lastAction == null) lastAction = currentAction;
             if (currentAction.applyMatrix != lastAction.applyMatrix) {
                 this.renderVertices(startIndex, rendNumber, lastAction.textureIndex, lastAction.applyMatrix);
                 lastAction = currentAction;
@@ -456,6 +482,53 @@ export default class WebGLRender {
         if (lastAction != undefined) {
             this.renderVertices(startIndex, rendNumber, lastAction.textureIndex, lastAction.applyMatrix);
         }
+
+        //绘制透明：
+        if (opacityActionArray.length == 0) return;
+        this.prepareWebGLBuffer(true);
+        this.gl.depthMask(false);
+        matrixIndex = 1; // 每次绘制都要重新设置矩阵的索引
+        lastAction = null;
+        startIndex = 0;
+        rendNumber = 0;
+        for (let i = 0; i < opacityActionArray.length; i++) {
+            let currentAction = opacityActionArray[i];
+            if (lastAction == null) lastAction = currentAction;
+            if (currentAction.applyMatrix != lastAction.applyMatrix) {
+                this.renderVertices(startIndex, rendNumber, lastAction.textureIndex, lastAction.applyMatrix);
+                lastAction = currentAction;
+                startIndex += rendNumber;
+                rendNumber = currentAction.opacityPointNumber;
+            } else {
+                if (currentAction.textureIndex != lastAction.textureIndex && currentAction.textureIndex != -1 && lastAction.textureIndex != -1) {
+                    this.renderVertices(startIndex, rendNumber, lastAction.textureIndex, lastAction.applyMatrix);
+                    lastAction = currentAction;
+                    startIndex += rendNumber;
+                    rendNumber = 0;
+                }
+                if (lastAction.textureIndex == -1 && currentAction.textureIndex != -1) {
+                    lastAction = currentAction;
+                }
+                rendNumber += currentAction.opacityPointNumber;
+            }
+            // 先收集顶点数据，顶点的矩阵在下一步再设置
+            // if (currentAction.textureIndex != lastAction.textureIndex && currentAction.textureIndex != -1 && lastAction.textureIndex != -1) {
+            //     this.renderVertices(startIndex, rendNumber, lastAction.textureIndex);
+            //     lastAction = currentAction;
+            //     startIndex += rendNumber;
+            //     rendNumber = 0;
+            // }
+            // if (lastAction.textureIndex == -1 && currentAction.textureIndex != -1) {
+            //     lastAction = currentAction;
+            // }
+            // rendNumber += currentAction.renderPointNumber;
+        }
+
+        if (lastAction != undefined) {
+            this.renderVertices(startIndex, rendNumber, lastAction.textureIndex, lastAction.applyMatrix);
+        }
+
+        this.gl.depthMask(true);
     }
 
 
@@ -479,25 +552,44 @@ export default class WebGLRender {
 
     initProjectionMatrix() {
         let gl = this.gl;
+        let halfFOVRadian = this.fov * Math.PI / 360;
+
         // 设置透视矩阵
-        if (this.canvasHeight != gl.canvas.height && this.canvasWidth != gl.canvas.width) {
-            let t = Math.tan(this.fov * Math.PI / 180);
-            let defaultDepth = -gl.canvas.height / (2 * t);
-            // 为了配合预设的深度
-            Mat4.identityMatrix(this.defaultTransformMatrix);
-            Mat4.translationMatrix(this.defaultTransformMatrix, 0, 0, defaultDepth);
-            gl.uniformMatrix4fv(this.shaderInformation.transformMatrixArray[0], false, this.defaultTransformMatrix);
-            let m1;
-            let near = 1;
-            if (this.projectionType == 0) {
-                m1 = Mat4.orthoProjection(0, 0, gl.canvas.width, gl.canvas.height, near, Math.abs(defaultDepth * 2), this.orthoProjectionMatrix);
-            } else {
-                let theta = Math.atan2(gl.canvas.height / 2, Math.abs(defaultDepth));
-                m1 = Mat4.perspective3(theta * 2, gl.canvas.width, gl.canvas.height, near, Math.abs(defaultDepth * 2), this.perspectiveMatrix);
-            }
-            gl.uniformMatrix4fv(this.shaderInformation.perspectiveMatrix, false, m1);
-            this.canvasHeight = gl.canvas.height;
-            this.canvasWidth = gl.canvas.width;
+        // if (this.canvasHeight != gl.canvas.height && this.canvasWidth != gl.canvas.width) {
+        // let t = Math.tan((this.fov) * Math.PI / 180);
+        // let defaultDepth = -gl.canvas.height / (2 * t);
+        let t = Math.tan(halfFOVRadian);
+        this.defaultDepth = -gl.canvas.height / (2 * t);
+        // 为了配合预设的深度
+        Mat4.identityMatrix(this.defaultTransformMatrix);
+        Mat4.translationMatrix(this.defaultTransformMatrix, 0, 0, this.defaultDepth);
+        gl.uniformMatrix4fv(this.shaderInformation.transformMatrixArray[0], false, this.defaultTransformMatrix);
+        let m1;
+        let near = 1;
+        if (this.projectionType == 0) {
+            m1 = Mat4.orthoProjection(0, 0, gl.canvas.width, gl.canvas.height, near, Math.abs(this.defaultDepth * 2), this.orthoProjectionMatrix);
+        } else {
+            this.initLookAtTarget(this.defaultDepth);
+            m1 = Mat4.perspective3(halfFOVRadian * 2, gl.canvas.width, gl.canvas.height, near, Math.abs(this.defaultDepth * 10), this.perspectiveMatrix);
+            let cm = Mat4.lookAt(this.cameraPosition, this.lookTarget);
+            Mat4.inverse(cm, cm);
+            Mat4.multiply(m1, m1, cm);
+        }
+        gl.uniformMatrix4fv(this.shaderInformation.perspectiveMatrix, false, m1);
+        this.canvasHeight = gl.canvas.height;
+        this.canvasWidth = gl.canvas.width;
+        // }
+    }
+
+    initLookAtTarget(defaultDepth) {
+        if (this.lookTarget.x === undefined) {
+            this.lookTarget.x = 0;
+        }
+        if (this.lookTarget.y === undefined) {
+            this.lookTarget.y = 0;
+        }
+        if (this.lookTarget.z === undefined) {
+            this.lookTarget.z = defaultDepth;
         }
     }
 
@@ -549,10 +641,11 @@ export default class WebGLRender {
 
     init() {
         let gl = this.gl;
-        this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
         this.gl.enable(this.gl.BLEND);
+        this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
         if (this.enableDepthTest) {
             gl.enable(gl.DEPTH_TEST);
+            gl.depthFunc(gl.LEQUAL);
         } else {
             this.gl.disable(this.gl.DEPTH_TEST);
         }
@@ -560,6 +653,7 @@ export default class WebGLRender {
         let program = this[_program];
         this.shaderInformation = this.initShaderInformation(program);
         this.textureManager = new TextureManager(801, 801, 10, 4);
+        this.initProjectionMatrix();
     }
 
     // setPerspective(viewAngel, near, far) {
