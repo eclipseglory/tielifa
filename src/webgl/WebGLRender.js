@@ -1,4 +1,4 @@
-import TextureManager from "./TextureManager.js";
+import TextureManager from "../texture/TextureManager.js";
 import Mat4 from "../math/Mat4.js";
 
 let fsSource = `
@@ -335,11 +335,15 @@ export default class WebGLRender {
         this.gl.uniform1f(this.shaderInformation.enableLight, value);
     }
 
-    clean() {
+    clean(cleanTexture) {
         this.DEBUG_DRAW_COUNT = 0;
         this.gl.clearColor(0, 0, 0, 1);
         // this.gl.colorMask(false, false, false, true);
         this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
+        if (cleanTexture == null) cleanTexture = false;
+        if (cleanTexture) {
+            this.textureManager.clean();
+        }
     }
 
     initRending() {
@@ -601,22 +605,22 @@ export default class WebGLRender {
     }
 
     configTexture(textureIndex) {
-        if (textureIndex == undefined) textureIndex = -1;
+        if (textureIndex == null) textureIndex = -1;
         let gl = this.gl;
         let shaderInfo = this.shaderInformation;
         gl.uniform1i(shaderInfo.textureLocation, 0);
         let texture;
         let c;
-        if (textureIndex == -1) {
+        if (textureIndex === -1) {
             texture = shaderInfo.blackTexture;
             c = {width: 1, height: 1};
         } else {
             texture = this.textureManager.textureArray[textureIndex];
-            c = this.textureManager.imageDataArray[textureIndex];
+            c = {width: texture.width, height: texture.height};
         }
         gl.uniform2f(shaderInfo.singleCanvas, c.width, c.height);
         gl.activeTexture(gl.TEXTURE0 + 0);
-        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.bindTexture(gl.TEXTURE_2D, texture.glTexture);
     }
 
     createShaderProgram() {
@@ -652,7 +656,7 @@ export default class WebGLRender {
         this[_program] = this.createShaderProgram();
         let program = this[_program];
         this.shaderInformation = this.initShaderInformation(program);
-        this.textureManager = new TextureManager(801, 801, 10, 4);
+        this.textureManager = new TextureManager(801, gl, 10, 4);
         this.initProjectionMatrix();
     }
 

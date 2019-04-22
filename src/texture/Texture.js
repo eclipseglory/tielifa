@@ -2,27 +2,27 @@ export default class Texture {
     constructor(p) {
         p = p || {};
         this.id = p['id'];
-        if(p['x'] != undefined){
+        if (p['x'] != null) {
             this.x = p['x'];
-        }else{
+        } else {
             this.x = -1;
         }
 
-        if(p['y'] != undefined){
+        if (p['y'] != null) {
             this.y = p['y'];
-        }else{
+        } else {
             this.y = -1;
         }
 
-        if(p['width'] != undefined){
+        if (p['width'] != null) {
             this.width = p['width'];
-        }else{
+        } else {
             this.width = -1;
         }
 
-        if(p['height'] != undefined){
+        if (p['height'] != null) {
             this.height = p['height'];
-        }else{
+        } else {
             this.height = -1;
         }
 

@@ -3,6 +3,8 @@ export default class TempCanvas {
         if (typeof wx !== 'undefined') {
             return wx.createCanvas();
         }
-        return document.createElement('canvas');
+        let element = document.createElement('canvas');
+        element.id = "@_innerCanvas";
+        return element;
     }
 }

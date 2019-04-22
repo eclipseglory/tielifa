@@ -65,6 +65,12 @@ export default class Tools {
         return false;
     }
 
+    static addAllInArray(array, array2) {
+        for (let i = 0; i < array2.length; i++) {
+            array.push(array2[i]);
+        }
+    }
+
     static get littleEndian() {
         if (littleEndian === undefined) {
             // DataView是默认按照高位存放，这里要做判断，更改存放顺序

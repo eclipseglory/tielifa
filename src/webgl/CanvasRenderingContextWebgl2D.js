@@ -12,7 +12,7 @@ import GeometryTools from "../geometry/GeometryTools.js";
 import Vector2 from "../math/Vector2.js";
 import BMFontManager from "../font/BMFontManager.js";
 import LineToRectangle from "../geometry/LineToRectangle.js";
-import Texture from "./Texture.js";
+import Texture from "../texture/Texture.js";
 import Mat3 from "../math/Mat3.js";
 import VDO from "./VDO.js";
 
@@ -205,9 +205,9 @@ export default class CanvasRenderingContextWebgl2D {
     /**
      * clean all the path content and clear webgl depth buffer/color buffer
      */
-    clean() {
+    clean(cleanTexture) {
         this[_pathList].length = 0;
-        this.webglRender.clean();
+        this.webglRender.clean(cleanTexture);
     }
 
     /**
@@ -796,7 +796,7 @@ export default class CanvasRenderingContextWebgl2D {
         if (image instanceof Texture) {
             texture = image;
         } else {
-            texture = this.webglRender.textureManager.getTexture(image, this.gl, true);
+            texture = this.webglRender.textureManager.getTexture(image);
         }
         // let texture = this.webglRender.textureManager.getTexture(image, this.gl, true);
         let action = new RenderAction(RenderAction.ACTION_FILL);
@@ -922,13 +922,13 @@ export default class CanvasRenderingContextWebgl2D {
         return {width: width * scale};
     }
 
-    fillText(text, x, y, maxWidth) {
-        let font = this.fontFamily;
-        font = font.trim().toLocaleLowerCase();
-        let bmfont = this.fontManager.getBMFont(font);
-        if (bmfont == undefined) {
-            throw new Error('TieLiFa can not find the font:' + font + ',you can register the BM Font with API');
+    fillTextWithBMFont(text, x, y, maxWidth, depth, bmfont) {
+        if (bmfont == null) {
+            let font = this.fontFamily;
+            font = font.trim().toLocaleLowerCase();
+            bmfont = this.fontManager.getBMFont(font);
         }
+
         let string = text;
         let fontSize = this.fontSize;
         let scale = fontSize / bmfont.size;
@@ -978,11 +978,23 @@ export default class CanvasRenderingContextWebgl2D {
             let img = this.fontManager.getFontImage(font, c.page);
             if (img == null || img == undefined) continue;
             if (id != SPACE_CHAR_ID) {
-                this.drawImage(img, c.x, c.y, c.width, c.height, x + c.xoffset * sw, y + c.yoffset, w, h, 0, fillColor);
+                this.drawImage(img, c.x, c.y, c.width, c.height, x + c.xoffset * sw, y + c.yoffset, w, h, depth, fillColor);
             }
             x += c.xadvance * sw;
         }
         this.restore();
+    }
+
+    fillText(text, x, y, maxWidth, depth) {
+        if (depth == null) depth = 0;
+        let font = this.fontFamily;
+        font = font.trim().toLocaleLowerCase();
+        let bmfont = this.fontManager.getBMFont(font);
+        if (bmfont != null) {
+            this.fillTextWithBMFont(text, x, y, maxWidth, depth, bmfont);
+        } else {
+
+        }
     }
 
     fillRect(x, y, w, h, depth) {
@@ -1321,7 +1333,7 @@ export default class CanvasRenderingContextWebgl2D {
         let offset = vod.currentIndex;
         let texture = null;
         if (image) {
-            texture = this.webglRender.textureManager.getTexture(image, this.gl, true);
+            texture = this.webglRender.textureManager.getTexture(image);
         }
         let plusTextureWidth = 0;
         let plusTextureHeight = 0;
