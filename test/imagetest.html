@@ -37,9 +37,18 @@
         let img = evt.target;
         loadedResrouce++;
         if (loadedResrouce >= resources.length) {
-            fillTest(ctx);
-            fillTest(ctx2);
+            // fillTest(ctx);
+            // fillTest(ctx2);
+            repeat();
         }
+    }
+
+    function repeat(){
+        ctx.save();
+        ctx.clean();
+        fillTest(ctx);
+        ctx.restore();
+        requestAnimationFrame(repeat);
     }
 
     function fillTest(ctx) {
@@ -78,9 +87,10 @@
         ctx.fill();
 
         ctx.drawImage(imgs[0],0,0,100,100);
+        ctx.drawImage(imgs[0],-100,-100,100,100);
         ctx.fillStyle = 'yellow';
         ctx.fillRect(100,10,100,100);
-        ctx.drawImage(imgs[1],100,0,100,100);
+        ctx.drawDynamicImage(imgs[1],100,0,100,100);
         ctx.fillRect(200,10,100,100);
         ctx.drawImage(imgs[2],200,0,100,100);
         if (ctx.draw) {

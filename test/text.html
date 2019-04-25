@@ -12,49 +12,65 @@
     // import BMFontReader
 
 
-    import BMFontParser from "../src/font/BMFontParser.js";
     import CanvasRenderingContextWebgl2D from "../src/webgl/CanvasRenderingContextWebgl2D.js";
-    import Color from "../src/utils/Color.js";
-    import BMFontManager from "../src/font/BMFontManager.js";
+    import TextTools from "../src/text/TextTools.js";
 
-    let url = '/test/test.file';
-    console.log(url);
-    url = url.replace(/\\/g, '/');
-    console.log(url);
-    let parent = 'no';
-    let index = url.lastIndexOf('/');
-    if (index != -1) {
-        parent = url.slice(0, index);
-    }
-    console.log(parent);
     createCompareCanvas();
     let gl = new CanvasRenderingContextWebgl2D(webgl, {projectionType: 1});
-    gl.loadBMFont("fonts/chinese.fnt", {
-        success: function () {
-            drawText(gl);
-            drawText(ctx);
-        }
-    });
     let ctx = canvas.getContext('2d');
+    let fontsize = 32;
+    let count = 0;
+    let r = 0;
+    repeat();
 
     function drawText(ctx) {
+        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
         // ctx.translate(100,100);
         // ctx.rotate(45*Math.PI/180);
-        let text = '醉';
+        ctx.save();
+        let text = fontsize.toString() + " dafda dfadfa 这个是中文";
         let rate = 103 / 128;
-        ctx.font = '32px 宋体';
+        ctx.translate(ctx.canvas.width / 2, ctx.canvas.height / 2);
+        ctx.rotate(r * Math.PI / 180);
+        if(ctx.rotateX){
+            ctx.rotateX(r * Math.PI / 180);
+        }
+        ctx.translate(-ctx.canvas.width / 2, -ctx.canvas.height / 2);
         ctx.fillStyle = 'yellow';
-        ctx.fontSize = 128;
-        ctx.fontFamily = 'songti'
-        let width = ctx.measureText(text).width;
-        console.log(ctx.textBaseline);
-        console.log(ctx.textAlign);
+        ctx.fontSize = 32;
+        ctx.fontFamily = 'arial';
+        ctx.fontWeight = 'bold';
+        // ctx.fontStyle = 'italic';
+        let fontString = TextTools.getFontString(ctx.fontSize, ctx.fontFamily, ctx.fontWeight, ctx.fontStyle);
+        ctx.font = fontString;
+        ctx.globalAlpha = 0.5;
         ctx.textBaseline = 'top';
-        ctx.textAlign = 'left';
-        ctx.fillStyle = 'red';
-        ctx.fillText(text, 100, 100);
+        ctx.textAlign = 'start';
+        ctx.fillText(text, ctx.canvas.width / 2, ctx.canvas.height / 2);
+        ctx.restore();
+        // let width = ctx.measureBMText(text).width;
+        // console.log(ctx.textBaseline);
+        // console.log(ctx.textAlign);
+
+        // ctx.fillStyle = 'red';
+        // ctx.fillText(text, 100, 100);
         if (ctx.draw)
             ctx.draw();
+    }
+
+    function repeat() {
+        drawText(gl);
+        drawText(ctx);
+        count++;
+        r++;
+        if (r >= 360) {
+            r = 0;
+        }
+        if (count >= 60) {
+            count = 0;
+            fontsize++;
+        }
+        requestAnimationFrame(repeat);
     }
 
 
