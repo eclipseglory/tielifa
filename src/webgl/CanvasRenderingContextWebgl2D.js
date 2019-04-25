@@ -15,6 +15,8 @@ import LineToRectangle from "../geometry/LineToRectangle.js";
 import Texture from "../texture/Texture.js";
 import Mat3 from "../math/Mat3.js";
 import VDO from "./VDO.js";
+import TempCanvas from "../texture/TempCanvas.js";
+import TextTools from "../text/TextTools.js";
 
 let _canvas = Symbol('对应的Canvas');
 let _stateStack = Symbol('状态栈');
@@ -33,7 +35,7 @@ const WHITE_COLOR = [255, 255, 255];
 let TEMP_VERTEX_COORD4DIM_ARRAY = [new Float32Array(4), new Float32Array(4), new Float32Array(4), new Float32Array(4)];
 export default class CanvasRenderingContextWebgl2D {
     constructor(canvas, properties) {
-        if (properties == null || properties == undefined) properties = [];
+        properties = properties || [];
         for (let i = 0; i < TEMP_VERTEX_COORD4DIM_ARRAY.length; i++) {
             // w要设为1
             TEMP_VERTEX_COORD4DIM_ARRAY[i][3] = 1;
@@ -42,26 +44,23 @@ export default class CanvasRenderingContextWebgl2D {
         FACE_NORMAL4[3] = 1;
         ORI_NORMAL4[3] = 1;
         this[_canvas] = canvas;
-        if (canvas == null || canvas == undefined) throw new Error('canvas can not be undefined or null');
+        if (canvas == null) throw new Error('canvas can not be undefined or null');
         this.gl = canvas.getContext('webgl');
-        if (this.gl == undefined) throw new Error('Current canvas doesnt support WebGL');
-        let FOV = properties['FOV'] || 40;
+        if (this.gl == null) throw new Error('Current canvas doesnt support WebGL');
         this.maxBufferByteLength = properties['maxMemorySize'] || 1024 * 1024;
         this[_stateStack] = [];
         this[_pathList] = [];
         this[_renderActionList] = [];
         this[_subpathCatch] = [];
-        this.webglRender = new WebGLRender(this.gl,
-            properties['maxTransformNum'],
-            properties['maxTextureSize'],
-            properties['projectionType'],
-            FOV,
-            properties['enableLight'],
-            properties['enableDepthTest']
-        );
+        this._tempCanvas = new TempCanvas();
+        properties.tempCanvas = this._tempCanvas;
+        this.webglRender = new WebGLRender(this.gl, properties);
         let maxVertexNumber = this.maxBufferByteLength / 32;
+        this._mixOpacity = properties['mixOpacity'];// 这个属性是规定是否要让vdo对象将透明和不透明分开
+        if (this._mixOpacity == null) this._mixOpacity = false;
 
-        this.vdo = new VDO(maxVertexNumber);
+        this.vdo = new VDO(maxVertexNumber, maxVertexNumber, this._mixOpacity);
+
         this.webglRender.vdo = this.vdo;
         this.currentFaceNormal = new Float32Array(4);
         this.originalFaceNormal = new Float32Array(3);
@@ -74,14 +73,6 @@ export default class CanvasRenderingContextWebgl2D {
         this.fontManager = new BMFontManager();
 
         this._tempVDO = null;
-        // this.tempVDOArrays = {
-        //     verticesData: null,
-        //     fragmentData: null,
-        //     indexData: null,
-        //     transformMatrixData: null
-        // };
-
-
     }
 
     get defaultDepth() {
@@ -139,6 +130,22 @@ export default class CanvasRenderingContextWebgl2D {
         Mat4.mat4ToMat3(m, TEMP_TRANFORM_MAT3);
         Mat3.multiplyWithVertex(this.currentFaceNormal, TEMP_TRANFORM_MAT3, this.originalFaceNormal);
         return this.currentFaceNormal;
+    }
+
+    get fontWeight() {
+        return this.currentContextState.canvasDrawingStyle.fontWeight;
+    }
+
+    set fontWeight(v) {
+        this.currentContextState.canvasDrawingStyle.fontWeight = v;
+    }
+
+    get fontStyle() {
+        return this.currentContextState.canvasDrawingStyle.fontStyle;
+    }
+
+    set fontStyle(v) {
+        this.currentContextState.canvasDrawingStyle.fontStyle = v;
     }
 
     get fontFamily() {
@@ -205,9 +212,9 @@ export default class CanvasRenderingContextWebgl2D {
     /**
      * clean all the path content and clear webgl depth buffer/color buffer
      */
-    clean(cleanTexture) {
+    clean(clearAllTexture) {
         this[_pathList].length = 0;
-        this.webglRender.clean(cleanTexture);
+        this.webglRender.clean(clearAllTexture);
     }
 
     /**
@@ -789,22 +796,22 @@ export default class CanvasRenderingContextWebgl2D {
 
     /*********************** 绘制 *///////////////
 
-    drawImage(image, srcX, srcY, srcWidth, srcHeight,
-              dstX, dstY, dstWidth, dstHeight, depth, color) {
+
+    drawDynamicImage(image, srcX, srcY, srcWidth, srcHeight,
+                     dstX, dstY, dstWidth, dstHeight, depth, color) {
         depth = depth || 0;
         let texture;
         if (image instanceof Texture) {
             texture = image;
         } else {
-            texture = this.webglRender.textureManager.getTexture(image);
+            texture = this.webglRender.textureManager.getTexture(image, null, true);
         }
-        // let texture = this.webglRender.textureManager.getTexture(image, this.gl, true);
         let action = new RenderAction(RenderAction.ACTION_FILL);
         action.textureIndex = texture.index;
         let left, top, right, bottom; // 图形对应矩形的四个点
         let tx, ty, tr, tb; // 贴图对应的四个点
         // 只有x,y传入的调用
-        if (arguments.length == 3) {
+        if (arguments.length === 3) {
             left = srcX;
             top = srcY;
             right = srcX + image.width;
@@ -814,7 +821,7 @@ export default class CanvasRenderingContextWebgl2D {
             ty = texture.y;
             tb = (texture.y + texture.height);
         }
-        if (arguments.length == 4) {
+        if (arguments.length === 4) {
             left = srcX;
             top = srcY;
             right = srcX + image.width;
@@ -826,7 +833,7 @@ export default class CanvasRenderingContextWebgl2D {
             depth = srcWidth;
         }
         // 有x,y,width,height传入的调用
-        if (arguments.length == 5) {
+        if (arguments.length === 5) {
             left = srcX;
             top = srcY;
             right = srcX + srcWidth;
@@ -836,7 +843,7 @@ export default class CanvasRenderingContextWebgl2D {
             ty = texture.y;
             tb = (texture.y + texture.height);
         }
-        if (arguments.length == 6) {
+        if (arguments.length === 6) {
             left = srcX;
             top = srcY;
             right = srcX + srcWidth;
@@ -848,7 +855,7 @@ export default class CanvasRenderingContextWebgl2D {
             depth = dstX;
         }
         // 有9或10个参数传入的调用，即要调整贴图坐标
-        if (arguments.length == 9 || arguments.length == 10 || arguments.length == 11) {
+        if (arguments.length === 9 || arguments.length === 10 || arguments.length === 11) {
             left = dstX;
             top = dstY;
             right = dstX + dstWidth;
@@ -872,12 +879,79 @@ export default class CanvasRenderingContextWebgl2D {
         texCoordArray[3] = ([tx, tb]);// 左下角
         color = color || WHITE_COLOR; //白色，在glsl里会成为一个1,1,1的向量，这样就不会改变贴图数据了
         action.vdo = this.vdo;
-        // let vdo = this.getVDOArrays();
-        // action.verticesData = vdo.verticesData;
-        // action.fragmentData = vdo.fragmentData;
-        // action.indexData = vdo.indexData;
         action.collectVertexDataForFill(pathList, color, opacity, texCoordArray, this.currentContextState.filterType
-            , this.currentFaceVector);
+            , this.currentFaceVector, texture.opacity);
+    }
+
+    drawImage(image, srcX, srcY, srcWidth, srcHeight,
+              dstX, dstY, dstWidth, dstHeight, depth, color) {
+
+        let texture;
+        if (image instanceof Texture) {
+            texture = image;
+        } else {
+            texture = this.webglRender.textureManager.getTexture(image);
+        }
+        let action = new RenderAction(RenderAction.ACTION_FILL);
+        action.textureIndex = texture.index;
+        let left, top, right, bottom; // 图形对应矩形的四个点
+        let tx, ty, tr, tb; // 贴图对应的四个点
+        // 只有x,y传入的调用
+        if (arguments.length === 3 || arguments.length === 4) {
+            left = srcX;
+            top = srcY;
+            right = srcX + image.width;
+            bottom = srcY + image.height;
+            tx = texture.x;
+            tr = (texture.x + texture.width);
+            ty = texture.y;
+            tb = (texture.y + texture.height);
+            depth = srcWidth;
+        }
+        // 有x,y,width,height传入的调用
+        if (arguments.length === 5 || arguments.length === 6) {
+            left = srcX;
+            top = srcY;
+            right = srcX + srcWidth;
+            bottom = srcY + srcHeight;
+            tx = texture.x;
+            tr = (texture.x + texture.width);
+            ty = texture.y;
+            tb = (texture.y + texture.height);
+            depth = dstX;
+        }
+        // 有9或10个参数传入的调用，即要调整贴图坐标
+        if (arguments.length >= 9) {
+            left = dstX;
+            top = dstY;
+            right = dstX + dstWidth;
+            bottom = dstY + dstHeight;
+            tx = (texture.x + srcX);
+            tr = (texture.x + srcX + srcWidth);
+            ty = (texture.y + srcY);
+            tb = (texture.y + srcY + srcHeight);
+        }
+
+        depth = depth || 0;
+
+        this.beginPath();
+        this.rect(left, top, right - left, bottom - top, depth);
+        this.currentPath.subPathArray[this.currentPath.subPathNumber - 2].isRegularRect = true;
+        let opacity = this.currentContextState.globalAlpha;
+        let pathList = this[_pathList];
+        this[_renderActionList].push(action);
+        let texCoordArray = new Array(4);
+        texCoordArray[0] = ([tx, ty]);// 左上角
+        texCoordArray[1] = ([tr, ty]);// 右上角
+        texCoordArray[2] = ([tr, tb]);// 右下角
+        texCoordArray[3] = ([tx, tb]);// 左下角
+        color = color || WHITE_COLOR; //白色，在glsl里会成为一个1,1,1的向量，这样就不会改变贴图数据了
+        action.vdo = this.vdo;
+        if (color != WHITE_COLOR) {
+            color = Color.getInstance().convertStringToColor(color);
+        }
+        action.collectVertexDataForFill(pathList, color, opacity, texCoordArray, this.currentContextState.filterType
+            , this.currentFaceVector, texture.opacity);
     }
 
 
@@ -896,12 +970,12 @@ export default class CanvasRenderingContextWebgl2D {
             this.currentContextState.filterType, this.currentFaceVector);
     }
 
-    measureText(text, bmfont) {
-        if (bmfont == undefined) {
+    measureBMText(text, bmfont) {
+        if (bmfont == null) {
             let font = this.fontFamily;
             font = font.trim().toLocaleLowerCase();
             bmfont = this.fontManager.getBMFont(font);
-            if (bmfont == undefined) {
+            if (bmfont == null) {
                 throw new Error('TieLiFa can not find the font:' + font + ',you can register the BM Font with API');
             }
         }
@@ -922,6 +996,16 @@ export default class CanvasRenderingContextWebgl2D {
         return {width: width * scale};
     }
 
+    /**
+     * FIXME 测量结果和实际生成的texture宽度总和是有误差的，这个要改改
+     * @param text
+     * @returns {{}}
+     */
+    measureText(text) {
+        let canvas = this._tempCanvas;
+        return TextTools.measureText(canvas, text, this.fontSize, this.fontFamily, this.fontWeight, this.fontStyle);
+    }
+
     fillTextWithBMFont(text, x, y, maxWidth, depth, bmfont) {
         if (bmfont == null) {
             let font = this.fontFamily;
@@ -940,7 +1024,7 @@ export default class CanvasRenderingContextWebgl2D {
         let fillColor = Color.getInstance().convertStringToColor(this.currentContextState.fillStyle);
         let textBase = this.textBaseline;
         let textAlign = this.textAlign;
-        let totalWidth = this.measureText(text, bmfont);
+        let totalWidth = this.measureBMText(text, bmfont);
         let sw = 1;
         let realWidth = totalWidth.width;
         if ((maxWidth != null) && (maxWidth < totalWidth.width)) {
@@ -978,22 +1062,101 @@ export default class CanvasRenderingContextWebgl2D {
             let img = this.fontManager.getFontImage(font, c.page);
             if (img == null || img == undefined) continue;
             if (id != SPACE_CHAR_ID) {
-                this.drawImage(img, c.x, c.y, c.width, c.height, x + c.xoffset * sw, y + c.yoffset, w, h, depth, fillColor);
+                this.drawImage(img, c.x, c.y, c.width, c.height,
+                    x + c.xoffset * sw, y + c.yoffset, w, h, depth, fillColor);
             }
             x += c.xadvance * sw;
         }
         this.restore();
     }
 
+    /**
+     * FIXME italic类型的字符绘制会出现显示不全，这是因为生成的texture宽度没有计算正确。就算计算正确了也没有解决每个字符之间的间距问题
+     * @param text
+     * @param x
+     * @param y
+     * @param maxWidth
+     * @param depth
+     */
     fillText(text, x, y, maxWidth, depth) {
         if (depth == null) depth = 0;
-        let font = this.fontFamily;
-        font = font.trim().toLocaleLowerCase();
-        let bmfont = this.fontManager.getBMFont(font);
-        if (bmfont != null) {
-            this.fillTextWithBMFont(text, x, y, maxWidth, depth, bmfont);
-        } else {
+        let textureManager = this.webglRender.textureManager;
+        let string = text;
+        let fontMetrics = TextTools.measureFont(this._tempCanvas, this.fontFamily, this.fontWeight, this.fontStyle);
+        let lineMaxWidth = 0;
+        let stringArray = TextTools.splitTextWithNewlineChar(string);
+        let lineArray = [];
+        for (let i = 0; i < stringArray.length; i++) {
+            let line = {lineWidth: 0, textures: [], scale: 1};
+            lineArray.push(line);
+            let s = stringArray[i];
+            for (let j = 0; j < s.length; j++) {
+                let code = s.charCodeAt(j);
 
+                if (TextTools.isNewLineChar(code)) {
+                    code = TextTools.SPACE_CHAR_CODE;
+                }
+                if (TextTools.isSpacesChar(code)) {
+                    let spaceWidth = fontMetrics.spaceCharWidthCent[code] * this.fontSize;
+                    line.lineWidth += Math.floor(spaceWidth); //之前的计算都是四舍五入，这里截断，有可能会缩小误差哟
+                    line.textures.push(spaceWidth);
+                    continue;
+                }
+
+                let char = String.fromCharCode(code);
+                let textureId = char + "@" + fontMetrics.id + "_" + this.fontSize.toString();
+                let texture = textureManager.getTextureById(textureId);
+                if (texture == null) {
+                    let canvas = this._tempCanvas;
+                    TextTools.draw2dText(canvas, char, this.fontSize, this.fontFamily, this.fontWeight, this.fontStyle);
+                    texture = textureManager.createTexture(canvas, textureId);
+                }
+                line.textures.push(texture);
+                line.lineWidth += texture.width;
+            }
+            lineMaxWidth = Math.max(lineMaxWidth, line.lineWidth);
+        }
+        if (maxWidth != null) {
+            if (lineMaxWidth > maxWidth) {
+                lineMaxWidth = maxWidth;
+            }
+        }
+        let lineHeight = Math.ceil(fontMetrics.fontSize * this.fontSize);
+        let baseLine = this.textBaseline;
+        let textAlign = this.textAlign;
+        let totalHeight = lineArray.length * lineHeight;
+
+        let startX = x;
+        let startY = y;
+        let sx = startX;
+        let sy = startY;
+        for (let i = 0; i < lineArray.length; i++) {
+            let line = lineArray[i];
+            let lineWidth = line.lineWidth;
+            if (maxWidth != null) {
+                if (maxWidth < lineWidth) {
+                    line.scale = maxWidth / lineWidth;
+                    lineWidth = maxWidth;
+                }
+            }
+            sx = startX;
+            sy = y + lineHeight * i;
+            let offset = TextTools.getStartPointOffset(baseLine, textAlign, this.fontSize,
+                fontMetrics, lineWidth);
+            sx += offset.x;
+            sy += offset.y;
+            for (let k = 0; k < line.textures.length; k++) {
+                let t = line.textures[k];
+                if (t instanceof Texture) {
+                    let w = t.width * line.scale;
+                    this.drawImage(t, 0, 0, t.width, t.height,
+                        sx, sy, w, t.height,
+                        depth, this.fillStyle);
+                    sx += w;
+                } else {
+                    sx += t * line.scale;
+                }
+            }
         }
     }
 
@@ -1155,7 +1318,7 @@ export default class CanvasRenderingContextWebgl2D {
     copyGraphicsVDO(graphics, out) {
         let vdo = graphics.vdo;
         if (out == null) {
-            out = new VDO(vdo.verticesData.currentIndex, vdo.indexData.currentIndex);
+            out = new VDO(vdo.verticesData.currentIndex, vdo.indexData.currentIndex, this._mixOpacity);
         }
         out.verticesData.copyFrom(vdo.verticesData);
         out.fragmentData.copyFrom(vdo.fragmentData);
@@ -1233,7 +1396,7 @@ export default class CanvasRenderingContextWebgl2D {
             graphics.actionList.length = 0;
         } else {
             graphics = {
-                vdo: new VDO(vertexNum),
+                vdo: new VDO(vertexNum, vertexNum, this._mixOpacity),
                 transformMatrixData: null,
                 actionList: []
             };
@@ -1334,6 +1497,7 @@ export default class CanvasRenderingContextWebgl2D {
         let texture = null;
         if (image) {
             texture = this.webglRender.textureManager.getTexture(image);
+            vod.switch(opacity < 1 || texture.opacity);
         }
         let plusTextureWidth = 0;
         let plusTextureHeight = 0;
@@ -1440,26 +1604,21 @@ export default class CanvasRenderingContextWebgl2D {
         this.webglRender.executeRenderAction(this[_renderActionList]);
         this[_renderActionList] = [];
         this.vdo.init();
+        this.webglRender.textureManager.clean();
         this._painedGraphicsMap = {};
         // debug:
         // console.log("绘制调用次数：", this.webglRender.DEBUG_DRAW_COUNT);
     }
 
     loadImage(src, callbacks, split, id) {
-        this.webglRender.textureManager.registerTexture(id, this.gl, null, src, callbacks, split);
+        throw new Error('this methods was not implemented');
+        // this.webglRender.textureManager.registerTexture(id, this.gl, null, src, callbacks, split);
     }
 
     getTexture(id, index) {
         return this.webglRender.textureManager.getTextureById(id, index);
     }
 
-    /**
-     * 清除所有当前生成贴图数据的image以及对应的imageData
-     * 慎用！
-     */
-    clearImageCatches() {
-        this.webglRender.textureManager.cleanImageData();
-    }
 
     /**********************************************3d部分绘制*****************************************/
 
