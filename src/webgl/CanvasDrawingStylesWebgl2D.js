@@ -17,6 +17,8 @@ export default class CanvasDrawingStylesWebgl2D {
         this.textBaseline = 'alphabetic';
         this.fontFamily = 'Arial';
         this.fontSize = 32;
+        this.fontWeight = null;
+        this.fontStyle = null;
     }
 
     get lineCap() {
@@ -95,6 +97,8 @@ export default class CanvasDrawingStylesWebgl2D {
         c.lineWidth = this.lineWidth;
         c.fontFamily = this.fontFamily;
         c.fontSize = this.fontSize;
+        c.fontStyle = this.fontStyle;
+        c.fontWeight = this.fontWeight;
         return c;
     }
 }
