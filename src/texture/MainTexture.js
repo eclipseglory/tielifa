@@ -206,7 +206,7 @@ export default class MainTexture {
             height: img.height,
             page: this.index
         });
-        // this.textures.push(texture);
+        this.textures.push(texture);
         this.splitRegion(img, this.constId, re, this.regions);
         return texture;
     }
