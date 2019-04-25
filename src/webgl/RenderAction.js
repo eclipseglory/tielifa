@@ -28,26 +28,19 @@ export default class RenderAction {
         return ACTION_FILL;
     }
 
-    collectVertexDataForStroke(pathList, color, opacity, textureCoord, lineWidth, filterType, faceDirection) {
+    collectVertexDataForStroke(pathList, color, opacity, textureCoord, lineWidth, filterType, faceDirection, useOpacity) {
         let that = this;
-        this.vdo.switch(opacity < 1);
+        if (useOpacity == null) useOpacity = false;
+        if (opacity < 1) {
+            useOpacity = true;
+        }
+        this.vdo.switch(useOpacity);
         let outputInterface = {
             setPoint: function (p, index) {
                 that.vdo.setVerticesCoor2(p, index + outputInterface.offset);
-                // that.verticesData.setVerticesCoor(p.x, p.y, p.z, index + outputInterface.offset);
             },
             addPoint: function (p) {
                 that.vdo.addVerticesData3(p.x, p.y, p.z, faceDirection, color, opacity, textureCoord, -1, filterType)
-                // if (that.verticesData != null) {
-                //     that.verticesData.addVerticesData(p.x, p.y, p.z, faceDirection[0], faceDirection[1], faceDirection[2]);
-                // }
-                // if (that.fragmentData != null) {
-                //     that.fragmentData.addFragmentData(color[0], color[1], color[2], opacity, textureCoord[0], textureCoord[1], -1, filterType);
-                // }
-                // if (that.transformData != null) {
-                //     // 记录转换矩阵数据
-                //     that.transformData.addMatrixIndex(0);
-                // }
             }
         };
 
@@ -90,7 +83,7 @@ export default class RenderAction {
                     indexData.addIndex(outputInterface.offset + index + 3);
                     indexData.addIndex(outputInterface.offset + index);
                 }
-                if (opacity >= 1) {
+                if (!useOpacity) {
                     this.renderPointNumber += lineNum * 6;
                 } else {
                     this.opacityPointNumber += lineNum * 6;
@@ -100,9 +93,11 @@ export default class RenderAction {
         this.vdo.switch(false);
     }
 
-    collectVertexDataForFill(pathList, color, opacity, textureCoord, filterType, faceDirection) {
+    collectVertexDataForFill(pathList, color, opacity, textureCoord, filterType, faceDirection, useOpacity) {
         let indexData = null;
-        this.vdo.switch(opacity < 1);
+        if (useOpacity == null) useOpacity = false;
+        if(opacity < 1) useOpacity = true;
+        this.vdo.switch(useOpacity);
         for (let i = 0; i < pathList.length; i++) {
             let path = pathList[i];
             if (path.subPathNumber === 0) {
@@ -129,7 +124,7 @@ export default class RenderAction {
                         }
                     }
                 }
-                if (opacity >= 1) {
+                if (!useOpacity) {
                     this.renderPointNumber += vertexOrg.length;
                 } else {
                     this.opacityPointNumber += vertexOrg.length;
