@@ -1,5 +1,6 @@
 import TextureManager from "../texture/TextureManager.js";
 import Mat4 from "../math/Mat4.js";
+import TempCanvas from "../texture/TempCanvas.js";
 
 let fsSource = `
   precision mediump float;
@@ -284,7 +285,8 @@ let fsSource = `
 let _program = Symbol('WebGL的program');
 let _maxTransformMatrixNum = Symbol('转换矩阵变量可用的最大数量');
 export default class WebGLRender {
-    constructor(gl, maxTransformNum, textureMaxSize, projectionType, fov, enableLight, enableDepthTest) {
+    constructor(gl, p) {
+        p = p || {};
         this.gl = gl;
         this.DEBUG_DRAW_COUNT = 0;
         this.defaultTransformMatrix = Mat4.identity();
@@ -292,15 +294,17 @@ export default class WebGLRender {
         this.perspectiveMatrix = Mat4.identity();
         this.cameraPosition = {x: 0, y: 0, z: 0};
         this.lookTarget = {x: undefined, y: undefined, z: undefined};
-        projectionType = projectionType || 0;
-        textureMaxSize = textureMaxSize || gl.getParameter(this.gl.MAX_TEXTURE_SIZE);
+        let projectionType = p['projectionType'] || 0;
+
+        let textureMaxSize = p['textureMaxSize'] || gl.getParameter(this.gl.MAX_TEXTURE_SIZE);
         let maxVectors = gl.getParameter(gl.MAX_VERTEX_UNIFORM_VECTORS);
         // 顶点作色器里已经用了一个mat4了，就是4个vector,减去这4个然后除以4就得到可以定义的最大mat4数组
-        maxTransformNum = maxTransformNum || Math.floor((maxVectors - 4) / 4);
+        let maxTransformNum = p['maxTransformNum'] || Math.floor((maxVectors - 4) / 4);
         // debug:
         maxTransformNum = 2;
         this[_maxTransformMatrixNum] = maxTransformNum;
-        this.enableDepthTest = enableDepthTest || false;
+        this.enableDepthTest = p['enableDepthTest'];
+        if (this.enableDepthTest == null) this.enableDepthTest = false;
         this.textureManager = null;
         this.vdo = null;
         // this.verticesData = null;
@@ -314,12 +318,14 @@ export default class WebGLRender {
         this.lightPosition[1] = gl.canvas.height / 2;
         this.lightPosition[2] = 0;
         this.projectionType = projectionType;
-        this.fov = fov;
+        this.fov = p['fov'] || 40;
         this.defaultDepth = 0;
+        this.tempCanvas = p['tempCanvas'] || new TempCanvas();
         this.init();
         this.textureManager.maxHeight = textureMaxSize;
         this.textureManager.maxWidth = this.textureManager.maxHeight;
-        enableLight = enableLight || false;
+        let enableLight = p['enableLight'];
+        if (enableLight == null) enableLight = false;
         this.enableLight(enableLight);
 
     }
@@ -335,15 +341,12 @@ export default class WebGLRender {
         this.gl.uniform1f(this.shaderInformation.enableLight, value);
     }
 
-    clean(cleanTexture) {
+    clean(clearAllTexture) {
         this.DEBUG_DRAW_COUNT = 0;
         this.gl.clearColor(0, 0, 0, 1);
         // this.gl.colorMask(false, false, false, true);
         this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
-        if (cleanTexture == null) cleanTexture = false;
-        if (cleanTexture) {
-            this.textureManager.clean();
-        }
+        this.textureManager.clean(clearAllTexture);
     }
 
     initRending() {
@@ -617,10 +620,11 @@ export default class WebGLRender {
         } else {
             texture = this.textureManager.textureArray[textureIndex];
             c = {width: texture.width, height: texture.height};
+            texture = texture.glTexture;
         }
         gl.uniform2f(shaderInfo.singleCanvas, c.width, c.height);
         gl.activeTexture(gl.TEXTURE0 + 0);
-        gl.bindTexture(gl.TEXTURE_2D, texture.glTexture);
+        gl.bindTexture(gl.TEXTURE_2D, texture);
     }
 
     createShaderProgram() {
@@ -656,7 +660,7 @@ export default class WebGLRender {
         this[_program] = this.createShaderProgram();
         let program = this[_program];
         this.shaderInformation = this.initShaderInformation(program);
-        this.textureManager = new TextureManager(801, gl, 10, 4);
+        this.textureManager = new TextureManager(801, gl, 10, 4, this.tempCanvas);
         this.initProjectionMatrix();
     }
 
