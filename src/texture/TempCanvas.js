@@ -4,7 +4,6 @@ export default class TempCanvas {
             return wx.createCanvas();
         }
         let element = document.createElement('canvas');
-        element.id = "@_innerCanvas";
         return element;
     }
 }

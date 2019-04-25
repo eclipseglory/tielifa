@@ -3,13 +3,13 @@ import MainTexture from "./MainTexture.js";
 
 let _textureMap = Symbol('贴图表');
 export default class TextureManager {
-    constructor(maxSize, gl, maxTextureNum, space) {
+    constructor(maxSize, gl, maxTextureNum, space, tempCanvas) {
 
         if (gl == null) throw new Error('GL context can\'t be null');
         this.gl = gl;
         this.space = space || 3;
         // 一个离屏的canvas
-        this.canvas = new TempCanvas();
+        this.canvas = tempCanvas || new TempCanvas();
         this.ctx = this.canvas.getContext('2d');
 
         this.maxWidth = maxSize || 1;
@@ -17,6 +17,8 @@ export default class TextureManager {
         this.maxTextureNum = maxTextureNum || 1;
         this[_textureMap] = {};
         this.textureArray = new Array(this.maxTextureNum);
+        //动态贴图占总贴图的1/3
+        this.dynamicIndex = this.maxTextureNum - Math.floor(this.maxTextureNum / 3);
         for (let i = 0; i < this.textureArray.length; i++) {
             let mainTexture = new MainTexture({
                 width: this.maxWidth,
@@ -59,9 +61,6 @@ export default class TextureManager {
 
     }
 
-    createStringTexture(text) {
-
-    }
 
     getMapLength(map) {
         let size = 0, key;
@@ -71,11 +70,11 @@ export default class TextureManager {
         return size;
     }
 
-    getTexture(image, id) {
+    getTexture(image, id, dynamic) {
         if (id == null) id = image.src;
         let texture = this[_textureMap][id];
         if (texture == null) {
-            texture = this.createTexture(image, id);
+            texture = this.createTexture(image, id, dynamic);
         }
         return texture;
     }
@@ -88,8 +87,14 @@ export default class TextureManager {
         return t;
     }
 
-    clean() {
-        for (let i = 0; i < this.textureArray.length; i++) {
+    clean(clearAll) {
+        if (clearAll == null) clearAll = false;
+        let startIndex = this.dynamicIndex;
+        let endIndex = this.textureArray.length;
+        if (clearAll) {
+            startIndex = 0;
+        }
+        for (let i = startIndex; i < endIndex; i++) {
             let mainTexture = this.textureArray[i];
             mainTexture.regions.length = 0;
             mainTexture.constId = 0;
@@ -101,18 +106,34 @@ export default class TextureManager {
                 y: 1,
                 type: MainTexture.SINGLE_TYPE
             });
+            if (!clearAll) {
+                for (let k = 0; k < mainTexture.textures.length; k++) {
+                    let t = mainTexture.textures[k];
+                    delete this[_textureMap][t.id];
+                }
+            }
+            mainTexture.textures = [];
+
         }
-        this[_textureMap] = {};
+        if (clearAll)
+            this[_textureMap] = {};
     }
 
-    createTexture(image, id) {
-        if (id == null) id = image.src;
+    createTexture(drawable, id, dynamic) {
+        if (id == null) id = drawable.src;
         if (id == null) throw new Error('ID can not be null');
         let gl = this.gl;
+        if (dynamic == null) dynamic = false;
+        let startTextureIndex = 0;
+        let endTextureIndex = this.dynamicIndex;
+        if (dynamic) {
+            startTextureIndex = this.dynamicIndex;
+            endTextureIndex = this.textureArray.length;
+        }
         let mostFit = {value: -2, index: -1, region: null};
-        for (let i = 0; i < this.textureArray.length; i++) {
+        for (let i = startTextureIndex; i < endTextureIndex; i++) {
             let mainTexture = this.textureArray[i];
-            let fitInfo = mainTexture.getFitRegion(image);
+            let fitInfo = mainTexture.getFitRegion(drawable);
             if (fitInfo.value > mostFit.value) {
                 mostFit = fitInfo;
             }
@@ -120,19 +141,27 @@ export default class TextureManager {
         if (mostFit.index === -1)
             throw new Error('cannot find fit texture for this image, you can increase maxTextureNum to fix this issue');
         let mainTexture = this.textureArray[mostFit.index];
-        let canvas = this.canvas;
-        let ctx = this.ctx;
-        canvas.width = image.width;
-        canvas.height = image.height;
-        ctx.clearRect(0, 0, image.width, image.height);
-        ctx.drawImage(image, 0, 0);
+        let imgData = null;
+        if (drawable.getContext != null) {
+            // 说明drawable就是一个canvas
+            imgData = drawable;
+        } else {
+            let canvas = this.canvas;
+            let ctx = this.ctx;
+            canvas.width = drawable.width;
+            canvas.height = drawable.height;
+            ctx.clearRect(0, 0, drawable.width, drawable.height);
+            ctx.drawImage(drawable, 0, 0);
+            imgData = canvas;
+        }
+
         let region = mostFit.region;
         gl.bindTexture(gl.TEXTURE_2D, mainTexture.glTexture);
         // target, level, xoffset, yoffset, format, type, ImageData? pixels
-        gl.texSubImage2D(gl.TEXTURE_2D, 0, region.x, region.y, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
+        gl.texSubImage2D(gl.TEXTURE_2D, 0, region.x, region.y, gl.RGBA, gl.UNSIGNED_BYTE, imgData);
         gl.bindTexture(gl.TEXTURE_2D, null);
 
-        let texture = mainTexture.parkImageInRegion(image, mostFit.region);
+        let texture = mainTexture.parkImageInRegion(drawable, mostFit.region);
         texture.id = id;
 
         this[_textureMap][id] = texture;

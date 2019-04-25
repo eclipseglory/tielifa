@@ -1,6 +1,8 @@
 export default class Texture {
     constructor(p) {
         p = p || {};
+        this.opacity = p['opacity'];
+        if (this.opacity == null) this.opacity = true;
         this.id = p['id'];
         if (p['x'] != null) {
             this.x = p['x'];
