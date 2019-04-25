@@ -4,7 +4,7 @@ import FragmentData from "./FragmentData.js";
 import TransformMatrixData from "./TransformMatrixData.js";
 
 export default class VDO {
-    constructor(maxVerticesNumber, indexNumber) {
+    constructor(maxVerticesNumber, indexNumber, lockSwitch) {
         if (indexNumber == null) indexNumber = maxVerticesNumber;
         this.verticesData = new VerticesData(maxVerticesNumber);
         this.indexData = new IndexData(indexNumber);
@@ -16,6 +16,8 @@ export default class VDO {
         this.opacityFragmentData = new FragmentData(maxVerticesNumber);
         this.opacityTransformMatrixData = new TransformMatrixData(maxVerticesNumber);
         this.useOpacityBuffer = false;
+        this.lockSwitch = lockSwitch;
+        if (this.lockSwitch == null) this.lockSwitch = false;
     }
 
     get currentIndexData() {
@@ -60,6 +62,7 @@ export default class VDO {
     }
 
     switch(useOpacityBuffer) {
+        if (this.lockSwitch) return;
         this.useOpacityBuffer = useOpacityBuffer;
     }
 
@@ -76,7 +79,7 @@ export default class VDO {
     }
 
     _addVerticesFragmentData(x, y, z, nx, ny, nz, r, g, b, a, u, v, ti, ft) {
-        this.switch(a < 1);
+        // this.switch(a < 1);
         let vd = this.currentVerticesData;
         let fd = this.currentFragmentData;
         let index = vd.currentIndex;
