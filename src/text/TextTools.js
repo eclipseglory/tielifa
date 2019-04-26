@@ -59,6 +59,14 @@ export default class TextTools {
         return BASELINE_ALPHABETIC;
     }
 
+    static get BASELINE_TOP() {
+        return BASELINE_TOP;
+    }
+
+    static get ALIGN_CENTER(){
+        return ALIGN_CENTER;
+    }
+
     static getFontString(fontSize, fontFamily, fontWeight, fontStyle) {
         fontSize = (fontSize != null) ? fontSize : 32;
 

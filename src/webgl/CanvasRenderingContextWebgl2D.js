@@ -75,6 +75,10 @@ export default class CanvasRenderingContextWebgl2D {
         this._tempVDO = null;
     }
 
+    get textureManager() {
+        return this.webglRender.textureManager;
+    }
+
     get defaultDepth() {
         return this.webglRender.defaultDepth;
     }
@@ -1070,22 +1074,10 @@ export default class CanvasRenderingContextWebgl2D {
         this.restore();
     }
 
-    /**
-     * FIXME italic类型的字符绘制会出现显示不全，这是因为生成的texture宽度没有计算正确。就算计算正确了也没有解决每个字符之间的间距问题
-     * @param text
-     * @param x
-     * @param y
-     * @param maxWidth
-     * @param depth
-     */
-    fillText(text, x, y, maxWidth, depth) {
-        if (depth == null) depth = 0;
-        let textureManager = this.webglRender.textureManager;
-        let string = text;
-        let fontMetrics = TextTools.measureFont(this._tempCanvas, this.fontFamily, this.fontWeight, this.fontStyle);
-        let lineMaxWidth = 0;
-        let stringArray = TextTools.splitTextWithNewlineChar(string);
+    createTextlines(text, fontMetrics, textureManager) {
+        let stringArray = TextTools.splitTextWithNewlineChar(text);
         let lineArray = [];
+        let lineMaxWidth = 0;
         for (let i = 0; i < stringArray.length; i++) {
             let line = {lineWidth: 0, textures: [], scale: 1};
             lineArray.push(line);
@@ -1116,11 +1108,26 @@ export default class CanvasRenderingContextWebgl2D {
             }
             lineMaxWidth = Math.max(lineMaxWidth, line.lineWidth);
         }
-        if (maxWidth != null) {
-            if (lineMaxWidth > maxWidth) {
-                lineMaxWidth = maxWidth;
-            }
-        }
+        return {lineMaxWidth: lineMaxWidth, lineArray: lineArray};
+    }
+
+    /**
+     * FIXME italic类型的字符绘制会出现显示不全，这是因为生成的texture宽度没有计算正确。就算计算正确了也没有解决每个字符之间的间距问题
+     * @param text
+     * @param x
+     * @param y
+     * @param maxWidth
+     * @param depth
+     */
+    fillText(text, x, y, maxWidth, depth, textLines) {
+        if (depth == null) depth = 0;
+        let textureManager = this.webglRender.textureManager;
+        let string = text;
+        let fontMetrics = TextTools.measureFont(this._tempCanvas, this.fontFamily, this.fontWeight, this.fontStyle);
+        if (textLines == null)
+            textLines = this.createTextlines(string, fontMetrics, textureManager);
+        let lineArray = textLines.lineArray;
+
         let lineHeight = Math.ceil(fontMetrics.fontSize * this.fontSize);
         let baseLine = this.textBaseline;
         let textAlign = this.textAlign;
