@@ -28,19 +28,19 @@
         // ctx.translate(100,100);
         // ctx.rotate(45*Math.PI/180);
         ctx.save();
-        let text = fontsize.toString() + " dafda dfadfa 这个是中文";
+        let text = fontsize.toString() + " dafda\n dfadfa 这个是中文";
         let rate = 103 / 128;
         ctx.translate(ctx.canvas.width / 2, ctx.canvas.height / 2);
         ctx.rotate(r * Math.PI / 180);
         if(ctx.rotateX){
-            ctx.rotateX(r * Math.PI / 180);
+            // ctx.rotateX(r * Math.PI / 180);
         }
         ctx.translate(-ctx.canvas.width / 2, -ctx.canvas.height / 2);
         ctx.fillStyle = 'yellow';
         ctx.fontSize = 32;
-        ctx.fontFamily = 'arial';
+        ctx.fontFamily = '宋体';
         ctx.fontWeight = 'bold';
-        // ctx.fontStyle = 'italic';
+        ctx.fontStyle = 'italic';
         let fontString = TextTools.getFontString(ctx.fontSize, ctx.fontFamily, ctx.fontWeight, ctx.fontStyle);
         ctx.font = fontString;
         ctx.globalAlpha = 0.5;

@@ -71,7 +71,7 @@ export default class CanvasRenderingContextWebgl2D {
         this._tempGraphics = null;
         this._painedGraphicsMap = {};
         this.fontManager = new BMFontManager();
-
+        TextTools.defaultTextureManager = this.webglRender.textureManager;
         this._tempVDO = null;
     }
 
@@ -1074,45 +1074,8 @@ export default class CanvasRenderingContextWebgl2D {
         this.restore();
     }
 
-    createTextlines(text, fontMetrics, textureManager) {
-        let stringArray = TextTools.splitTextWithNewlineChar(text);
-        let lineArray = [];
-        let lineMaxWidth = 0;
-        for (let i = 0; i < stringArray.length; i++) {
-            let line = {lineWidth: 0, textures: [], scale: 1};
-            lineArray.push(line);
-            let s = stringArray[i];
-            for (let j = 0; j < s.length; j++) {
-                let code = s.charCodeAt(j);
-
-                if (TextTools.isNewLineChar(code)) {
-                    code = TextTools.SPACE_CHAR_CODE;
-                }
-                if (TextTools.isSpacesChar(code)) {
-                    let spaceWidth = fontMetrics.spaceCharWidthCent[code] * this.fontSize;
-                    line.lineWidth += Math.floor(spaceWidth); //之前的计算都是四舍五入，这里截断，有可能会缩小误差哟
-                    line.textures.push(spaceWidth);
-                    continue;
-                }
-
-                let char = String.fromCharCode(code);
-                let textureId = char + "@" + fontMetrics.id + "_" + this.fontSize.toString();
-                let texture = textureManager.getTextureById(textureId);
-                if (texture == null) {
-                    let canvas = this._tempCanvas;
-                    TextTools.draw2dText(canvas, char, this.fontSize, this.fontFamily, this.fontWeight, this.fontStyle);
-                    texture = textureManager.createTexture(canvas, textureId);
-                }
-                line.textures.push(texture);
-                line.lineWidth += texture.width;
-            }
-            lineMaxWidth = Math.max(lineMaxWidth, line.lineWidth);
-        }
-        return {lineMaxWidth: lineMaxWidth, lineArray: lineArray};
-    }
 
     /**
-     * FIXME italic类型的字符绘制会出现显示不全，这是因为生成的texture宽度没有计算正确。就算计算正确了也没有解决每个字符之间的间距问题
      * @param text
      * @param x
      * @param y
@@ -1123,12 +1086,11 @@ export default class CanvasRenderingContextWebgl2D {
         if (depth == null) depth = 0;
         let textureManager = this.webglRender.textureManager;
         let string = text;
-        let fontMetrics = TextTools.measureFont(this._tempCanvas, this.fontFamily, this.fontWeight, this.fontStyle);
         if (textLines == null)
-            textLines = this.createTextlines(string, fontMetrics, textureManager);
+            textLines = TextTools.createTextlines(string, this.fontSize, this.fontFamily, this.fontWeight, this.fontStyle, textureManager);
         let lineArray = textLines.lineArray;
-
-        let lineHeight = Math.ceil(fontMetrics.fontSize * this.fontSize);
+        let fontMetrics = TextTools.measureFont(this.fontFamily, this.fontWeight, this.fontStyle);
+        let lineHeight = Math.round(fontMetrics.fontSize * this.fontSize);
         let baseLine = this.textBaseline;
         let textAlign = this.textAlign;
         let totalHeight = lineArray.length * lineHeight;
@@ -1155,11 +1117,11 @@ export default class CanvasRenderingContextWebgl2D {
             for (let k = 0; k < line.textures.length; k++) {
                 let t = line.textures[k];
                 if (t instanceof Texture) {
-                    let w = t.width * line.scale;
+                    let textWidth = t.textWidth * line.scale;
                     this.drawImage(t, 0, 0, t.width, t.height,
-                        sx, sy, w, t.height,
+                        sx, sy, t.width * line.scale, t.height,
                         depth, this.fillStyle);
-                    sx += w;
+                    sx += textWidth;
                 } else {
                     sx += t * line.scale;
                 }

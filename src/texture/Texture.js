@@ -2,6 +2,9 @@ export default class Texture {
     constructor(p) {
         p = p || {};
         this.opacity = p['opacity'];
+        // 文字图片独有的属性
+        this.textWidth = p['textWidth'];
+        if(this.textWidth == null) this.textWidth = 0;
         if (this.opacity == null) this.opacity = true;
         this.id = p['id'];
         if (p['x'] != null) {

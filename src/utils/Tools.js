@@ -34,6 +34,22 @@ export default class Tools {
         return Math.abs(a - b) <= EPSILON;
     }
 
+    static createReadOnlyObject(input, out) {
+        for (let p in input) {
+            let v = input[p];
+            let v1 = v;
+            if (typeof v1 == 'object') {
+                v1 = {};
+                this.createReadOnlyObject(v, v1);
+            }
+            Object.defineProperty(out, p, {
+                get: function () {
+                    return v1;
+                }
+            });
+        }
+    }
+
     static insertSort(array) {
         let n = array.length;
         if (n <= 1) {
