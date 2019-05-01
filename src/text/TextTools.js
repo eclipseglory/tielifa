@@ -1,5 +1,6 @@
 import TempCanvas from "../texture/TempCanvas.js";
-
+const DEFAULT_FONTFAMILY = "arial";
+const ITALIC_FONTSTYLE = "italic";
 let TEMP_CANVAS = new TempCanvas("@_TEXTTOOLS_TEMPCANVAS");
 let _fontMetricsCatch = {};
 let TEST_CHAR = "É";
@@ -239,13 +240,13 @@ export default class TextTools {
         let canvas = TEMP_CANVAS;
         let fontSize = 100;
 
-        fontFamily = fontFamily || "arial";
-        fontFamily = fontFamily.trim().toLocaleLowerCase();
+        fontFamily = fontFamily || DEFAULT_FONTFAMILY;
+        // fontFamily = fontFamily.trim().toLocaleLowerCase();
 
         fontWeight = fontWeight || "";
-        fontWeight = fontWeight.trim().toLocaleLowerCase();
+        // fontWeight = fontWeight.trim().toLocaleLowerCase();
 
-        let fontStyle = "italic";
+        let fontStyle = ITALIC_FONTSTYLE;
 
         let font = "";
         let fontKey = "";

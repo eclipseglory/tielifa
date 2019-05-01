@@ -11,10 +11,7 @@ export default class VDO {
         this.fragmentData = new FragmentData(maxVerticesNumber);
         this.transformMatrixData = new TransformMatrixData(maxVerticesNumber);
 
-        this.opacityVerticesData = new VerticesData(maxVerticesNumber);
         this.opacityIndexData = new IndexData(indexNumber);
-        this.opacityFragmentData = new FragmentData(maxVerticesNumber);
-        this.opacityTransformMatrixData = new TransformMatrixData(maxVerticesNumber);
         this.useOpacityBuffer = false;
         this.lockSwitch = lockSwitch;
         if (this.lockSwitch == null) this.lockSwitch = false;
@@ -29,36 +26,20 @@ export default class VDO {
     }
 
     get currentVerticesData() {
-        if (this.useOpacityBuffer) {
-            return this.opacityVerticesData;
-        } else {
-            return this.verticesData;
-        }
+        return this.verticesData;
     }
 
     get currentFragmentData() {
-        if (this.useOpacityBuffer) {
-            return this.opacityFragmentData;
-        } else {
-            return this.fragmentData;
-        }
+        return this.fragmentData;
     }
 
 
     get currentIndex() {
-        if (this.useOpacityBuffer) {
-            return this.opacityCurrentIndex;
-        } else {
-            return this.originalCurrentIndex;
-        }
+        return this.verticesData.currentIndex;
     }
 
     get originalCurrentIndex() {
         return this.verticesData.currentIndex;
-    }
-
-    get opacityCurrentIndex() {
-        return this.opacityVerticesData.currentIndex;
     }
 
     switch(useOpacityBuffer) {
@@ -71,15 +52,10 @@ export default class VDO {
         this.fragmentData.init();
         this.transformMatrixData.init();
         this.indexData.init();
-
-        this.opacityVerticesData.init();
-        this.opacityFragmentData.init();
-        this.opacityTransformMatrixData.init();
         this.opacityIndexData.init();
     }
 
     _addVerticesFragmentData(x, y, z, nx, ny, nz, r, g, b, a, u, v, ti, ft) {
-        // this.switch(a < 1);
         let vd = this.currentVerticesData;
         let fd = this.currentFragmentData;
         let index = vd.currentIndex;
@@ -138,7 +114,5 @@ export default class VDO {
         this.indexData.fixLength();
 
         this.opacityIndexData.fixLength();
-        this.opacityFragmentData.fixLength();
-        this.opacityVerticesData.fixLength();
     }
 }

@@ -965,10 +965,6 @@ export default class CanvasRenderingContextWebgl2D {
         let pathList = this[_pathList];
         let action = new RenderAction(RenderAction.ACTION_FILL);
         action.vdo = this.vdo;
-        // let vdo = this.getVDOArrays();
-        // action.verticesData = vdo.verticesData;
-        // action.fragmentData = vdo.fragmentData;
-        // action.indexData = vdo.indexData;
         this[_renderActionList].push(action);
         action.collectVertexDataForFill(pathList, fillColor, opacity * fillColor[3], [0, 0],
             this.currentContextState.filterType, this.currentFaceVector);
@@ -1268,16 +1264,15 @@ export default class CanvasRenderingContextWebgl2D {
             this[_renderActionList].push(newAction);
         }
         let vdo = this.vdo;
-        let offset = vdo.verticesData.currentIndex;
+        let offset = vdo.currentIndex;
         vdo.verticesData.append(graphics.vdo.verticesData);
         vdo.fragmentData.append(graphics.vdo.fragmentData);
         let indexData = graphics.vdo.indexData;
         for (let i = 0; i < indexData.currentIndex; i++) {
             vdo.indexData.addIndex(indexData.getIndex(i) + offset);
         }
-        offset = vdo.opacityVerticesData.currentIndex;
-        vdo.opacityVerticesData.append(graphics.vdo.opacityVerticesData);
-        vdo.opacityFragmentData.append(graphics.vdo.opacityFragmentData);
+        // vdo.opacityVerticesData.append(graphics.vdo.opacityVerticesData);
+        // vdo.opacityFragmentData.append(graphics.vdo.opacityFragmentData);
         let opIndexData = graphics.vdo.opacityIndexData;
         for (let i = 0; i < opIndexData.currentIndex; i++) {
             vdo.opacityIndexData.addIndex(opIndexData.getIndex(i) + offset);
@@ -1309,9 +1304,9 @@ export default class CanvasRenderingContextWebgl2D {
         let _normalTransformMatrix = TEMP_TRANFORM_MAT3;
         //这里的数据需要从最开始记录的原始数据中进行计算：
         let verticesData = vdo.verticesData;
-        let opacityVerticesData = vdo.opacityVerticesData;
+        // let opacityVerticesData = vdo.opacityVerticesData;
         let targetVerticesData = out.verticesData;
-        let targetOpaVerticesData = out.opacityVerticesData;
+        // let targetOpaVerticesData = out.opacityVerticesData;
         let _tempVertices = TEMP_VERTEX_COORD4DIM_ARRAY[0];
         for (let i = 0; i < verticesData.currentIndex; i++) {
             _tempVertices[0] = verticesData.getVerticesPositionXData(i);
@@ -1328,21 +1323,21 @@ export default class CanvasRenderingContextWebgl2D {
             Mat3.multiplyWithVertex(_tempVertices, _normalTransformMatrix, _tempVertices);
             targetVerticesData.setVerticesData(x, y, z, _tempVertices[0], _tempVertices[1], _tempVertices[2], i);
         }
-        for (let i = 0; i < opacityVerticesData.currentIndex; i++) {
-            _tempVertices[0] = opacityVerticesData.getVerticesPositionXData(i);
-            _tempVertices[1] = opacityVerticesData.getVerticesPositionYData(i);
-            _tempVertices[2] = opacityVerticesData.getVerticesPositionZData(i);
-            Mat4.multiplyWithVertex(matrix, _tempVertices, _tempVertices);
-            let x = _tempVertices[0];
-            let y = _tempVertices[1];
-            let z = _tempVertices[2];
-
-            _tempVertices[0] = opacityVerticesData.getVerticesNormalXData(i);
-            _tempVertices[1] = opacityVerticesData.getVerticesNormalYData(i);
-            _tempVertices[2] = opacityVerticesData.getVerticesNormalZData(i);
-            Mat3.multiplyWithVertex(_tempVertices, _normalTransformMatrix, _tempVertices);
-            targetOpaVerticesData.setVerticesData(x, y, z, _tempVertices[0], _tempVertices[1], _tempVertices[2], i);
-        }
+        // for (let i = 0; i < opacityVerticesData.currentIndex; i++) {
+        //     _tempVertices[0] = opacityVerticesData.getVerticesPositionXData(i);
+        //     _tempVertices[1] = opacityVerticesData.getVerticesPositionYData(i);
+        //     _tempVertices[2] = opacityVerticesData.getVerticesPositionZData(i);
+        //     Mat4.multiplyWithVertex(matrix, _tempVertices, _tempVertices);
+        //     let x = _tempVertices[0];
+        //     let y = _tempVertices[1];
+        //     let z = _tempVertices[2];
+        //
+        //     _tempVertices[0] = opacityVerticesData.getVerticesNormalXData(i);
+        //     _tempVertices[1] = opacityVerticesData.getVerticesNormalYData(i);
+        //     _tempVertices[2] = opacityVerticesData.getVerticesNormalZData(i);
+        //     Mat3.multiplyWithVertex(_tempVertices, _normalTransformMatrix, _tempVertices);
+        //     targetOpaVerticesData.setVerticesData(x, y, z, _tempVertices[0], _tempVertices[1], _tempVertices[2], i);
+        // }
     }
 
 
@@ -1351,7 +1346,7 @@ export default class CanvasRenderingContextWebgl2D {
      * @param graphics
      * @param vertexNum
      */
-    startGraphics(graphics, vertexNum) {
+    startGraphics(graphics, vertexNum, transformMatrix) {
         if (this._tempGraphics != null) return;
         vertexNum = vertexNum || 4;
         this._tempPathArray = this[_pathList];
@@ -1359,6 +1354,9 @@ export default class CanvasRenderingContextWebgl2D {
         this[_pathList].push(new Path3D());
 
         let state = new ContextState(new CanvasDrawingStylesWebgl2D());
+        if (transformMatrix != null) {
+            Mat4.copy(transformMatrix, state.matrix);
+        }
         this[_stateStack].push(state);
         if (graphics != null) {
             graphics.vdo.init();

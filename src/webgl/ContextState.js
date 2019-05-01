@@ -81,9 +81,9 @@ export default class ContextState {
     }
 
     /**@deprecated*/
-    get transformMatrixId() {
-        return ContextState.matrixList.length - 1;
-    }
+    // get transformMatrixId() {
+    //     return ContextState.matrixList.length - 1;
+    // }
 
     get transformMatrix() {
         return this.matrix;

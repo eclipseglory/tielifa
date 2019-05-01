@@ -360,21 +360,15 @@ export default class WebGLRender {
     }
 
 
-    prepareWebGLBuffer(opacity) {
-        if (opacity == undefined) opacity = false;
+    prepareWebGLBuffer() {
         let vbuffer = this.vdo.verticesData.buffer;
         let fbuffer = this.vdo.fragmentData.buffer;
         let ibuffer = this.vdo.indexData.dataArray;
-        if (opacity) {
-            vbuffer = this.vdo.opacityVerticesData.buffer;
-            fbuffer = this.vdo.opacityFragmentData.buffer;
-            ibuffer = this.vdo.opacityIndexData.dataArray;
-        }
         let gl = this.gl;
         let shaderInfo = this.shaderInformation;
+
         gl.enableVertexAttribArray(shaderInfo.vertexAttribute);
         gl.bindBuffer(gl.ARRAY_BUFFER, shaderInfo.verticesBuffer);
-        // gl.bufferData(gl.ARRAY_BUFFER, this.verticesData.buffer, gl.DYNAMIC_DRAW);
         gl.bufferData(gl.ARRAY_BUFFER, vbuffer, gl.DYNAMIC_DRAW);
 
         let size = 3;
@@ -395,7 +389,6 @@ export default class WebGLRender {
         gl.enableVertexAttribArray(shaderInfo.colorAttribute);
         gl.enableVertexAttribArray(shaderInfo.textureCoordAttribute);
         gl.bindBuffer(gl.ARRAY_BUFFER, shaderInfo.fragmentBuffer);
-        // gl.bufferData(gl.ARRAY_BUFFER, this.fragmentData.buffer, gl.DYNAMIC_DRAW);
         gl.bufferData(gl.ARRAY_BUFFER, fbuffer, gl.DYNAMIC_DRAW);
 
         type = gl.UNSIGNED_BYTE;
@@ -436,9 +429,7 @@ export default class WebGLRender {
         // stride = 4;
         // gl.vertexAttribPointer(shaderInfo.transformMatrixIndex, size, type, normalize, stride, offset);
 
-        // calculateDataProperty:
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, shaderInfo.indexDataBuffer);
-        // gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, this.indexData.dataArray, gl.DYNAMIC_DRAW);
         gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, ibuffer, gl.DYNAMIC_DRAW);
     }
 
@@ -492,7 +483,10 @@ export default class WebGLRender {
 
         //绘制透明：
         if (opacityActionArray.length == 0) return;
-        this.prepareWebGLBuffer(true);
+        // this.prepareWebGLBuffer(true);
+        this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, this.shaderInformation.indexDataBuffer);
+        // gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, this.indexData.dataArray, gl.DYNAMIC_DRAW);
+        this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, this.vdo.opacityIndexData.dataArray, this.gl.DYNAMIC_DRAW);
         this.gl.depthMask(false);
         matrixIndex = 1; // 每次绘制都要重新设置矩阵的索引
         lastAction = null;
