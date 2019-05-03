@@ -23,12 +23,21 @@ export default class FragmentData {
         return SINGLE_DATA_BYTE_LENGTH;
     }
 
-    setFragmentData(r, g, b, alpha, u, v, textureIndex, filterType, index) {
+    _checkIndex(index){
         let num = index + 1;
         if (num * SINGLE_DATA_BYTE_LENGTH >= this.totalByteLength) {
             let length = Math.max(num * SINGLE_DATA_BYTE_LENGTH, this.totalByteLength * 2);
             this.increaseSize(length);
         }
+    }
+
+    setFragmentOpacity(opacity,index){
+        index = index * this.singleDataByteLength;
+        index += 4;
+        this.dv.setFloat32(index, opacity, this.isLittleEndian);
+    }
+
+    setFragmentData(r, g, b, alpha, u, v, textureIndex, filterType, index) {
         index = index * this.singleDataByteLength;
         this.dv.setUint8(index, r);
         this.dv.setUint8(index + 1, g);
@@ -84,6 +93,7 @@ export default class FragmentData {
 
     addFragmentData(r, g, b, alpha, u, v, textureIndex, filterType) {
         let index = this.currentIndex;
+        this._checkIndex(index);
         this.setFragmentData(r, g, b, alpha, u, v, textureIndex, filterType, index);
         this.currentIndex++;
     }

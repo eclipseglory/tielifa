@@ -1,5 +1,6 @@
 import TempCanvas from "./TempCanvas.js";
 import MainTexture from "./MainTexture.js";
+import Texture from "./Texture.js";
 
 let _textureMap = Symbol('贴图表');
 export default class TextureManager {
@@ -70,11 +71,36 @@ export default class TextureManager {
         return size;
     }
 
-    getTexture(image, id, dynamic) {
+    getTexture(image, id, split, dynamic) {
         if (id == null) id = image.src;
         let texture = this[_textureMap][id];
         if (texture == null) {
             texture = this.createTexture(image, id, dynamic);
+            if (split != null) {
+                let column = split.column;
+                let row = split.row;
+                let total = row * column;
+                if (total > 1) texture.splitedTextures.length = 0;
+                let width = texture.width;
+                let height = texture.height;
+                let perWidth = width / column;
+                let perHeight = height / row;
+                for (let index = 0; index < total; index++) {
+                    let vIndex = Math.floor(index / column);
+                    let hIndex = Math.floor(index % column);
+                    let srcLeft = hIndex * perWidth;
+                    let srcTop = vIndex * perHeight;
+                    let child = new Texture({
+                        id: texture.id + "_" + index,
+                        x: srcLeft + texture.x,
+                        y: srcTop + texture.y,
+                        width: perWidth,
+                        height: perHeight,
+                        page: texture.page
+                    });
+                    texture.splitedTextures.push(child);
+                }
+            }
         }
         return texture;
     }

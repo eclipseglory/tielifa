@@ -1,8 +1,16 @@
+import Mat4 from "../math/Mat4.js";
+import Mat3 from "../math/Mat3.js";
+
 const EPSILON = 0.00001;
 const PI2 = Math.PI * 2;
 const HALFPI = Math.PI / 2;
 const PIDIV180 = Math.PI / 180;
 const ONE80DIVPI = 180 / Math.PI;
+const TEMP_TRANFORM_MAT3 = Mat3.identity();
+
+const TEMP_VERTEX_COORD4DIM_ARRAY = new Float32Array(4);
+TEMP_VERTEX_COORD4DIM_ARRAY[3] = 1;
+
 let littleEndian = undefined;
 export default class Tools {
     constructor() {
@@ -112,63 +120,31 @@ export default class Tools {
         return Math.sqrt(dx * dx + dy * dy + dz * dz);
     }
 
-    // static collisionResponse(v1, m1, v2, m2, n, e) {
-    //     if (e == undefined) e = 1; // 恢复系数默认为1
-    //     let m1d = undefined;
-    //     let m2d = undefined;
-    //     if (m1 == Infinity) {
-    //         m2d = 1;
-    //         m1d = 0;
-    //     }
-    //     if (m2 == Infinity) {
-    //         m2d = 0;
-    //         m1d = 1;
-    //     }
-    //     if (m1d == undefined && m2d == undefined) {
-    //         m1d = 1 / m1;
-    //         m2d = 1 / m2;
-    //     }
-    //     let up = 0 - (1 + e);
-    //     let v12 = Vector2.TEMP_VECTORS[0];
-    //     v12.x = v1.x - v2.x;
-    //     v12.y = v1.y - v2.y;
-    //     up = up * Vector2.dot(v12, n);
-    //     let tempVector = v12;// {x: n.x, y: n.y};
-    //     tempVector.x = n.x;
-    //     tempVector.y = n.y;
-    //     Vector2.multiplyValue(tempVector, tempVector, (m1d + m2d));
-    //     let down = Vector2.dot(n, tempVector);
-    //     let j = up / down;
-    //
-    //     tempVector.x = n.x;
-    //     tempVector.y = n.y;
-    //     Vector2.multiplyValue(tempVector, tempVector, j * m1d);
-    //     let newV1 = {x: 0, y: 0};
-    //     Vector2.add(newV1, v1, tempVector);
-    //
-    //     tempVector.x = n.x;
-    //     tempVector.y = n.y;
-    //     Vector2.multiplyValue(tempVector, tempVector, j * m2d);
-    //     let newV2 = {x: 0, y: 0};
-    //     Vector2.sub(newV2, v2, tempVector);
-    //
-    //     return {newV1: newV1, newV2: newV2};
-    // }
-    //
-    //
-    // getProjectionPointOnLine(point, linePoint1, linePoint2) {
-    //     let p = point; // 线外一点p
-    //     let a = linePoint1; // 线上端点a
-    //     let b = linePoint2; // 线上端点b
-    //     let ap = new Vector2(p.x - a.x, p.y - a.y);
-    //     let ab = new Vector2(b.x - a.x, b.y - a.y);
-    //     let abN = Vector2.normalize(ab, ab);//计算出ab的单位向量
-    //     let compAP = Vector2.dot(ap, abN);//ap在ab上分量
-    //     abN.multiply(compAP); //ap在ab上的投影,返回值就是abN
-    //     let p0 = {x: 0, y: 0};
-    //     Vector2.plus(p0, a, abN);
-    //     return p0;
-    // }
+    static applyTransformForVDO(matrix, vdo, out) {
+        // TODO 这里需要使用矩阵的逆矩阵的转至矩阵求法向量，我没做
+        if (out == null) out = vdo;
+        Mat4.mat4ToMat3(matrix, TEMP_TRANFORM_MAT3);
+        let _normalTransformMatrix = TEMP_TRANFORM_MAT3;
+        //这里的数据需要从最开始记录的原始数据中进行计算：
+        let verticesData = vdo.verticesData;
+        let targetVerticesData = out.verticesData;
+        let _tempVertices = TEMP_VERTEX_COORD4DIM_ARRAY;
+        for (let i = 0; i < verticesData.currentIndex; i++) {
+            _tempVertices[0] = verticesData.getVerticesPositionXData(i);
+            _tempVertices[1] = verticesData.getVerticesPositionYData(i);
+            _tempVertices[2] = verticesData.getVerticesPositionZData(i);
+            Mat4.multiplyWithVertex(matrix, _tempVertices, _tempVertices);
+            let x = _tempVertices[0];
+            let y = _tempVertices[1];
+            let z = _tempVertices[2];
+
+            _tempVertices[0] = verticesData.getVerticesNormalXData(i);
+            _tempVertices[1] = verticesData.getVerticesNormalYData(i);
+            _tempVertices[2] = verticesData.getVerticesNormalZData(i);
+            Mat3.multiplyWithVertex(_tempVertices, _normalTransformMatrix, _tempVertices);
+            targetVerticesData.setVerticesData(x, y, z, _tempVertices[0], _tempVertices[1], _tempVertices[2], i);
+        }
+    }
 
     static clamp(value, min, max) {
         if (value > max) {

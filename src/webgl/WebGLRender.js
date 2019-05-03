@@ -1,6 +1,7 @@
 import TextureManager from "../texture/TextureManager.js";
 import Mat4 from "../math/Mat4.js";
 import TempCanvas from "../texture/TempCanvas.js";
+import Color from "../utils/Color.js";
 
 let fsSource = `
   precision mediump float;
@@ -295,7 +296,7 @@ export default class WebGLRender {
         this.cameraPosition = {x: 0, y: 0, z: 0};
         this.lookTarget = {x: undefined, y: undefined, z: undefined};
         let projectionType = p['projectionType'] || 0;
-
+        this.backgroundColor = p['backgroundColor'] || 'white';
         let textureMaxSize = p['textureMaxSize'] || gl.getParameter(this.gl.MAX_TEXTURE_SIZE);
         let maxVectors = gl.getParameter(gl.MAX_VERTEX_UNIFORM_VECTORS);
         // 顶点作色器里已经用了一个mat4了，就是4个vector,减去这4个然后除以4就得到可以定义的最大mat4数组
@@ -322,8 +323,9 @@ export default class WebGLRender {
         this.defaultDepth = 0;
         this.tempCanvas = p['tempCanvas'] || new TempCanvas();
         this.init();
-        this.textureManager.maxHeight = textureMaxSize;
-        this.textureManager.maxWidth = this.textureManager.maxHeight;
+        this.textureManager = new TextureManager(textureMaxSize, gl, 10, 4, this.tempCanvas);
+        // this.textureManager.maxHeight = textureMaxSize;
+        // this.textureManager.maxWidth = this.textureManager.maxHeight;
         let enableLight = p['enableLight'];
         if (enableLight == null) enableLight = false;
         this.enableLight(enableLight);
@@ -343,7 +345,8 @@ export default class WebGLRender {
 
     clean(clearAllTexture) {
         this.DEBUG_DRAW_COUNT = 0;
-        this.gl.clearColor(0, 0, 0, 1);
+        let color = Color.getInstance().convertStringToColor(this.backgroundColor);
+        this.gl.clearColor(color[0], color[1], color[2], 1);
         // this.gl.colorMask(false, false, false, true);
         this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
         this.textureManager.clean(clearAllTexture);
@@ -654,7 +657,6 @@ export default class WebGLRender {
         this[_program] = this.createShaderProgram();
         let program = this[_program];
         this.shaderInformation = this.initShaderInformation(program);
-        this.textureManager = new TextureManager(801, gl, 10, 4, this.tempCanvas);
         this.initProjectionMatrix();
     }
 

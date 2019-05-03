@@ -808,7 +808,7 @@ export default class CanvasRenderingContextWebgl2D {
         if (image instanceof Texture) {
             texture = image;
         } else {
-            texture = this.webglRender.textureManager.getTexture(image, null, true);
+            texture = this.webglRender.textureManager.getTexture(image, null, null, true);
         }
         let action = new RenderAction(RenderAction.ACTION_FILL);
         action.textureIndex = texture.index;
@@ -1299,14 +1299,13 @@ export default class CanvasRenderingContextWebgl2D {
     }
 
     applyTransformForVDO(matrix, vdo, out) {
+        // TODO 这里需要使用矩阵的逆矩阵的转至矩阵求法向量，我没做
         if (out == null) out = vdo;
         Mat4.mat4ToMat3(matrix, TEMP_TRANFORM_MAT3);
         let _normalTransformMatrix = TEMP_TRANFORM_MAT3;
         //这里的数据需要从最开始记录的原始数据中进行计算：
         let verticesData = vdo.verticesData;
-        // let opacityVerticesData = vdo.opacityVerticesData;
         let targetVerticesData = out.verticesData;
-        // let targetOpaVerticesData = out.opacityVerticesData;
         let _tempVertices = TEMP_VERTEX_COORD4DIM_ARRAY[0];
         for (let i = 0; i < verticesData.currentIndex; i++) {
             _tempVertices[0] = verticesData.getVerticesPositionXData(i);
@@ -1323,21 +1322,6 @@ export default class CanvasRenderingContextWebgl2D {
             Mat3.multiplyWithVertex(_tempVertices, _normalTransformMatrix, _tempVertices);
             targetVerticesData.setVerticesData(x, y, z, _tempVertices[0], _tempVertices[1], _tempVertices[2], i);
         }
-        // for (let i = 0; i < opacityVerticesData.currentIndex; i++) {
-        //     _tempVertices[0] = opacityVerticesData.getVerticesPositionXData(i);
-        //     _tempVertices[1] = opacityVerticesData.getVerticesPositionYData(i);
-        //     _tempVertices[2] = opacityVerticesData.getVerticesPositionZData(i);
-        //     Mat4.multiplyWithVertex(matrix, _tempVertices, _tempVertices);
-        //     let x = _tempVertices[0];
-        //     let y = _tempVertices[1];
-        //     let z = _tempVertices[2];
-        //
-        //     _tempVertices[0] = opacityVerticesData.getVerticesNormalXData(i);
-        //     _tempVertices[1] = opacityVerticesData.getVerticesNormalYData(i);
-        //     _tempVertices[2] = opacityVerticesData.getVerticesNormalZData(i);
-        //     Mat3.multiplyWithVertex(_tempVertices, _normalTransformMatrix, _tempVertices);
-        //     targetOpaVerticesData.setVerticesData(x, y, z, _tempVertices[0], _tempVertices[1], _tempVertices[2], i);
-        // }
     }
 
 
@@ -1577,9 +1561,36 @@ export default class CanvasRenderingContextWebgl2D {
         // console.log("绘制调用次数：", this.webglRender.DEBUG_DRAW_COUNT);
     }
 
-    loadImage(src, callbacks, split, id) {
-        throw new Error('this methods was not implemented');
-        // this.webglRender.textureManager.registerTexture(id, this.gl, null, src, callbacks, split);
+    loadImage(id, src, callbacks, split) {
+        let img;
+        if (typeof wx !== 'undefined') {
+            img = wx.createImage();
+        } else {
+            img = new Image();
+        }
+        let that = this;
+        img.crossOrigin = "";
+        img.onload = function (evt) {
+            let texture = that.textureManager.getTexture(evt.target, id, split, false);
+            if (callbacks) {
+                if (callbacks.success) {
+                    callbacks.success(texture);
+                }
+            }
+        };
+        img.onerror = function (evt) {
+            if (callbacks) {
+                if (callbacks.fail) {
+                    callbacks.fail(evt);
+                }
+            }
+        };
+        img.src = src;
+        if (callbacks) {
+            if (callbacks.complete) {
+                callbacks.complete();
+            }
+        }
     }
 
     getTexture(id, index) {
