@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Cube Figure</title>
+    <script src="test.js"></script>
+</head>
+<body>
+
+</body>
+
+<script type="module">
+    import Cube from "../src/figure/Cube.js";
+    import Stage from "../src/figure/Stage.js";
+
+    createOneFullCanvas('Cube Figure');
+    // let gl = new CanvasRenderingContextWebgl2D(webgl, {FOV: 40, projectionType: 1, enableDepthTest: true});
+    // gl.turnOnLight();
+    let bigCube = new Cube({
+        x: webgl.width / 2,
+        y: webgl.height / 2,
+        z: 0,
+        width: webgl.width / 2,
+        height: webgl.height / 2,
+        depth: webgl.height / 2,
+        opacity: 0.1,
+        frontOpa: 0
+    });
+    let cube = new Cube({
+        x: 0,
+        y: 0,
+        z: 0,
+        width: 100,
+        height: 200,
+        depth: 300,
+        color: "brown",
+    });
+    // bigCube.addChild(cube);
+    // cube.x = bigCube.x;
+    // cube.y = bigCube.y;
+    // cube.anchorX = 0;
+    let rotate = 0;
+    cube.rotateY = 55;
+    // cube.rotateX = 90;
+
+    let stage = new Stage(webgl, {
+        FOV: 40,
+        projectionType: 1,
+        enableDepthTest: true,
+        enableLight: true,
+        shininess: 32,
+        ambientCent:0.2,
+    });
+    cube.addEventListener(Cube.EVENT_AFTER_PREPARE_SELF, function (event) {
+        let figure = event.source;
+        // figure.
+        // figure.opacity *= 0.98;
+        // figure.rotateX++;
+        figure.rotateY++;
+        // figure.rotateZ++;
+    });
+    stage.addChild(cube);
+    stage.start();
+
+
+    webgl.onmousedown = function (evt) {
+        stage.stop();
+    }
+    // function repeat() {
+    //     gl.clean();
+    //     gl.save();
+    //     // cube.rotateZ = rotate;
+    //     cube.rotateY = rotate;
+    //     bigCube.rotateX ++;
+    //     rotate++;
+    //     bigCube.draw(gl);
+    //     // cube.draw(gl);
+    //     // cube.transformDirty = true;
+    //     // gl.fillStyle = 'green';
+    //     // gl.fillRect(webgl.width / 2 - 50,webgl.height / 2 - 100,100,200);
+    //     gl.restore();
+    //     gl.draw();
+    //     requestAnimationFrame(repeat);
+    // }
+    //
+    // repeat();
+</script>
+</html>

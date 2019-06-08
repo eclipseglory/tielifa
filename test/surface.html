@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>面测试</title>
+    <script src="test.js"></script>
+</head>
+<body>
+
+</body>
+<script type="module">
+
+    import Stage from "../src/figure/Stage.js";
+    import RectSurface from "../src/figure/RectSurface.js";
+
+    createOneFullCanvas();
+
+    let stage = new Stage(webgl,{enableLight :false});
+
+    let count = 10;
+    let d = 0;
+    let colors = ['red','green','white','orange','purple','pink','gray','gold','blue','yellow'];
+    for (let i = 9; i > 0; i--) {
+        let rect = new RectSurface({
+            x: 0,
+            y: 0,
+            z: -i * 10,
+            width: 100,
+            height: 200,
+            color: colors[i],
+            opacity:  ((i + 1 )/ 10)
+        });
+        console.log(rect.opacity);
+        stage.addChild(rect);
+    }
+    stage.addEventListener(Stage.EVENT_BEFORE_DRAW, function (event) {
+        let s = event.source;
+        s.rotateY++;
+    });
+    stage.start();
+
+
+</script>
+</html>

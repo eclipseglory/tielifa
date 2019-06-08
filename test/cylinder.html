@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>3d test</title>
+    <title>圆柱测试</title>
     <script src="test.js"></script>
 </head>
 <body>
@@ -13,23 +13,25 @@
 
     // console.log(tielifa);
     // console.log(WebGL2D);
-    createOneFullCanvas();
+    createOneFullCanvas('圆柱');
     let ctx = new CanvasRenderingContextWebgl2D(webgl, {projectionType: 1, enableDepthTest: true});
     // let ctx = new tielifa.WebGL2D(webgl, {projectionType: 1});
-    // ctx.turnOnLight();
+    ctx.turnOnLight();
     // ctx.setLightPosition(ctx.canvas.width / 2, 0, ctx.defaultDepth + 1000);
     var deltaX = 1;
-    var deltaR = 0;
-    let height = 450;
-    let depth = ctx.defaultDepth;
-    console.log('默认深度', ctx.defaultDepth);
+    var deltaR = Math.PI;
+    let height = 50;
+    let totalPi = 0.1;
 
     function repeat() {
         fillTest(ctx);
         // fillTest(ctx2);
-        // deltaX++;
-        // deltaR += 1;
-        // depth += 1;
+        deltaX++;
+        deltaR += 1;
+        totalPi += 0.05;
+        if (totalPi >= Math.PI * 2) {
+            totalPi = 0;
+        }
         // height++;
         requestAnimationFrame(repeat);
     }
@@ -38,26 +40,24 @@
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
         let center = {x: ctx.canvas.width / 2, y: ctx.canvas.height / 2, z: 0};
         ctx.save();
-        ctx.setLightPosition(ctx.canvas.width / 2, ctx.canvas.height / 2, depth);
+        // ctx.globalAlpha = 0.5;
+        ctx.fillStyle = 'red';
         ctx.translate(center.x, center.y, center.z);
-        ctx.rotateX(deltaR * Math.PI / 180);
-        // ctx.rotateY(45*Math.PI/180);
+        ctx.beginPath();
+        ctx.fillRect(-5, -5, 10, 10);
+        ctx.rotateY(-deltaR * Math.PI / 180);
+        ctx.rotateX(-deltaR * Math.PI / 180);
         ctx.translate(-center.x, -center.y, -center.z);
         ctx.fillStyle = 'red';
-        ctx.drawCube(center.x, center.y, center.z, 200, height, 200, {
-            frontColor: "#e9ffff",
-            backColor: "#78de78",
-            rightColor: "purple",
-            leftColor: "yellow",
-            topColor: "blue",
-            frontOpacity: 0.5,
-            backOpacity: 0.5,
-            leftOpacity:0.5,
-            rightOpacity:0.5,
-            topOpacity:1,
-            bottomOpacity:0.5,
+        ctx.drawCylinder(center.x, center.y, center.z, 200, 50, 80, 0, Math.PI*2 , {
+            surfaceColor: 'yellow',
+            topColor: 'green',
+            bottomColor:'brown',
+            topOpacity : 0.5,
+            bottomOpacity : 1,
+            surfaceOpacity :0.5
         });
-        // ctx.drawCube(center.x - 300, ctx.canvas.height - (height+50) / 2, center.z, 100, height+50, 10);
+        // ctx.drawCylinder(center.x+100,center.y,center.z,100,50,50,0,Math.PI*2,{surfaceColor:'blue',topColor:'white'});
         ctx.restore();
         if (ctx.update) {
             ctx.update();

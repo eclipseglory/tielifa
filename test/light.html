@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>光线测试</title>
+    <script src="test.js"></script>
+</head>
+<body>
+
+</body>
+<script type="module">
+    import CanvasRenderingContextWebgl2D from "../src/webgl/CanvasRenderingContextWebgl2D.js";
+    import Mat4 from "../src/math/Mat4.js";
+    import Vector3 from "../src/math/Vector3.js";
+
+    // console.log(tielifa);
+    // console.log(WebGL2D);
+    createOneFullCanvas();
+    let ctx = new CanvasRenderingContextWebgl2D(webgl, {projectionType: 1, FOV: 60, enableDepthTest: true});
+    // let ctx = new tielifa.WebGL2D(webgl, {projectionType: 1});
+    ctx.turnOnLight();
+    // ctx.setLightPosition(ctx.canvas.width / 2, 0, ctx.defaultDepth + 1000);
+    let width = ctx.canvas.width / 3;
+    let height = ctx.canvas.height / 3;
+    let d = width;
+    let depth = -1105.6780355312183;
+    depth = ctx.defaultDepth + 550;
+    let deltaR = 0;
+    ctx.setLightPosition(ctx.canvas.width / 2, ctx.canvas.height / 2, depth);
+    function repeat() {
+        fillTest(ctx);
+        // fillTest(ctx2);
+        // deltaX++;
+        deltaR += 1;
+        depth += 1;
+        // console.log(depth);
+        // height++;
+        requestAnimationFrame(repeat);
+    }
+
+    function fillTest(ctx) {
+        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        let center = {x: ctx.canvas.width / 2, y: ctx.canvas.height / 2, z: 0};
+        // ctx.setLightPosition(ctx.canvas.width / 2, ctx.canvas.height / 2, depth);
+        ctx.save();
+        ctx.translate(center.x, center.y, center.z);
+        ctx.rotateY(-deltaR*Math.PI/180);
+        ctx.translate(-center.x, -center.y, -center.z);
+        // ctx.setLightPosition(ctx.canvas.width / 2, ctx.canvas.height / 2, depth);
+        // console.log(depth);
+        //绘制面1：
+        ctx.save();
+        ctx.fillStyle = 'green';
+        ctx.translate(center.x, center.y, center.z);
+        ctx.fillRect(-width / 2, -height / 2, width, height, d / 2);
+        ctx.restore();
+
+        //绘制面2：
+        ctx.save();
+        ctx.fillStyle = 'blue';
+        ctx.translate(center.x, center.y, center.z);
+        ctx.rotateY(Math.PI);
+        ctx.fillRect(-width / 2, -height / 2, width, height, d / 2);
+        // ctx.fillRect(-d / 2, -height / 2, d, height, width / 2);
+        ctx.restore();
+        // let paths = ctx.currentPath.subPathArray;
+        // let path = paths[0];
+        // let vecs = [];
+        // let m = ctx.webglRender.defaultTransformMatrix;
+        // let n = ctx.currentFaceVector;
+        // let normal = {x: n[0], y: n[1], z: n[2]};
+        // let lightPosition = ctx.webglRender.lightPosition;
+        // for (let i = 0; i < path.pointsNumber; i++) {
+        //     let v = {x: path.getPointX(i), y: path.getPointY(i), z: path.getPointZ(i)};
+        //     Mat4.multiplyWithVet3(m, v, v);
+        //     v.x = lightPosition[0] - v.x;
+        //     v.y = lightPosition[1] - v.y;
+        //     v.z = lightPosition[2] - v.z;
+        //     Vector3.normalize(v, v);
+        //
+        //     vecs.push(Vector3.dot(normal, v));
+        // }
+        /**
+         * 0: 0.5578197840485161
+         1: 0.48882371933820246
+         2: 0.48882371813616826
+         3: 0.5578197822622628
+         */
+
+        // console.log(ctx.webglRender.defaultTransformMatrix);
+        // console.log(ctx.currentFaceVector);
+        // ctx.drawCube(center.x , center.y ,center.z, 400, height, 400, {
+        //     frontColor: "#e9ffff",
+        //     backColor: "#78de78",
+        //     rightColor: "purple",
+        //     leftColor: "yellow",
+        //     topColor: "blue"
+        // });
+        ctx.restore();
+        if (ctx.update) {
+            ctx.update();
+        }
+    }
+
+    repeat();
+</script>
+</html>

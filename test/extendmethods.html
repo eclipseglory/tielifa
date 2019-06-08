@@ -12,7 +12,7 @@
     import CanvasRenderingContextWebgl2D from "../src/webgl/CanvasRenderingContextWebgl2D.js";
 
     createOneFullCanvas();
-    let ctx = new CanvasRenderingContextWebgl2D(webgl,{projectionType:1});
+    let ctx = new CanvasRenderingContextWebgl2D(webgl,{projectionType:0});
     // let ctx = new tielifa.WebGL2D(webgl);
     var deltaX = 1;
     var deltaR = 790;
@@ -27,13 +27,13 @@
 
     function fillTest(ctx) {
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-        // ctx.save();
-        // ctx.translate(60, 60);
-        // ctx.rotateX(deltaR * Math.PI / 180);
-        // ctx.rotateY(deltaR * Math.PI / 180);
-        // ctx.translate(-60, -60);
-        // ctx.drawRectangle(10, 10, 100, 100, 'red', 'blue');
-        // ctx.restore();
+        ctx.save();
+        ctx.translate(60, 60);
+        ctx.rotateX(deltaR * Math.PI / 180);
+        ctx.rotateY(deltaR * Math.PI / 180);
+        ctx.translate(-60, -60);
+        ctx.drawRectangle(10, 10, 100, 100, 'red', 'blue');
+        ctx.restore();
         ctx.save();
         ctx.translate(120+50,100+20);
         ctx.rotateX(811*Math.PI/180);
@@ -42,10 +42,10 @@
         ctx.drawEllipse(120, 100, 100, 40, 'yellow', undefined, 0);
         ctx.restore();
 
-        // ctx.save();
-        // ctx.scale(1.5, 1.5);
-        // ctx.drawCircle(220, 120, 100, undefined, 'red');
-        // ctx.restore();
+        ctx.save();
+        ctx.scale(1.5, 1.5);
+        ctx.drawCircle(220, 120, 100, undefined, 'red');
+        ctx.restore();
         ctx.drawRectangle(120, 10, 100, 100,'red');
         if (ctx.draw) {
             ctx.draw();

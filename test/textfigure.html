@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>文字figure</title>
+    <script src="test.js"></script>
+</head>
+<body>
+
+</body>
+<script type="module">
+
+    // console.log(tielifa);
+    // console.log(WebGL2D);
+    import Stage from "../src/figure/Stage.js";
+    import Text from "../src/figure/Text.js"
+
+    createOneFullCanvas('柱形报表');
+
+    let stage = new Stage(webgl, {FOV: 40, enableDepthTest: true});
+
+    let text = new Text();
+    let value = 1290.121;
+    text.text = value.toString() + "\n中文测一测";
+    // text.width = 200;
+    // text.height = 100;
+    text.opacity = 0.2;
+    text.color = 'yellow';
+    text.fontWeight = "bold";
+    text.fontFamily = 'songti';
+    let count = 0;
+    text.addEventListener(Text.EVENT_BEFORE_DRAW, function (event) {
+        let figure = event.source;
+        count++;
+        if (count >= 60) {
+            count = 0;
+            value += 1;
+            figure.y += 1;//value.toString() + "\n中文测一测";
+        }
+    });
+    stage.addChild(text);
+
+    stage.start();
+
+</script>
+</html>

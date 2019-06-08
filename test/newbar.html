@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>BarChart Figure</title>
+    <script src="test.js"></script>
+</head>
+<body>
+
+</body>
+
+<script type="module">
+    import Cube from "../src/figure/Cube.js";
+    import Stage from "../src/figure/Stage.js";
+    import Bar3DChart from "../src/charts/bar/Bar3DChart.js";
+    import Text from "../src/figure/Text.js"
+
+    createOneFullCanvas('Bar chart');
+
+    let data = [
+        ['2010', -10],
+        ['2020', 43],
+        ['2030', 16],
+        ['2040', 23],
+        ['2050', 20],
+        ['2050', 11],
+        ['2050', 110],
+        ['2050', 17],
+        ['2050', 30],
+    ];
+
+    let data2 = [
+        ['2010', -20],
+        ['2020', 143],
+        ['2030', 16],
+        ['2050', 20],
+        ['2050', 17],
+        ['2050', 130],
+    ];
+
+    let data3 = [
+        ['2010', -100],
+        ['2020', 43],
+        ['2030', 16],
+        ['2040', 123],
+        ['2050', 220],
+        ['2050', 11],
+        ['2050', 210],
+        ['2050', 1],
+        ['2050', 130],
+        ['2100', 30],
+    ];
+
+    // let gl = new CanvasRenderingContextWebgl2D(webgl, {FOV: 40, projectionType: 1, enableDepthTest: true});
+    // gl.turnOnLight();
+    let cube = new Cube({
+        x: 0,
+        y: 0,
+        z: 0,
+        width: 100,
+        height: 200,
+        depth: 300,
+        color: "brown",
+    });
+    let rotate = 0;
+    // cube.rotateY = 90;
+    cube.rotateX = 45;
+
+    let stage = new Stage(webgl, {projectionType: 1, backgroundColor: '#aaaaaa', shininess: 128});
+    stage.gl.turnOnLight();
+    stage.gl.webglRender.ambientLightBrightness = 0.3;
+    let width = webgl.width * 0.8;
+    let height = webgl.height * 0.3;
+    let depth = width * 0.1;
+    let lightPosition = stage.gl.webglRender.lightPosition;
+    lightPosition[2] = stage.gl.defaultDepth / 2;
+    // stage.gl.webglRender.setLightPosition(lightPosition[0],height,lightPosition[2]);
+    let coord = new Bar3DChart({
+        width: width,
+        height: height,
+        depth: depth,
+        originalValue: 0,
+        maxValue: 120,
+        minValue: -10,
+        depthScale: 0.5,
+        textLoader: function (data, index) {
+            return Math.floor(data).toString() + 'killlllad';
+        },
+        animationTime: 1000
+        // realTimeDraw: true,
+    });
+    coord.animationCallbacks = {
+        complete: function (animation) {
+            console.log('动画完成');
+        }
+    };
+    coord.setData(data);
+    coord.rotateY = -35;
+    coord.rotateX = -5;
+    stage.addChild(coord);
+    let delta = data.length / 60 * 2;
+    coord.addEventListener(Cube.EVENT_AFTER_PREPARE_SELF, function (event) {
+        let figure = event.source;
+        let finish = false;
+        for (let i = 0; i < coord.children.length; i++) {
+            // if (i > 2) break;
+            // let child = coord.getChild(i);
+            // if (child == null) break;
+            // if (child instanceof Cube) {
+            //     child.data += 0.5;
+            // }
+            // if (child instanceof Text) {
+            //     if (child.data != null) {
+            //         child.data += 0.5;
+            //     }
+            // }
+
+        }
+        // stage.gl.webglRender.ambientLightBrightness += 0.001;
+        // coord.negativeColumn += 0.1;
+        // if(coord.negativeColumn > backMapData.length){
+        //     coord.negativeColumn = backMapData.length;
+        // }
+
+        // figure.rotateY++;
+        // figure.rotateX++;
+        //
+        // coord.fireDirty();
+
+    });
+    // stage.addChild(cube);
+    // stage.gl.loadBMFont("fonts/chinese.fnt", {
+    //     success: function () {
+    //         stage.start();
+    //     }
+    // });
+    setTimeout(function () {
+        stage.start();
+    }, 1000);
+    // stage.start();
+
+
+    webgl.onmousedown = function (evt) {
+        coord.setData(data3, true);
+    }
+</script>
+</html>

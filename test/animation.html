@@ -11,7 +11,7 @@
     import CanvasRenderingContextWebgl2D from "../src/webgl/CanvasRenderingContextWebgl2D.js";
 
     createCompareCanvas();
-    let c = new CanvasRenderingContextWebgl2D(webgl, {projectionType: 1});
+    let c = new CanvasRenderingContextWebgl2D(webgl, {projectionType: 1,backgroundColor:"#000000"});
     // c.turnOnLight();
     let ctx = c;
     let ctx2 = canvas.getContext('2d');
@@ -45,7 +45,7 @@
 
     function repeat() {
         fillTest(ctx);
-        // fillTest(ctx2);
+        fillTest(ctx2);
         deltaX++;
         deltaR++;
         requestAnimationFrame(repeat);
@@ -95,17 +95,11 @@
         }
     }
 
-    ctx.loadImage("images/background.png", {
-        success: function (t) {
-            texture = t.texture;
-            ctx.clearImageCatches();
-            repeat();
-        }
-    });
-    // let img = new Image();
-    // img.onload = function (evt) {
-    //     repeat();
-    // }
-    // img.src = "images/background.png";
+    let img = new Image();
+    img.onload = function (evt) {
+        texture = evt.target;
+        repeat();
+    }
+    img.src = "images/background.png";
 </script>
 </html>

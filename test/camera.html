@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>相机测试</title>
+    <script src="test.js"></script>
+</head>
+<body>
+
+</body>
+<script type="module">
+    import CanvasRenderingContextWebgl2D from "../src/webgl/CanvasRenderingContextWebgl2D.js";
+    import Mat4 from "../src/math/Mat4.js";
+    import Vector3 from "../src/math/Vector3.js";
+
+    // console.log(tielifa);
+    // console.log(WebGL2D);
+    createOneFullCanvas();
+    let ctx = new CanvasRenderingContextWebgl2D(webgl, {projectionType: 1, FOV: 60, enableDepthTest: true});
+    // let ctx = new tielifa.WebGL2D(webgl, {projectionType: 1});
+
+    ctx.turnOnLight();
+    let width = ctx.canvas.width / 3;
+    let height = ctx.canvas.height / 3;
+    let depth = -1105.6780355312183;
+    depth = ctx.defaultDepth;
+    let deltaR = 0;
+
+    function repeat() {
+        fillTest(ctx);
+        deltaR += 1;
+        depth += 0.1;
+        requestAnimationFrame(repeat);
+
+    }
+
+    function fillTest(ctx) {
+        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        let center = {x: ctx.canvas.width / 2, y: ctx.canvas.height / 2, z: 0};
+        ctx.save();
+        // ctx.setLightPosition(ctx.canvas.width / 2, ctx.canvas.height / 2,depth);
+        // ctx.webglRender.fov = fov;
+        ctx.translate(center.x, center.y, center.z);
+        ctx.rotateX(-deltaR * Math.PI / 180);
+        ctx.rotateY(-deltaR * Math.PI / 180);
+        ctx.translate(-center.x, -center.y, -center.z);
+        ctx.fillStyle = 'green';
+        ctx.drawCube(center.x, center.y, center.z, 100, 200, 300, {
+            frontColor: 'red',
+            backColor: 'green',
+            leftColor: 'purple',
+            rightColor: 'yellow',
+            bottomColor: 'white',
+            topColor : 'orange'
+        });
+        ctx.restore();
+        if (ctx.update) {
+            ctx.update();
+        }
+    }
+
+    repeat();
+</script>
+</html>

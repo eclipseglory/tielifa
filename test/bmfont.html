@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>draw text example</title>
+    <script src="test.js"></script>
+</head>
+<body>
+
+</body>
+<script type="module">
+    // import BMFontReader
+
+
+    import BMFontParser from "../src/font/BMFontParser.js";
+    import CanvasRenderingContextWebgl2D from "../src/webgl/CanvasRenderingContextWebgl2D.js";
+    import Color from "../src/utils/Color.js";
+    import BMFontManager from "../src/font/BMFontManager.js";
+
+    let url = '/test/test.file';
+    console.log(url);
+    url = url.replace(/\\/g, '/');
+    console.log(url);
+    let parent = 'no';
+    let index = url.lastIndexOf('/');
+    if (index != -1) {
+        parent = url.slice(0, index);
+    }
+    console.log(parent);
+    createCompareCanvas();
+    let gl = new CanvasRenderingContextWebgl2D(webgl, {projectionType: 1});
+    gl.loadBMFont("fonts/chinese.fnt", {
+        success: function () {
+            drawText(gl);
+            drawText(ctx);
+        }
+    });
+    let ctx = canvas.getContext('2d');
+
+    function drawText(ctx) {
+        // ctx.translate(100,100);
+        // ctx.rotate(45*Math.PI/180);
+        let text = '醉';
+        let rate = 103 / 128;
+        ctx.font = '32px 宋体';
+        ctx.fillStyle = 'yellow';
+        ctx.fontSize = 128;
+        ctx.fontFamily = 'songti'
+        let width = ctx.measureBMText(text).width;
+        console.log(ctx.textBaseline);
+        console.log(ctx.textAlign);
+        ctx.textBaseline = 'top';
+        ctx.textAlign = 'left';
+        ctx.fillStyle = 'red';
+        ctx.fillText(text, 100, 100);
+        if (ctx.draw)
+            ctx.draw();
+    }
+
+
+</script>
+</html>

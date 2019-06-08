@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CoordinateSystem Figure</title>
+    <script src="test.js"></script>
+</head>
+<body>
+
+</body>
+
+<script type="module">
+    import Cube from "../src/figure/Cube.js";
+    import Stage from "../src/figure/Stage.js";
+    import CoordinateSystemFigure from "../src/charts/CoordinateSystemFigure.js";
+
+    createOneFullCanvas('Cube Figure');
+    // let gl = new CanvasRenderingContextWebgl2D(webgl, {FOV: 40, projectionType: 1, enableDepthTest: true});
+    // gl.turnOnLight();
+    let cube = new Cube({
+        x: 0,
+        y: 0,
+        z: 0,
+        width: 100,
+        height: 200,
+        depth: 300,
+        color: "brown",
+    });
+    let rotate = 0;
+    cube.rotateY = 90;
+    cube.rotateX = 45;
+
+    let stage = new Stage(webgl,{backgroundColor:'black'});
+
+    let coord = new CoordinateSystemFigure({
+        width: webgl.width / 2,
+        height: webgl.height / 2,
+        depth: 100,
+        // realTimeDraw: true,
+        originalPoint: {
+            x: -1,
+            y: -1,
+            z: -1
+        }
+    });
+    coord.lal.yz.lonNum = 10;
+    coord.lal.xy.latNum = 10;
+    coord.lal.yz.lonExtendLength = 20;
+    coord.lal.yz.lonExtendAngle = -45;
+    coord.rotateY = -10;
+    coord.rotateX = -10;
+    stage.addChild(coord);
+
+    coord.addEventListener(Cube.EVENT_AFTER_PREPARE_SELF, function (event) {
+        let figure = event.source;
+        figure.rotateY++;
+    });
+    // stage.addChild(cube);
+    stage.start();
+
+
+    webgl.onmousedown = function (evt) {
+        stage.stop();
+    }
+</script>
+</html>

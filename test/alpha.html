@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>透明测试</title>
+    <script src="test.js"></script>
+</head>
+<body>
+
+</body>
+<script type="module">
+    import CanvasRenderingContextWebgl2D from "../src/webgl/CanvasRenderingContextWebgl2D.js";
+
+    // console.log(tielifa);
+    // console.log(WebGL2D);
+    createOneFullCanvas();
+    let ctx = new CanvasRenderingContextWebgl2D(webgl, {projectionType: 1, enableDepthTest: true});
+    let x , y;
+    x = y = 0;
+    let r =0;
+    function repeat() {
+        fillTest(ctx);
+        x +=1;
+        r ++;
+        requestAnimationFrame(repeat);
+    }
+
+    function fillTest(ctx) {
+        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        let center = {x: ctx.canvas.width / 2, y: ctx.canvas.height / 2, z: 0};
+        ctx.save();
+        ctx.translate(center.x,center.y,center.z);
+        ctx.rotateY(r*Math.PI/180);
+        ctx.translate(-center.x,-center.y,-center.z);
+        ctx.save();
+        ctx.globalAlpha = 0.5;
+        ctx.fillStyle = 'green';
+        ctx.fillRect(center.x-100,center.y-100,200,200,-100);
+        ctx.restore();
+
+        ctx.save();
+
+        ctx.fillStyle = 'red';
+        ctx.fillRect(center.x-100,center.y-100,200,200,100);
+        ctx.restore();
+
+        ctx.restore();
+        if (ctx.update) {
+            ctx.update();
+        }
+    }
+
+    repeat();
+</script>
+</html>
