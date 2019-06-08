@@ -2,285 +2,8 @@ import TextureManager from "../texture/TextureManager.js";
 import Mat4 from "../math/Mat4.js";
 import TempCanvas from "../texture/TempCanvas.js";
 import Color from "../utils/Color.js";
-
-let fsSource = `
-  precision mediump float;
-  varying vec4 currentColor;
-  varying vec2 v_texcoord;
-  varying vec3 normal;
-  varying vec3 v_position;
-  varying float v_filterType;
-  uniform vec2 singleCanvas;
-  uniform vec3 u_lightPosition;
-  uniform float enableLight;
-  uniform sampler2D u_texture;
-  
-  void getNormalFilter(inout float filter[9]){
-        filter[0] = 0.0;
-        filter[1] = 0.0;
-        filter[2] = 0.0;
-        filter[3] = 0.0;
-        filter[4] = 1.0;
-        filter[5] = 0.0;
-        filter[6] = 0.0;
-        filter[7] = 0.0;
-        filter[8] = 0.0;
-  }
-  
-  void getGaussianBlurFilter(inout float filter[9]){
-        filter[0] = 0.045;
-        filter[1] = 0.122;
-        filter[2] = 0.045;
-        filter[3] = 0.122;
-        filter[4] = 0.332;
-        filter[5] = 0.122;
-        filter[6] = 0.045;
-        filter[7] = 0.122;
-        filter[8] = 0.045;
-  }
-  
-  void getUnsharpenFilter(inout float filter[9]){
-        filter[0] = -1.0;
-        filter[1] = -1.0;
-        filter[2] = -1.0;
-        filter[3] = -1.0;
-        filter[4] = 9.0;
-        filter[5] = -1.0;
-        filter[6] = -1.0;
-        filter[7] = -1.0;
-        filter[8] = -1.0;
-  }
-  
-  void getSharpnessFilter(inout float filter[9]){
-        filter[0] = 0.0;
-        filter[1] = -1.0;
-        filter[2] = 0.0;
-        filter[3] = -1.0;
-        filter[4] = 5.0;
-        filter[5] = -1.0;
-        filter[6] = 0.0;
-        filter[7] = -1.0;
-        filter[8] = 0.0;
-  }
-  
-   void getSharpenFilter(inout float filter[9]){
-        filter[0] = -0.125;
-        filter[1] = -0.125;
-        filter[2] = -0.125;
-        filter[3] = -0.125;
-        filter[4] =  2.0;
-        filter[5] = -0.125;
-        filter[6] = -0.125;
-        filter[7] = -0.125;
-        filter[8] = -0.125;
-  }
-  
-  void getEdgeDetectFilter(inout float filter[9]){
-        filter[0] = -5.0;
-        filter[1] = -5.0;
-        filter[2] = -5.0;
-        filter[3] = -5.0;
-        filter[4] =  39.0;
-        filter[5] = -5.0;
-        filter[6] = -5.0;
-        filter[7] = -5.0;
-        filter[8] = -5.0;
-  }
-  
-  void getSobelHorizontalFilter(inout float filter[9]){
-        filter[0] = 1.0;
-        filter[1] = 2.0;
-        filter[2] = 1.0;
-        filter[3] = 0.0;
-        filter[4] =  0.0;
-        filter[5] = 0.0;
-        filter[6] = -1.0;
-        filter[7] = -2.0;
-        filter[8] = -1.0;
-  }
-  
-  void getSobelVerticalFilter(inout float filter[9]){
-        filter[0] = 1.0;
-        filter[1] = 0.0;
-        filter[2] = -1.0;
-        filter[3] = 2.0;
-        filter[4] =  0.0;
-        filter[5] = -2.0;
-        filter[6] = 1.0;
-        filter[7] = 0.0;
-        filter[8] = -1.0;
-  }
-  
-  void getPrevitHorizontalFilter(inout float filter[9]){
-        filter[0] = 1.0;
-        filter[1] = 1.0;
-        filter[2] = 1.0;
-        filter[3] = 0.0;
-        filter[4] = 0.0;
-        filter[5] = 0.0;
-        filter[6] = -1.0;
-        filter[7] = -1.0;
-        filter[8] = -1.0;
-  }
-  
-  void getPrevitVerticalFilter(inout float filter[9]){
-        filter[0] = 1.0;
-        filter[1] = 0.0;
-        filter[2] = -1.0;
-        filter[3] = 1.0;
-        filter[4] = 0.0;
-        filter[5] = -1.0;
-        filter[6] = 1.0;
-        filter[7] = 0.0;
-        filter[8] = -1.0;
-  }
-  
-  void getBoxBlurFilter(inout float filter[9]){
-        filter[0] = 0.111;
-        filter[1] = 0.111;
-        filter[2] = 0.111;
-        filter[3] = 0.111;
-        filter[4] = 0.111;
-        filter[5] = 0.111;
-        filter[6] = 0.111;
-        filter[7] = 0.111;
-        filter[8] = 0.111;
-  }
-  
-  void getTriangleBlurFilter(inout float filter[9]){
-        filter[0] = 0.0625;
-        filter[1] = 0.125;
-        filter[2] = 0.0625;
-        filter[3] = 0.125;
-        filter[4] = 0.25;
-        filter[5] = 0.125;
-        filter[6] = 0.0625;
-        filter[7] = 0.125;
-        filter[8] = 0.0625;
-  }
-  
-  void getEmbossFilter(inout float filter[9]){
-        filter[0] = -2.0;
-        filter[1] = -1.0;
-        filter[2] = 0.0;
-        filter[3] = -1.0;
-        filter[4] = 1.0;
-        filter[5] = 1.0;
-        filter[6] = 0.0;
-        filter[7] = 1.0;
-        filter[8] = 2.0;
-  }
-  
-  void filter3(in float kernel[9],in vec2 coord,in vec2 onePixel, inout vec4 colorSum){
-        float offset = -1.0;
-        for(float i = 0.0 ; i < 3.0;i++){
-            for(float j =0.0;j < 3.0;j++){
-                colorSum += texture2D(u_texture, coord + onePixel * vec2(offset + j, offset+ i)) * kernel[int(i*3.0+j)];
-            }
-        }
-  }
-  
-  void filter5(in float kernel[25],in vec2 coord,in vec2 onePixel, inout vec4 colorSum){
-        float offset = -2.0;
-        for(float i = 0.0 ; i < 5.0;i++){
-            for(float j =0.0;j < 5.0;j++){
-                colorSum += texture2D(u_texture, coord + onePixel * vec2(offset + j, offset+ i)) * kernel[int(i*5.0+j)];
-            }
-        }
-  }
-  
-  void main() {
-        vec2 coord = vec2(v_texcoord.x / singleCanvas.x , v_texcoord.y/singleCanvas.y);
-        vec2 onePixel = vec2(1.0/singleCanvas.x, 1.0/singleCanvas.y);
-        vec4 color = currentColor;
-        float opacity = texture2D(u_texture, coord).a * color.a;
-        float kernel3[9];
-        float kernel5[25];
-        vec4 colorSum = vec4(0.0,0.0,0.0,0.0);
-        
-        if(int(v_filterType) == 0){
-            getNormalFilter(kernel3);
-            filter3(kernel3,coord,onePixel,colorSum);
-        }else
-        if(int(v_filterType) == 1){
-            getGaussianBlurFilter(kernel3);
-            filter3(kernel3,coord,onePixel,colorSum);
-        }else
-        if(int(v_filterType) == 2){
-            getUnsharpenFilter(kernel3);
-            filter3(kernel3,coord,onePixel,colorSum);
-        }
-        else
-        if(int(v_filterType) == 3){
-            getSharpnessFilter(kernel3);
-            filter3(kernel3,coord,onePixel,colorSum);
-        }else
-        if(int(v_filterType) == 4){
-            getSharpenFilter(kernel3);
-            filter3(kernel3,coord,onePixel,colorSum);
-        }else
-        if(int(v_filterType) == 5){
-            getEdgeDetectFilter(kernel3);
-            filter3(kernel3,coord,onePixel,colorSum);
-        }else
-        if(int(v_filterType) == 6){
-            getSobelHorizontalFilter(kernel3);
-            filter3(kernel3,coord,onePixel,colorSum);
-        }else
-        if(int(v_filterType) == 7){
-            getSobelVerticalFilter(kernel3);
-            filter3(kernel3,coord,onePixel,colorSum);
-        }else
-        if(int(v_filterType) == 8){
-            getPrevitHorizontalFilter(kernel3);
-            filter3(kernel3,coord,onePixel,colorSum);
-        }else
-        if(int(v_filterType) == 9){
-            getPrevitVerticalFilter(kernel3);
-            filter3(kernel3,coord,onePixel,colorSum);
-        }else
-        if(int(v_filterType) == 10){
-            getBoxBlurFilter(kernel3);
-            filter3(kernel3,coord,onePixel,colorSum);
-        }else
-        if(int(v_filterType) == 11){
-            getTriangleBlurFilter(kernel3);
-            filter3(kernel3,coord,onePixel,colorSum);
-        }else
-        if(int(v_filterType) == 12){
-            getEmbossFilter(kernel3);
-            filter3(kernel3,coord,onePixel,colorSum);
-        }
-
-        
-        // colorSum.w = opacity;
-        // colorSum = texture2D(u_texture, coord);
-        vec3 r_normal = normalize(normal);    
-        vec3 forward = u_lightPosition - v_position;
-        // vec3 lightLocation = vec3(0.0,0.0,1.0); 
-        vec3 lightLocation = normalize(forward);    
-        gl_FragColor = color * colorSum;//texture2D(u_texture, coord);
-        gl_FragColor.a = opacity;
-        float light = abs(dot(r_normal,lightLocation));
-        //if(opacity < 1.0) light = abs(light);
-        if(enableLight == 1.0){
-            gl_FragColor.rgb *= light;
-            // gl_FragColor.rgb = vec3(light,light,light);
-        }
-  }
-  `;
-/**
- precision mediump float;
- varying vec4 currentColor;
- varying vec2 v_texcoord;
- uniform vec2 singleCanvas;
- uniform sampler2D u_texture;
- void main() {
-        vec2 coord = vec2(v_texcoord.x / singleCanvas.x , v_texcoord.y/singleCanvas.y);
-        vec4 color = currentColor;
-        gl_FragColor = color * texture2D(u_texture,coord);
-  }
- */
+import fragmentSource from "./FragmentShader.js";
+import vertexSource from "./VertexShader.js"
 
 
 let _program = Symbol('WebGL的program');
@@ -288,6 +11,7 @@ let _maxTransformMatrixNum = Symbol('转换矩阵变量可用的最大数量');
 export default class WebGLRender {
     constructor(gl, p) {
         p = p || {};
+        // console.log(source);
         this.gl = gl;
         this.DEBUG_DRAW_COUNT = 0;
         this.defaultTransformMatrix = Mat4.identity();
@@ -296,8 +20,10 @@ export default class WebGLRender {
         this.cameraPosition = {x: 0, y: 0, z: 0};
         this.lookTarget = {x: undefined, y: undefined, z: undefined};
         let projectionType = p['projectionType'] || 0;
-        this.backgroundColor = p['backgroundColor'] || 'white';
+        this.backgroundColor = p['backgroundColor'] || '#000000';
         let textureMaxSize = p['textureMaxSize'] || gl.getParameter(this.gl.MAX_TEXTURE_SIZE);
+        // 这里的贴图大小最大设置为2000
+        if (textureMaxSize > 2000) textureMaxSize = 2000;
         let maxVectors = gl.getParameter(gl.MAX_VERTEX_UNIFORM_VECTORS);
         // 顶点作色器里已经用了一个mat4了，就是4个vector,减去这4个然后除以4就得到可以定义的最大mat4数组
         let maxTransformNum = p['maxTransformNum'] || Math.floor((maxVectors - 4) / 4);
@@ -318,17 +44,36 @@ export default class WebGLRender {
         this.lightPosition[0] = gl.canvas.width / 2;
         this.lightPosition[1] = gl.canvas.height / 2;
         this.lightPosition[2] = 0;
+        this.ambientBrightness = new Float32Array(3);
+        this.ambientBrightness[0] = 0.2;
+        this.ambientBrightness[1] = 0.2;
+        this.ambientBrightness[2] = 0.2;
+        if (p['ambientCent'] != null) {
+            this.ambientBrightness[0] = p['ambientCent'];
+            this.ambientBrightness[1] = p['ambientCent'];
+            this.ambientBrightness[2] = p['ambientCent'];
+        }
+
+        this.observerPosition = new Float32Array(3);
+        this.observerPosition[0] = gl.canvas.width / 2;
+        this.observerPosition[1] = gl.canvas.height / 2;
+        this.observerPosition[2] = 0;
+        this.lightColor = p['lightColor'] || '#ffffff';
+        this.shininess = p['shininess'] || 256;
         this.projectionType = projectionType;
         this.fov = p['fov'] || 40;
         this.defaultDepth = 0;
         this.tempCanvas = p['tempCanvas'] || new TempCanvas();
         this.init();
-        this.textureManager = new TextureManager(textureMaxSize, gl, 10, 4, this.tempCanvas);
+        this.textureManager = new TextureManager(textureMaxSize, gl, 10, 1, this.tempCanvas);
         // this.textureManager.maxHeight = textureMaxSize;
         // this.textureManager.maxWidth = this.textureManager.maxHeight;
         let enableLight = p['enableLight'];
         if (enableLight == null) enableLight = false;
         this.enableLight(enableLight);
+        this._lastVertexBufferSize = 0;
+        this._lastFragmentBufferSize = 0;
+        this._lastIndexBufferSize = 0;
 
     }
 
@@ -343,10 +88,20 @@ export default class WebGLRender {
         this.gl.uniform1f(this.shaderInformation.enableLight, value);
     }
 
+    get ambientLightBrightness() {
+        return this.ambientBrightness[0];
+    }
+
+    set ambientLightBrightness(v) {
+        this.ambientBrightness[0] = v;
+        this.ambientBrightness[1] = v;
+        this.ambientBrightness[2] = v;
+    }
+
     clean(clearAllTexture) {
         this.DEBUG_DRAW_COUNT = 0;
         let color = Color.getInstance().convertStringToColor(this.backgroundColor);
-        this.gl.clearColor(color[0], color[1], color[2], 1);
+        this.gl.clearColor(color[0] / 255, color[1] / 255, color[2] / 255, 1);
         // this.gl.colorMask(false, false, false, true);
         this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
         this.textureManager.clean(clearAllTexture);
@@ -371,8 +126,17 @@ export default class WebGLRender {
         let shaderInfo = this.shaderInformation;
 
         gl.enableVertexAttribArray(shaderInfo.vertexAttribute);
-        gl.bindBuffer(gl.ARRAY_BUFFER, shaderInfo.verticesBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, vbuffer, gl.DYNAMIC_DRAW);
+        let vsize = vbuffer.byteLength;
+        if (vsize > this._lastVertexBufferSize) {
+            gl.bindBuffer(gl.ARRAY_BUFFER, shaderInfo.verticesBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, vbuffer, gl.DYNAMIC_DRAW);
+        } else {
+            gl.bindBuffer(gl.ARRAY_BUFFER, shaderInfo.verticesBuffer);
+            gl.bufferSubData(gl.ARRAY_BUFFER, 0, vbuffer);
+        }
+        this._lastVertexBufferSize = vsize;
+        // gl.bindBuffer(gl.ARRAY_BUFFER, shaderInfo.verticesBuffer);
+        // gl.bufferData(gl.ARRAY_BUFFER, vbuffer, gl.DYNAMIC_DRAW);
 
         let size = 3;
         let type = gl.FLOAT;
@@ -391,8 +155,19 @@ export default class WebGLRender {
 
         gl.enableVertexAttribArray(shaderInfo.colorAttribute);
         gl.enableVertexAttribArray(shaderInfo.textureCoordAttribute);
-        gl.bindBuffer(gl.ARRAY_BUFFER, shaderInfo.fragmentBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, fbuffer, gl.DYNAMIC_DRAW);
+
+        let fsize = fbuffer.byteLength;
+        if (fsize > this._lastFragmentBufferSize) {
+            gl.bindBuffer(gl.ARRAY_BUFFER, shaderInfo.fragmentBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, fbuffer, gl.DYNAMIC_DRAW);
+        } else {
+            gl.bindBuffer(gl.ARRAY_BUFFER, shaderInfo.fragmentBuffer);
+            gl.bufferSubData(gl.ARRAY_BUFFER, 0, fbuffer);
+        }
+        this._lastFragmentBufferSize = fsize;
+
+        // gl.bindBuffer(gl.ARRAY_BUFFER, shaderInfo.fragmentBuffer);
+        // gl.bufferData(gl.ARRAY_BUFFER, fbuffer, gl.DYNAMIC_DRAW);
 
         type = gl.UNSIGNED_BYTE;
         stride = this.vdo.fragmentData.singleDataByteLength;
@@ -432,8 +207,18 @@ export default class WebGLRender {
         // stride = 4;
         // gl.vertexAttribPointer(shaderInfo.transformMatrixIndex, size, type, normalize, stride, offset);
 
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, shaderInfo.indexDataBuffer);
-        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, ibuffer, gl.DYNAMIC_DRAW);
+        let isize = ibuffer.byteLength;
+        if (isize > this._lastIndexBufferSize) {
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, shaderInfo.indexDataBuffer);
+            gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, ibuffer, gl.DYNAMIC_DRAW);
+        } else {
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, shaderInfo.indexDataBuffer);
+            gl.bufferSubData(gl.ELEMENT_ARRAY_BUFFER, 0, ibuffer);
+        }
+        this._lastIndexBufferSize = isize;
+
+        // gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, shaderInfo.indexDataBuffer);
+        // gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, ibuffer, gl.DYNAMIC_DRAW);
     }
 
 
@@ -547,7 +332,14 @@ export default class WebGLRender {
             Mat4.multiply(m, transformMatrix, this.defaultTransformMatrix);
             gl.uniformMatrix4fv(this.shaderInformation.transformMatrixArray[0], false, m);
         }
+        let lightColor = Color.getInstance().convertStringToColor(this.lightColor);
         this.gl.uniform3f(this.shaderInformation.lightPosition, this.lightPosition[0], this.lightPosition[1], this.lightPosition[2]);
+
+        this.gl.uniform3f(this.shaderInformation.observerPosition, this.observerPosition[0], this.observerPosition[1], this.observerPosition[2]);
+
+        this.gl.uniform1f(this.shaderInformation.shininess, this.shininess);
+        this.gl.uniform3f(this.shaderInformation.ambientColorCent, this.ambientBrightness[0], this.ambientBrightness[1], this.ambientBrightness[2]);
+        this.gl.uniform3f(this.shaderInformation.lightColor, lightColor[0] / 255, lightColor[1] / 255, lightColor[2] / 255);
         this.configTexture(textureIndex);
         // offset 是字节偏移，所以要乘以2，因为每一个index是2个字节
         gl.drawElements(gl.TRIANGLES, renderPointNumber, gl.UNSIGNED_SHORT, startIndex * 2);
@@ -570,13 +362,17 @@ export default class WebGLRender {
         gl.uniformMatrix4fv(this.shaderInformation.transformMatrixArray[0], false, this.defaultTransformMatrix);
         let m1;
         let near = 1;
+
+        this.initLookAtTarget(this.defaultDepth);
+        let cm = Mat4.lookAt(this.cameraPosition, this.lookTarget);
+        Mat4.inverse(cm, cm);
+
         if (this.projectionType == 0) {
             m1 = Mat4.orthoProjection(0, 0, gl.canvas.width, gl.canvas.height, near, Math.abs(this.defaultDepth * 2), this.orthoProjectionMatrix);
+            Mat4.multiply(m1, m1, cm);
+
         } else {
-            this.initLookAtTarget(this.defaultDepth);
             m1 = Mat4.perspective3(halfFOVRadian * 2, gl.canvas.width, gl.canvas.height, near, Math.abs(this.defaultDepth * 10), this.perspectiveMatrix);
-            let cm = Mat4.lookAt(this.cameraPosition, this.lookTarget);
-            Mat4.inverse(cm, cm);
             Mat4.multiply(m1, m1, cm);
         }
         gl.uniformMatrix4fv(this.shaderInformation.perspectiveMatrix, false, m1);
@@ -627,7 +423,7 @@ export default class WebGLRender {
     createShaderProgram() {
         let gl = this.gl;
         const vertexShader = this.loadShader(gl.VERTEX_SHADER, this.getVertexShaderSource(this.maxTransformMatrixNum));
-        const fragmentShader = this.loadShader(gl.FRAGMENT_SHADER, fsSource);
+        const fragmentShader = this.loadShader(gl.FRAGMENT_SHADER, fragmentSource);
 
         // 创建Shader程序，一个是顶点shader一个是片段shader
         const shaderProgram = gl.createProgram();
@@ -702,8 +498,12 @@ export default class WebGLRender {
 
         let singleCanvas = gl.getUniformLocation(program, "singleCanvas");
         let lightPosition = gl.getUniformLocation(program, "u_lightPosition");
+        let ambientColorCent = gl.getUniformLocation(program, "u_Ambient_color");
+        let shininess = gl.getUniformLocation(program, "u_Shininess");
+        let observerPosition = gl.getUniformLocation(program, "u_ObserverPosition");
+        let lightColor = gl.getUniformLocation(program, "u_lightColor");
         let enableLight = gl.getUniformLocation(program, "enableLight");
-        let textureLocation = gl.getUniformLocation(program, "u_texture");
+        let textureLocation = gl.getUniformLocation(program, "u_texture[0]");
         // 创建数据缓存
         let verticesBuffer = gl.createBuffer();
         let matrixIndexBuffer = gl.createBuffer();
@@ -716,6 +516,7 @@ export default class WebGLRender {
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, blackPixel);
         gl.bindTexture(gl.TEXTURE_2D, null);
         return {
+            observerPosition: observerPosition,
             vertexAttribute: vertexAttribute,
             normalAttribute: normalAttribute,
             colorAttribute: colorAttribute,
@@ -733,6 +534,9 @@ export default class WebGLRender {
             textureLocation: textureLocation,
             blackTexture: blackTexture,
             lightPosition: lightPosition,
+            ambientColorCent: ambientColorCent,
+            shininess: shininess,
+            lightColor: lightColor,
             enableLight: enableLight,
             webgl: gl
         }
@@ -759,57 +563,7 @@ export default class WebGLRender {
         return shader;
     }
 
-    /**
-
-     这样我看得更清楚些
-
-     attribute vec4 color;
-     attribute vec4 a_position;
-     attribute vec2 u_texCoord;
-     attribute vec2 transform_matrix_index;
-     varying vec2 v_texcoord;
-     varying vec4 currentColor;
-     uniform mat4 texture_matrix;
-     uniform mat4 perspective_matrix;
-     uniform mat4 transform_matrix_array[transformMatrixCount];
-     void main() {
-            // v_texcoord = u_texCoord;
-            vec4 new_position = transform_matrix_array[0] * a_position;
-            vec4 finalPosition = perspective_matrix* new_position;
-            currentColor = vec4 (color.xyz/255.0,color.w/100.0);
-            gl_Position = finalPosition;
-    };
-
-     * @param transformMatrixCount
-     * @returns {string}
-     */
     getVertexShaderSource(transformMatrixCount) {
-        let vsSource = ' attribute vec3 color;\n' +
-            '     attribute vec4 a_position;\n' +
-            '     attribute vec3 a_normal;\n' +
-            '     attribute float alpha;\n' +
-            '     attribute vec2 u_texCoord;\n' +
-            '     attribute float u_filterType;\n' +
-            '     varying vec3 v_position;\n' +
-            '     varying float v_filterType;\n' +
-            '     attribute float transform_matrix_index;\n' +
-            '     varying vec2 v_texcoord;\n' +
-            '     varying vec4 currentColor;\n' +
-            '     varying vec3 normal;\n' +
-            '     uniform mat4 perspective_matrix;\n' +
-            '     uniform mat4 transform_matrix_array[' + transformMatrixCount + '];\n' +
-            '     void main() {\n' +
-            '            normal = a_normal;\n' +
-            '            float ft = u_filterType;\n' +
-            '            v_filterType = u_filterType + 0.5;\n' +
-            '            vec4 yuandian = vec4(0,0,0,1);\n' +
-            '            v_texcoord = u_texCoord;\n' +
-            '            vec4 new_position = transform_matrix_array[0] * a_position;\n' +
-            '            v_position = vec3(new_position.xyz);\n' +
-            '            vec4 finalPosition = perspective_matrix* new_position;\n' +
-            '            currentColor = vec4 (color.xyz/255.0,alpha);\n' +
-            '            gl_Position = finalPosition;\n' +
-            '    }';
-        return vsSource;
+        return vertexSource.replace("@transformMatrixCount", transformMatrixCount.toString());
     }
 }

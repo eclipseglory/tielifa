@@ -35,6 +35,7 @@ export default class RenderAction {
             useOpacity = true;
         }
         this.vdo.switch(useOpacity);
+        if (this.vdo.lockSwitch) useOpacity = false;
         let outputInterface = {
             setPoint: function (p, index) {
                 that.vdo.setVerticesCoor2(p, index + outputInterface.offset);
@@ -96,8 +97,9 @@ export default class RenderAction {
     collectVertexDataForFill(pathList, color, opacity, textureCoord, filterType, faceDirection, useOpacity) {
         let indexData = null;
         if (useOpacity == null) useOpacity = false;
-        if(opacity < 1) useOpacity = true;
+        if (opacity < 1) useOpacity = true;
         this.vdo.switch(useOpacity);
+        if (this.vdo.lockSwitch) useOpacity = false;
         for (let i = 0; i < pathList.length; i++) {
             let path = pathList[i];
             if (path.subPathNumber === 0) {

@@ -8,13 +8,15 @@ export default class TextureManager {
 
         if (gl == null) throw new Error('GL context can\'t be null');
         this.gl = gl;
-        this.space = space || 3;
+        this.space = space;
+        if (this.space == null) this.space = 0;
         // 一个离屏的canvas
         this.canvas = tempCanvas || new TempCanvas();
         this.ctx = this.canvas.getContext('2d');
 
         this.maxWidth = maxSize || 1;
         this.maxHeight = maxSize || 1;
+        this.onePix = 1 / this.maxWidth;
         this.maxTextureNum = maxTextureNum || 1;
         this[_textureMap] = {};
         this.textureArray = new Array(this.maxTextureNum);
@@ -41,7 +43,7 @@ export default class TextureManager {
         ctx.clearRect(0, 0, texture.width, texture.height);
         ctx.fillStyle = "#ffffff";
         ctx.fillRect(0, 0, 1, 1); // 这个像素点是给一般fill用的texture颜色
-        // let data = ctx.getImageData(0, 0, texture.width, texture.height);
+        // let backMapData = ctx.getImageData(0, 0, texture.width, texture.height);
         let glTexture = gl.createTexture();
         texture.glTexture = glTexture;
         gl.bindTexture(gl.TEXTURE_2D, glTexture);
@@ -71,18 +73,22 @@ export default class TextureManager {
         return size;
     }
 
-    getTexture(image, id, split, dynamic) {
+    getTexture(image, id, split, dynamic, fixsizex, fixsizey) {
         if (id == null) id = image.src;
+        if (fixsizex == null) fixsizex = 0;
+        if (fixsizey == null) fixsizey = 0;
         let texture = this[_textureMap][id];
         if (texture == null) {
-            texture = this.createTexture(image, id, dynamic);
+            texture = this.createTexture(image, id, dynamic, fixsizex, fixsizey);
             if (split != null) {
                 let column = split.column;
                 let row = split.row;
                 let total = row * column;
                 if (total > 1) texture.splitedTextures.length = 0;
                 let width = texture.width;
+                width -= fixsizex * 2;
                 let height = texture.height;
+                height -= fixsizey * 2;
                 let perWidth = width / column;
                 let perHeight = height / row;
                 for (let index = 0; index < total; index++) {
@@ -94,8 +100,8 @@ export default class TextureManager {
                         id: texture.id + "_" + index,
                         x: srcLeft + texture.x,
                         y: srcTop + texture.y,
-                        width: perWidth,
-                        height: perHeight,
+                        width: perWidth - fixsizex * 2,
+                        height: perHeight - fixsizey * 2,
                         page: texture.page
                     });
                     texture.splitedTextures.push(child);
@@ -145,9 +151,11 @@ export default class TextureManager {
             this[_textureMap] = {};
     }
 
-    createTexture(drawable, id, dynamic) {
+    createTexture(drawable, id, dynamic, fixsizex, fixsizey) {
         if (id == null) id = drawable.src;
         if (id == null) throw new Error('ID can not be null');
+        if (fixsizex == null) fixsizex = 0;
+        if (fixsizey == null) fixsizey = 0;
         let gl = this.gl;
         if (dynamic == null) dynamic = false;
         let startTextureIndex = 0;
@@ -189,7 +197,10 @@ export default class TextureManager {
 
         let texture = mainTexture.parkImageInRegion(drawable, mostFit.region);
         texture.id = id;
-
+        texture.x += fixsizex;
+        texture.y += fixsizey;
+        texture.width -= fixsizex * 2;
+        texture.height -= fixsizey * 2;
         this[_textureMap][id] = texture;
         return texture;
     }

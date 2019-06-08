@@ -112,6 +112,11 @@ export default class List {
         }
     }
 
+
+    forEach(callback){
+        this[_values].forEach(callback);
+    }
+
     contains(value) {
         for (let i = 0; i < this.length; i++) {
             var v = this.get(i);

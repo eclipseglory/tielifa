@@ -80,7 +80,7 @@ export default class Tools {
 
     static removeObjFromArray(obj, array) {
         for (let i = 0; i < array.length; i++) {
-            if (obj === array[i]) {
+            if (obj == array[i]) {
                 array.splice(i, 1);
                 return true;
             }
@@ -163,11 +163,15 @@ export default class Tools {
         return this.instance;
     }
 
-    static overlaps(bounds1, bounds2) {
+    static overlaps(bounds1, bounds2, equals) {
         let a = bounds1;
         let b = bounds2;
-        return (a.left <= b.right && a.right >= b.left
-            && a.bottom >= b.top && a.top <= b.bottom);
+        if (equals == null || equals == true)
+            return (a.left <= b.right && a.right >= b.left
+                && a.bottom >= b.top && a.top <= b.bottom);
+        else
+            return (a.left < b.right && a.right > b.left
+                && a.bottom > b.top && a.top < b.bottom);
     }
 
 

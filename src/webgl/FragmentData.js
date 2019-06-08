@@ -23,7 +23,7 @@ export default class FragmentData {
         return SINGLE_DATA_BYTE_LENGTH;
     }
 
-    _checkIndex(index){
+    _checkIndex(index) {
         let num = index + 1;
         if (num * SINGLE_DATA_BYTE_LENGTH >= this.totalByteLength) {
             let length = Math.max(num * SINGLE_DATA_BYTE_LENGTH, this.totalByteLength * 2);
@@ -31,10 +31,24 @@ export default class FragmentData {
         }
     }
 
-    setFragmentOpacity(opacity,index){
+    setFragmentOpacity(opacity, index) {
         index = index * this.singleDataByteLength;
         index += 4;
         this.dv.setFloat32(index, opacity, this.isLittleEndian);
+    }
+
+    setFragmentColor(r, g, b, index) {
+        index = index * this.singleDataByteLength;
+        this.dv.setUint8(index, r);
+        this.dv.setUint8(index + 1, g);
+        this.dv.setUint8(index + 2, b);
+    }
+
+    setFragmenUV(u, v, index) {
+        index = index * this.singleDataByteLength;
+        index += 4;
+        this.dv.setFloat32(index + 4, u, this.isLittleEndian)
+        this.dv.setFloat32(index + 8, v, this.isLittleEndian)
     }
 
     setFragmentData(r, g, b, alpha, u, v, textureIndex, filterType, index) {

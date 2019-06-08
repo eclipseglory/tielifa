@@ -73,6 +73,15 @@ export default class CanvasRenderingContextWebgl2D {
         this.fontManager = new BMFontManager();
         TextTools.defaultTextureManager = this.webglRender.textureManager;
         this._tempVDO = null;
+        this._drawTimes = 0;
+    }
+
+    get ambientLightBrightness() {
+        return this.webglRender.ambientLightBrightness;
+    }
+
+    set ambientLightBrightness(bright) {
+        this.webglRender.ambientLightBrightness = bright;
     }
 
     get textureManager() {
@@ -281,7 +290,6 @@ export default class CanvasRenderingContextWebgl2D {
             x = tempVector[0];
             y = tempVector[1];
             z = tempVector[2];
-            // currentState.fireDirty();
         }
         path.addPoint(x, y, z, currentState.id)
     }
@@ -404,7 +412,6 @@ export default class CanvasRenderingContextWebgl2D {
             delta = Math.sqrt(delta);
         }
         this.addPointInLastSubPath(x, y, defaultZ, false);
-        // currentState.fireDirty();
     }
 
     /**
@@ -1439,17 +1446,20 @@ export default class CanvasRenderingContextWebgl2D {
         if (opacity == null) opacity = 1;
         opacity = opacity * this.currentContextState.globalAlpha;
         let vod = this.vdo;
-        vod.switch(opacity < 1);
+        let useOpactiy = opacity < 1;
+        let texture = null;
+        if (image) {
+            texture = this.webglRender.textureManager.getTexture(image);
+            useOpactiy = (opacity < 1 || texture.opacity);
+        }
+        vod.switch(useOpactiy);
         let faceDirection = this.currentFaceVector;
         filterType = filterType || this.currentContextState.filterType;
         color = color || this.currentContextState.fillStyle;
         let colorValue = Color.getInstance().convertStringToColor(color);
+
         let offset = vod.currentIndex;
-        let texture = null;
-        if (image) {
-            texture = this.webglRender.textureManager.getTexture(image);
-            vod.switch(opacity < 1 || texture.opacity);
-        }
+
         let plusTextureWidth = 0;
         let plusTextureHeight = 0;
         if (texture != null) {
@@ -1516,9 +1526,12 @@ export default class CanvasRenderingContextWebgl2D {
         let action = new RenderAction(RenderAction.ACTION_FILL);
         action.textureIndex = -1;
         if (texture != null) action.textureIndex = texture.index;
-        action.renderPointNumber = lineNum * 6;
+        if(useOpactiy){
+            action.opacityPointNumber = lineNum * 6;
+        }else{
+            action.renderPointNumber = lineNum * 6;
+        }
         this[_renderActionList].push(action);
-
         vod.switch(false);
     }
 
@@ -1551,17 +1564,32 @@ export default class CanvasRenderingContextWebgl2D {
 
     draw() {
         if (this._tempGraphics != null) return;
+        //每隔1000次绘制清除vdo冗余数据加快bufferdata速度
+        if(this._drawTimes > 1000){
+            this._drawTimes = 0;
+            this.vdo.verticesData.fixLength();
+            this.vdo.fragmentData.fixLength();
+            this.vdo.indexData.fixLength();
+            this.webglRender._lastIndexBufferSize = 0;
+            this.webglRender._lastFragmentBufferSize = 0;
+            this.webglRender._lastVertexBufferSize = 0;
+        }else{
+            this._drawTimes ++;
+        }
+
         this.webglRender.initRending();
         this.webglRender.executeRenderAction(this[_renderActionList]);
         this[_renderActionList] = [];
         this.vdo.init();
         this.webglRender.textureManager.clean();
         this._painedGraphicsMap = {};
+
+
         // debug:
         // console.log("绘制调用次数：", this.webglRender.DEBUG_DRAW_COUNT);
     }
 
-    loadImage(id, src, callbacks, split) {
+    loadImage(id, src, callbacks, split, fixsizex, fixsizey) {
         let img;
         if (typeof wx !== 'undefined') {
             img = wx.createImage();
@@ -1571,7 +1599,7 @@ export default class CanvasRenderingContextWebgl2D {
         let that = this;
         img.crossOrigin = "";
         img.onload = function (evt) {
-            let texture = that.textureManager.getTexture(evt.target, id, split, false);
+            let texture = that.textureManager.getTexture(evt.target, id, split, false, fixsizex, fixsizey);
             if (callbacks) {
                 if (callbacks.success) {
                     callbacks.success(texture);
@@ -1691,6 +1719,7 @@ export default class CanvasRenderingContextWebgl2D {
         this.restore();
     }
 
+    /**@deprecated*/
     drawCylinder(x, y, z, height, radiusX, radiusY, startAngle, endAngle, properties) {
         if (startAngle === endAngle) return;
         if (radiusX < 0 || radiusY < 0) throw new Error('IndexError.半径必须不小于0. Radius should not be smaller than zero. BanJing BiXu BuXiaoYu Ling');

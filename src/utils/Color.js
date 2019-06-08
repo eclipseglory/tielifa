@@ -17,6 +17,24 @@ export default class Color {
         return _instance;
     }
 
+    static converRGBToString(r, g, b) {
+        if (r > 255) r = 255;
+        if (r < 0) r = 0;
+        let r1 = r.toString(16);
+        r1 = (r1.length == 1) ? "0" + r1 : r1;
+
+        if (g > 255) g = 255;
+        if (g < 0) g = 0;
+        let g1 = g.toString(16);
+        g1 = (g1.length == 1) ? "0" + g1 : g1;
+
+        if (b > 255) b = 255;
+        if (b < 0) b = 0;
+        let b1 = b.toString(16);
+        b1 = (b1.length == 1) ? "0" + b1 : b1;
+        return "#" + r1 + g1 + b1;
+    }
+
     convertStringToColor(string) {
         let vec3 = this.colorMap[string];
         if (vec3 != undefined) return vec3;

@@ -381,11 +381,14 @@ export default class Mat4 {
     }
 
     static lookAt(cameraPosition, target, up, out) {
-        if (out === undefined) {
+        if (out == null) {
             out = this.identity();
         }
-        if (up === undefined) {
+        if (up == null) {
             up = {x: 0, y: 1, z: 0};
+        }
+        if (target == null) {
+            target = {x: 0, y: 0, z: 0};
         }
         let zAxis = {x: 0, y: 0, z: 0};
         Vector3.sub(zAxis, cameraPosition, target);

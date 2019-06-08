@@ -428,7 +428,7 @@ export default class EarClipping {
         return list;
     }
 
-// z-order of a point given coords and inverse of the longer side of data bbox
+// z-order of a point given coords and inverse of the longer side of backMapData bbox
     static  zOrder(x, y, minX, minY, invSize) {
         // coords are transformed into non-negative 15-bit integer range
         x = 32767 * (x - minX) * invSize;

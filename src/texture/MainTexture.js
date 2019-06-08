@@ -14,12 +14,18 @@ export default class MainTexture {
         this.textures = [];
         this.constId = 0;
         this.regions = [];
-        this.space = p['space'] || 1;
+        this.space = p['space'];
+        if (this.space == null) this.space = 0;
         this.glTexture = null;
+        // this.bits = 8;
+        // this.bits10 = 1;
+        // for (let i = 0; i < this.bits; i++) {
+        //     this.bits10 *= 10;
+        // }
         this.regions.push({id: this.constId, width: this.width, height: this.height, x: 0, y: 1, type: SINGLE_TYPE});
     }
 
-    static get SINGLE_TYPE(){
+    static get SINGLE_TYPE() {
         return SINGLE_TYPE;
     }
 
@@ -71,9 +77,9 @@ export default class MainTexture {
         let regions = this.regions;
         // regions.push(initRegion);
         let textures = [];
-        // let images = [];
+        // let tiledImages = [];
         // for (let i = 0; i < this.image.length; i++) {
-        //     images.push(this.image[i]);
+        //     tiledImages.push(this.image[i]);
         // }
         for (let i = 0; i < images.length; i++) {
             let mostFit = {value: -1, img: null, region: null};
@@ -204,8 +210,9 @@ export default class MainTexture {
             y: re.y,
             width: img.width,
             height: img.height,
-            page: this.index
+            page: this.index,
         });
+
         this.textures.push(texture);
         this.splitRegion(img, this.constId, re, this.regions);
         return texture;
