@@ -80,16 +80,9 @@ export default class ContextState {
         return Emboss_Filter;
     }
 
-    /**@deprecated*/
-    // get transformMatrixId() {
-    //     return ContextState.matrixList.length - 1;
-    // }
 
     get transformMatrix() {
         return this.matrix;
-        // let index = ContextState.matrixList.length - 1;
-        // let m = ContextState.matrixList[index];
-        // return {matrix: m, id: index};
     }
 
     setTransformMatrix(value) {

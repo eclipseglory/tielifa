@@ -50,18 +50,13 @@ export default class Cube extends Figure3D {
         let hWidth = width / 2;
         let hHeight = height / 2;
         let hDepth = depth / 2;
-        ctx.save();
-        if (this.frontColor != null)
-            ctx.fillStyle = this.frontColor;
-        ctx.globalAlpha = this.frontOpa * this.opacity;
-        ctx.fillRect(-hWidth, -hHeight, width, height, hDepth);
-        ctx.restore();
+
 
         //背面
         ctx.save();
         if (this.backColor != null)
             ctx.fillStyle = this.backColor;
-        ctx.globalAlpha = this.backOpa * this.opacity;
+        ctx.globalAlpha *= this.backOpa * this.opacity;
         ctx.rotateY(Math.PI);
         ctx.fillRect(-hWidth, -hHeight, width, height, hDepth);
         ctx.restore();
@@ -70,7 +65,7 @@ export default class Cube extends Figure3D {
         ctx.save();
         if (this.leftColor != null)
             ctx.fillStyle = this.leftColor;
-        ctx.globalAlpha = this.leftOpa * this.opacity;
+        ctx.globalAlpha *= this.leftOpa * this.opacity;
         ctx.rotateY(-Tools.HALFPI);
         ctx.fillRect(-hDepth, -hHeight, depth, height, hWidth);
         ctx.restore();
@@ -79,7 +74,7 @@ export default class Cube extends Figure3D {
         ctx.save();
         if (this.rightColor != null)
             ctx.fillStyle = this.rightColor;
-        ctx.globalAlpha = this.rightOpa * this.opacity;
+        ctx.globalAlpha *= this.rightOpa * this.opacity;
         ctx.rotateY(Tools.HALFPI);
         ctx.fillRect(-hDepth, -hHeight, depth, height, hWidth);
         ctx.restore();
@@ -88,7 +83,7 @@ export default class Cube extends Figure3D {
         ctx.save();
         if (this.bottomColor != null)
             ctx.fillStyle = this.bottomColor;
-        ctx.globalAlpha = this.bottomOpa * this.opacity;
+        ctx.globalAlpha *= this.bottomOpa * this.opacity;
         ctx.rotateX(-Tools.HALFPI);
         ctx.fillRect(-hWidth, -hDepth, width, depth, hHeight);
         ctx.restore();
@@ -97,9 +92,16 @@ export default class Cube extends Figure3D {
         ctx.save();
         if (this.topColor != null)
             ctx.fillStyle = this.topColor;
-        ctx.globalAlpha = this.topOpa * this.opacity;
+        ctx.globalAlpha *= this.topOpa * this.opacity;
         ctx.rotateX(Tools.HALFPI);
         ctx.fillRect(-hWidth, -hDepth, width, depth, hHeight);
+        ctx.restore();
+
+        ctx.save();
+        if (this.frontColor != null)
+            ctx.fillStyle = this.frontColor;
+        ctx.globalAlpha *= (this.frontOpa * this.opacity);
+        ctx.fillRect(-hWidth, -hHeight, width, height, hDepth);
         ctx.restore();
     }
 }

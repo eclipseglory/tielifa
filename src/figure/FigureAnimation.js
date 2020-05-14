@@ -36,6 +36,14 @@ export default class FigureAnimation {
         this.runningAnimationIndex = 0;
     }
 
+    getFigurePropertyValue(figure, name) {
+        return figure[name];
+    }
+
+    setFigurePropertyValue(figure, name, value) {
+        figure[name] = value;
+    }
+
 
     moveTo(x, y) {
         this.propertyChangeTo(this.figure.left, x, 'left');
@@ -89,6 +97,7 @@ export default class FigureAnimation {
     }
 
     propertyChange(delta, propertyName) {
+        if(delta == 0) return this;
         let animation = this.lastAnimation;
         animation.propertyTable[propertyName] = {delta: delta, start: null, end: null};
         return this;
@@ -139,7 +148,8 @@ export default class FigureAnimation {
             let animation = this.animationArray[i];
             for (let p in animation.propertyTable) {
                 let property = animation.propertyTable[p];
-                this.figure[p] -= property.delta;
+                let v = this.getFigurePropertyValue(this.figure, p);
+                this.setFigurePropertyValue(this.figure, p, v - property.delta);
             }
         }
     }
@@ -147,7 +157,8 @@ export default class FigureAnimation {
     calculateFinalProperty(animation) {
         for (let p in animation.propertyTable) {
             let property = animation.propertyTable[p];
-            property.start = this.figure[p];
+            let sv = this.getFigurePropertyValue(this.figure, p);
+            property.start = sv;
             property.end = property.start + property.delta;
         }
     }
@@ -155,7 +166,7 @@ export default class FigureAnimation {
     applyFinalPropertyValue(animation) {
         for (let p in animation.propertyTable) {
             let property = animation.propertyTable[p];
-            this.figure[p] = property.end;
+            this.setFigurePropertyValue(this.figure, p, property.end);
         }
     }
 
@@ -192,7 +203,8 @@ export default class FigureAnimation {
         } else {
             for (let p in runningAnimation.propertyTable) {
                 let delta = this.getDeltaValue(runningAnimation, p, refreshCount);
-                this.figure[p] += delta;
+                let v = this.getFigurePropertyValue(this.figure, p);
+                this.setFigurePropertyValue(this.figure, p, delta + v);
             }
             this.refreshCount++;
         }
@@ -231,7 +243,7 @@ export default class FigureAnimation {
 
 
     start(callbacks) {
-        if (this.figure == null) return;
+        if (this.figure == null || this.animationArray.length == 0) return;
         if (this.isRunning) {
             if (this.paused) {
                 this.pause();

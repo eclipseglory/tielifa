@@ -26,5 +26,18 @@ let source = "attribute vec3 color;\n" +
     "    currentColor = vec4 (color.xyz/255.0,alpha);\n" +
     "    gl_Position = finalPosition;\n" +
     "}";
-
 export default source;
+
+let test =
+    "    attribute vec2 position;\n" +
+    "    varying vec2 t_position;\n" +
+    "    uniform mat4 perspective_matrix;\n" +
+    "    void main() {\n" +
+    "        // 因为给的是一个2个数字的坐标，这里把坐标数据补全\n" +
+    "        vec4 new_position = vec4(position.x, position.y, 0, 1);\n" +
+    "        // 用二维的正投矩阵得到最终的坐标位置\n" +
+    "        vec4 final_position = perspective_matrix * new_position;\n" +
+    "        // 插值给Fragment\n" +
+    "        texture_position = t_position;\n" +
+    "        gl_Position = final_position;\n" +
+    "    }"

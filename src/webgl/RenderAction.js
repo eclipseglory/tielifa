@@ -144,9 +144,11 @@ export default class RenderAction {
                     } else {
                         UV = textureCoord;
                     }
+                    let x = subPath.getPointX(k);
+                    let y = subPath.getPointY(k);
+                    let z = subPath.getPointZ(k);
 
-                    this.vdo.addVerticesData3(subPath.getPointX(k), subPath.getPointY(k),
-                        subPath.getPointZ(k), faceDirection, color, opacity, UV, this.textureIndex, filterType);
+                    this.vdo.addVerticesData3(x, y,z, faceDirection, color, opacity, UV, this.textureIndex, filterType);
 
                     let vertexIndex = vertexOrg[k];
                     indexData.addIndex(vertexIndex + offset);

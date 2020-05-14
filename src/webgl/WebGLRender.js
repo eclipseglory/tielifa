@@ -126,17 +126,17 @@ export default class WebGLRender {
         let shaderInfo = this.shaderInformation;
 
         gl.enableVertexAttribArray(shaderInfo.vertexAttribute);
-        let vsize = vbuffer.byteLength;
-        if (vsize > this._lastVertexBufferSize) {
-            gl.bindBuffer(gl.ARRAY_BUFFER, shaderInfo.verticesBuffer);
-            gl.bufferData(gl.ARRAY_BUFFER, vbuffer, gl.DYNAMIC_DRAW);
-        } else {
-            gl.bindBuffer(gl.ARRAY_BUFFER, shaderInfo.verticesBuffer);
-            gl.bufferSubData(gl.ARRAY_BUFFER, 0, vbuffer);
-        }
-        this._lastVertexBufferSize = vsize;
-        // gl.bindBuffer(gl.ARRAY_BUFFER, shaderInfo.verticesBuffer);
-        // gl.bufferData(gl.ARRAY_BUFFER, vbuffer, gl.DYNAMIC_DRAW);
+        // let vsize = vbuffer.byteLength;
+        // if (vsize > this._lastVertexBufferSize) {
+        //     gl.bindBuffer(gl.ARRAY_BUFFER, shaderInfo.verticesBuffer);
+        //     gl.bufferData(gl.ARRAY_BUFFER, vbuffer, gl.DYNAMIC_DRAW);
+        // } else {
+        //     gl.bindBuffer(gl.ARRAY_BUFFER, shaderInfo.verticesBuffer);
+        //     gl.bufferSubData(gl.ARRAY_BUFFER, 0, vbuffer);
+        // }
+        // this._lastVertexBufferSize = vsize;
+        gl.bindBuffer(gl.ARRAY_BUFFER, shaderInfo.verticesBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, vbuffer, gl.DYNAMIC_DRAW);
 
         let size = 3;
         let type = gl.FLOAT;
@@ -156,18 +156,18 @@ export default class WebGLRender {
         gl.enableVertexAttribArray(shaderInfo.colorAttribute);
         gl.enableVertexAttribArray(shaderInfo.textureCoordAttribute);
 
-        let fsize = fbuffer.byteLength;
-        if (fsize > this._lastFragmentBufferSize) {
-            gl.bindBuffer(gl.ARRAY_BUFFER, shaderInfo.fragmentBuffer);
-            gl.bufferData(gl.ARRAY_BUFFER, fbuffer, gl.DYNAMIC_DRAW);
-        } else {
-            gl.bindBuffer(gl.ARRAY_BUFFER, shaderInfo.fragmentBuffer);
-            gl.bufferSubData(gl.ARRAY_BUFFER, 0, fbuffer);
-        }
-        this._lastFragmentBufferSize = fsize;
+        // let fsize = fbuffer.byteLength;
+        // if (fsize > this._lastFragmentBufferSize) {
+        //     gl.bindBuffer(gl.ARRAY_BUFFER, shaderInfo.fragmentBuffer);
+        //     gl.bufferData(gl.ARRAY_BUFFER, fbuffer, gl.DYNAMIC_DRAW);
+        // } else {
+        //     gl.bindBuffer(gl.ARRAY_BUFFER, shaderInfo.fragmentBuffer);
+        //     gl.bufferSubData(gl.ARRAY_BUFFER, 0, fbuffer);
+        // }
+        // this._lastFragmentBufferSize = fsize;
 
-        // gl.bindBuffer(gl.ARRAY_BUFFER, shaderInfo.fragmentBuffer);
-        // gl.bufferData(gl.ARRAY_BUFFER, fbuffer, gl.DYNAMIC_DRAW);
+        gl.bindBuffer(gl.ARRAY_BUFFER, shaderInfo.fragmentBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, fbuffer, gl.DYNAMIC_DRAW);
 
         type = gl.UNSIGNED_BYTE;
         stride = this.vdo.fragmentData.singleDataByteLength;
@@ -207,18 +207,18 @@ export default class WebGLRender {
         // stride = 4;
         // gl.vertexAttribPointer(shaderInfo.transformMatrixIndex, size, type, normalize, stride, offset);
 
-        let isize = ibuffer.byteLength;
-        if (isize > this._lastIndexBufferSize) {
-            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, shaderInfo.indexDataBuffer);
-            gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, ibuffer, gl.DYNAMIC_DRAW);
-        } else {
-            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, shaderInfo.indexDataBuffer);
-            gl.bufferSubData(gl.ELEMENT_ARRAY_BUFFER, 0, ibuffer);
-        }
-        this._lastIndexBufferSize = isize;
+        // let isize = ibuffer.byteLength;
+        // if (isize > this._lastIndexBufferSize) {
+        //     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, shaderInfo.indexDataBuffer);
+        //     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, ibuffer, gl.DYNAMIC_DRAW);
+        // } else {
+        //     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, shaderInfo.indexDataBuffer);
+        //     gl.bufferSubData(gl.ELEMENT_ARRAY_BUFFER, 0, ibuffer);
+        // }
+        // this._lastIndexBufferSize = isize;
 
-        // gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, shaderInfo.indexDataBuffer);
-        // gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, ibuffer, gl.DYNAMIC_DRAW);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, shaderInfo.indexDataBuffer);
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, ibuffer, gl.DYNAMIC_DRAW);
     }
 
 

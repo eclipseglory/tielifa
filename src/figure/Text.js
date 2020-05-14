@@ -1,18 +1,19 @@
 import Figure3D from "./Figure3D.js";
 import TextTools from "../text/TextTools.js";
+import Mat4 from "../math/Mat4.js";
 
 export default class Text extends Figure3D {
     constructor(p) {
         p = p || {};
         super(p);
-        this._color = p['_color'] || "#FFFFFF";
-        this._text = p['_text'];
-        this._fontFamily = p['_fontFamily'] || 'arial';
-        this._fontSize = p['_fontSize'] || 32;
-        this._fontWeight = p['_fontWeight'];
-        this._fontStyle = p['_fontStyle'];
-        this._textAlign = p['_textAlign'] || 'left';
-        this._maxWidth = p['_maxWidth'];
+        this._color = p['color'] || "#FFFFFF";
+        this._text = p['text'];
+        this._fontFamily = p['fontFamily'] || 'arial';
+        this._fontSize = p['fontSize'] || 32;
+        this._fontWeight = p['fontWeight'];
+        this._fontStyle = p['fontStyle'];
+        this._textAlign = p['textAlign'] || 'left';
+        this._maxWidth = p['maxWidth'];
         this._width = null;
         this._height = null;
         this.fontMetrics = null;

@@ -602,16 +602,16 @@ export default class AbstractFigure {
                 Mat4.translationMatrix(m, transformX, transformY, transformZ);
                 Mat4.multiply(currentMatrix, currentMatrix, m);
             }
-            if (!Tools.equals(rotateZ, 0)) {
-                Mat4.rotationZMatrix(m, rotateZ * Tools.PIDIV180);
-                Mat4.multiply(currentMatrix, currentMatrix, m);
-            }
             if (!Tools.equals(rotateX, 0)) {
                 Mat4.rotationXMatrix(m, rotateX * Tools.PIDIV180);
                 Mat4.multiply(currentMatrix, currentMatrix, m);
             }
             if (!Tools.equals(rotateY, 0)) {
                 Mat4.rotationYMatrix(m, rotateY * Tools.PIDIV180);
+                Mat4.multiply(currentMatrix, currentMatrix, m);
+            }
+            if (!Tools.equals(rotateZ, 0)) {
+                Mat4.rotationZMatrix(m, rotateZ * Tools.PIDIV180);
                 Mat4.multiply(currentMatrix, currentMatrix, m);
             }
 
@@ -656,7 +656,7 @@ export default class AbstractFigure {
     }
 
     applyDrawingStyle(ctx) {
-        ctx.globalAlpha = this._opacity;
+        ctx.globalAlpha *= this._opacity;
         ctx.fillStyle = this.color;
     }
 
@@ -682,7 +682,7 @@ export default class AbstractFigure {
     }
 
     updateVertexVDO(ctx, currentTransformMatrix) {
-        ctx.applyTransformForVDO(currentTransformMatrix, this._rawVDO, this.graphics.vdo);
+        ctx.applyTransformForVDO(currentTransformMatrix, this.graphics.vdo);
     }
 
     updateUVVDO(uvs, oldUVs, vdo, rawVDO) {
@@ -700,23 +700,21 @@ export default class AbstractFigure {
     }
 
     updateFragmentVDO(ctx) {
-        if (this.opacity !== this._lastOpacity) {
-            this.updateOpacityVDO(this.opacity, this._lastOpacity);
+        if (this.opacity * ctx.globalAlpha !== this._lastOpacity) {
+            this.updateOpacityVDO(this.opacity * ctx.globalAlpha, this._lastOpacity);
         }
         if (this.color !== this._lastColor) {
-            this.updateColorVDO(this.color, this._lastColor, this.graphics.vdo, this._rawVDO);
+            this.updateColorVDO(this.color, this._lastColor, this.graphics.vdo);
         }
         if (this.uvArray != this._lastUVArray) {
-            this.updateUVVDO(this.uvArray, this._lastUVArray, this.graphics.vdo, this._rawVDO);
+            this.updateUVVDO(this.uvArray, this._lastUVArray, this.graphics.vdo);
         }
     }
 
 
     refreshDirty(ctx) {
-        // TODO 这个地方可以用逆矩阵计算，但是总出bug,so不用
         let currentMatrix = ctx.currentContextState.transformMatrix;
         let sameMatrix = Mat4.exactEquals(currentMatrix, this._lastMatrix);
-        Mat4.copy(currentMatrix, this._lastMatrix);
         //这里的粒度很粗，不能细化到颜色、透明度、UV等
         let redraw = false;
         if (this._contentDirty) {
@@ -726,26 +724,31 @@ export default class AbstractFigure {
             this.applyDrawingStyle(ctx);
             this.drawSelf(ctx);
             this.graphics = ctx.endGraphics();
-            // this.graphics.vdo.fixLength();
-            //graphics里的数据是最原始的，需要记录
-            this._copyToRawVDO(this.graphics.vdo);
             redraw = true;
+            this.verticesNum = this.graphics.vdo.currentIndex;
             this.save();
         }
 
         if (!sameMatrix) {
-            this.updateVertexVDO(ctx, this._lastMatrix);
+            if(redraw){
+                this.updateVertexVDO(ctx, currentMatrix);
+            }else{
+                Mat4.inverse(this._lastMatrix, this._lastMatrix);
+                Mat4.multiply(this._lastMatrix, currentMatrix, this._lastMatrix);
+                this.updateVertexVDO(ctx, this._lastMatrix);
+            }
         }
         if (!redraw) {
             this.updateFragmentVDO(ctx);
         }
-        this._lastOpacity = this.opacity;
+        Mat4.copy(currentMatrix, this._lastMatrix);
+        this._lastOpacity = this.opacity * ctx.globalAlpha;
         this._lastColor = this.color;
         ctx.drawGraphics(this.graphics, false);
         this[_drawSelfNum]++;
         if (this[_drawSelfNum] >= FIX_VDO_TIMING) {
             if (this.graphics != null) this.graphics.vdo.fixLength();
-            if (this._rawVDO != null) this._rawVDO.fixLength();
+            // if (this._rawVDO != null) this._rawVDO.fixLength();
             this[_drawSelfNum] = 0;
         }
     }
@@ -759,9 +762,14 @@ export default class AbstractFigure {
         if (this.scaleX == 0 || this.scaleY == 0 || this.scaleZ == 0) return;
         ctx.save();
         this.applyTransformMatrix(ctx);
+        ctx.globalAlpha *= this.opacity;
+        if (ctx.globalAlpha <= 0) {
+            ctx.restore();
+            return;
+        }
         if (this.reversePaint) {
             this.drawChildren(ctx);
-            if (this.opacity !== 0) {
+            if (ctx.globalAlpha > 0) {
                 if (this.realTimeDraw) {
                     this.applyDrawingStyle(ctx);
                     this.drawSelf(ctx);
@@ -771,7 +779,7 @@ export default class AbstractFigure {
             }
 
         } else {
-            if (this.opacity !== 0) {
+            if (ctx.globalAlpha > 0) {
                 if (this.realTimeDraw) {
                     this.applyDrawingStyle(ctx);
                     this.drawSelf(ctx);

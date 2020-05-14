@@ -1087,6 +1087,7 @@ export default class CanvasRenderingContextWebgl2D {
      */
     fillText(text, x, y, maxWidth, depth, textLines) {
         if (depth == null) depth = 0;
+        if (text == null) return;
         let textureManager = this.webglRender.textureManager;
         let string = text;
         if (textLines == null)
@@ -1337,16 +1338,25 @@ export default class CanvasRenderingContextWebgl2D {
      * @param graphics
      * @param vertexNum
      */
-    startGraphics(graphics, vertexNum, transformMatrix) {
+    startGraphics(graphics, vertexNum, transformMatrix, dontUseCurrentState) {
         if (this._tempGraphics != null) return;
+        if (dontUseCurrentState == null) {
+            dontUseCurrentState = false;
+        }
         vertexNum = vertexNum || 4;
         this._tempPathArray = this[_pathList];
         this[_pathList] = [];
         this[_pathList].push(new Path3D());
-
-        let state = new ContextState(new CanvasDrawingStylesWebgl2D());
+        let state;
+        if (dontUseCurrentState) {
+            state = new ContextState(new CanvasDrawingStylesWebgl2D());
+        } else {
+            state = this.currentContextState.clone();
+        }
         if (transformMatrix != null) {
             Mat4.copy(transformMatrix, state.matrix);
+        } else {
+            state.setTransformMatrix(Mat4.identity());
         }
         this[_stateStack].push(state);
         if (graphics != null) {
@@ -1369,6 +1379,11 @@ export default class CanvasRenderingContextWebgl2D {
     }
 
     endGraphics() {
+        // let opacityAction = null;
+        // let
+        // for (let i = 0; i < this._tempGraphics.actionList.length; i++) {
+        //
+        // }
         this[_stateStack].pop();
         this[_pathList] = this._tempPathArray;
         this[_renderActionList] = this._tempActionList;
@@ -1526,9 +1541,9 @@ export default class CanvasRenderingContextWebgl2D {
         let action = new RenderAction(RenderAction.ACTION_FILL);
         action.textureIndex = -1;
         if (texture != null) action.textureIndex = texture.index;
-        if(useOpactiy){
+        if (useOpactiy) {
             action.opacityPointNumber = lineNum * 6;
-        }else{
+        } else {
             action.renderPointNumber = lineNum * 6;
         }
         this[_renderActionList].push(action);
@@ -1565,17 +1580,17 @@ export default class CanvasRenderingContextWebgl2D {
     draw() {
         if (this._tempGraphics != null) return;
         //每隔1000次绘制清除vdo冗余数据加快bufferdata速度
-        if(this._drawTimes > 1000){
-            this._drawTimes = 0;
-            this.vdo.verticesData.fixLength();
-            this.vdo.fragmentData.fixLength();
-            this.vdo.indexData.fixLength();
-            this.webglRender._lastIndexBufferSize = 0;
-            this.webglRender._lastFragmentBufferSize = 0;
-            this.webglRender._lastVertexBufferSize = 0;
-        }else{
-            this._drawTimes ++;
-        }
+        // if (this._drawTimes > 1000) {
+        //     this._drawTimes = 0;
+        //     this.vdo.verticesData.fixLength();
+        //     this.vdo.fragmentData.fixLength();
+        //     this.vdo.indexData.fixLength();
+        //     this.webglRender._lastIndexBufferSize = 0;
+        //     this.webglRender._lastFragmentBufferSize = 0;
+        //     this.webglRender._lastVertexBufferSize = 0;
+        // } else {
+        //     this._drawTimes++;
+        // }
 
         this.webglRender.initRending();
         this.webglRender.executeRenderAction(this[_renderActionList]);

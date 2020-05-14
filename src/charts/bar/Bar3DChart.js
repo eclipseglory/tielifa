@@ -1,10 +1,20 @@
 import CoordinateSystemFigure from "../CoordinateSystemFigure.js";
-import Cube from "../../figure/Cube.js";
-import Text from "../../figure/Text.js";
 import BarFigure from "./BarFigure.js";
 import FigureAnimation from "../../figure/FigureAnimation.js";
 
+
+const DISPLAY_H = 'h_display_type';
+const DISPLAY_V = 'v_display_type';
 export default class Bar3DChart extends CoordinateSystemFigure {
+
+    static get DISPLAY_H() {
+        return DISPLAY_H;
+    }
+
+    static get DISPLAY_V() {
+        return DISPLAY_V;
+    }
+
     get widthRate() {
         return this._widthRate;
     }
@@ -88,6 +98,7 @@ export default class Bar3DChart extends CoordinateSystemFigure {
     constructor(p) {
         p = p || {};
         super(p);
+        this.realTimeDraw = true;
         this.originalPoint.x = -1;
         this.originalPoint.y = -1;
         this.originalPoint.z = -1;
@@ -107,27 +118,68 @@ export default class Bar3DChart extends CoordinateSystemFigure {
         this.barFigureCatchSize = p['barCatchSize'];
         if (this.barFigureCatchSize == null) this.barFigureCatchSize = 10;
 
+        this.displayType = DISPLAY_H;
+
+
+        this._barDepthRate = p['barDepthRate'];
+        if (this._barDepthRate == null) this._barDepthRate = 1;
 
         this._widthRate = p['widthScale'];
         if (this._widthRate == null) this._widthRate = 0.8;
         this._depthRate = p['depthScale'];
-        if (this._depthRate == null) this._depthRate = 0.8;
+        if (this._depthRate == null) this._depthRate = 1;
         this._paddingRate = p['paddingScale'];
         if (this._paddingRate == null) this._paddingRate = 0.1;
         this.catchCube = [];
         this.originalCoord = {x: 0, y: 0, z: 0};
         this.textLoader = p['textLoader'];
-        this.barFigureArray = [];
+        this.barPropertyLoader = p['barPropertyLoader'];
+        this.columnTextLoader = p['columnTextLoader'];
 
-        let callbacks = p['animationCallbacks'];
+        let that = this;
+
+        if (this.textLoader == null) {
+            this.textLoader = function (data, key) {
+                return data.toString();
+            }
+        }
+        if (this.columnTextLoader == null) {
+            this.columnTextLoader = function (defaultText, key) {
+                return defaultText;
+            }
+        }
+
+        this.barFigureArray = {};
+        this._animationCallbacks = p['animationCallbacks'];
 
         this.runningAnimation = false;
         this.animationTime = p['animationTime'];
         if (this.animationTime == null) {
             this.animationTime = 500;
         }
-        this.animation = new FigureAnimation(this, {time: this.animationTime, callbacks: callbacks});
+        this.animation = new FigureAnimation(this, {
+            time: this.animationTime, callbacks: {
+                complete: function (animation) {
+                    let callbacks = that._animationCallbacks;
+                    if (callbacks && callbacks.complete) {
+                        callbacks.complete(animation);
+                    }
+                    that._removeUselessBarFigureAndDatas();
+                }, interrupt: function (animation) {
+                    let callbacks = that._animationCallbacks;
+                    if (callbacks && callbacks.interrupt) {
+                        callbacks.interrupt(animation);
+                    }
+                    that._removeUselessBarFigureAndDatas();
+                }
+            }
+        });
+        this.currentData = {};
 
+        this._firstDisplay = true;
+
+        this.displayChildrenSize = 0;
+        this.displayChildrenKeys = [];
         // this.colors = p['colors'];
         // this.types = p['types'];
         // this.lineWidth = p['lineWidth'] || 2;
@@ -135,12 +187,37 @@ export default class Bar3DChart extends CoordinateSystemFigure {
         // this.yAxisColor = p['yAxisColor'] || 'white';
     }
 
+    _removeUselessBarFigureAndDatas() {
+        let remove = [];
+        for (let i = 0; i < this.children.size; i++) {
+            let child = this.getChild(i);
+            let key = child.key;
+            if (this.displayChildrenKeys.indexOf(key) == -1) {
+                let dataKey = key + '@Data';
+                let indexKey = key + '@Index';
+                let columnKey = key + '@Column';
+                delete this[columnKey];
+                delete this[indexKey];
+                delete this[dataKey];
+                let child = this.barFigureArray[key];
+                remove.push(child);
+                delete this.barFigureArray[key];
+            }
+        }
+        for (let i = 0; i < remove.length; i++)
+            this.removeChild(remove[i]);
+    }
+
+    getDefaultColumnText(key) {
+        return this[key + "@Column"];
+    }
+
     get animationCallbacks() {
-        return this.animation.callbacks;
+        this._animationCallbacks;
     }
 
     set animationCallbacks(callbacks) {
-        this.animation.callbacks = callbacks;
+        this._animationCallbacks = callbacks;
     }
 
     getOriginalCoord() {
@@ -165,6 +242,18 @@ export default class Bar3DChart extends CoordinateSystemFigure {
         this.lal.xz.latExtendAngle2 = -45;
         this.lal.xz.latNum = this._negativeColumn;
         this.lal.xz.lonNum = 1;
+        if (this.displayType == DISPLAY_V) {
+            this.lal.xz.lonNum = this.valueColumns.length;
+        }
+        let columnWidth = this.getColumnWidth();
+        //这里设置坐标系的深度大小:
+        if (this.displayType == DISPLAY_V) {
+            this.depth = Math.floor(columnWidth * this._barDepthRate * this.valueColumns.length);
+        } else if (this.displayType == DISPLAY_H) {
+            this.depth = Math.floor(columnWidth * this._barDepthRate / this.valueColumns.length);
+        }
+
+
         this.lal.xz.lonBgc = 'gray';
 
         this.lal.xy.lonNum = 10;
@@ -177,112 +266,8 @@ export default class Bar3DChart extends CoordinateSystemFigure {
         this.lal.yz.lonExtendAngle = -45;
     }
 
-    createBarFigures(property) {
-        let x = this.width / 2 * this.originalPoint.x;
-        let y = -this.height / 2 * this.originalPoint.y;
-        let z = this.depth / 2 * this.originalPoint.z;
-
-        let dataProperty = property;
-        let maxValue = dataProperty._maxValue;
-        let columns = this._negativeColumn;
-        let columnWidth = (this.width / 2 - x) / columns;
-        let cubeDefaultHeight = this.height;
-        let widthRate = this._widthRate;
-        let barWidth = columnWidth * widthRate;
-        let spaceWidth = (columnWidth - barWidth) / 2;
-        let perHeight = this.height / dataProperty.totalMax;
-        let barDepth = columnWidth * this._depthRate;
-
-        let cubeX = x + spaceWidth + barWidth / 2;
-        let cubeY = y - cubeDefaultHeight / 2;
-        let cubeZ = z + this.depth / 2;
-        for (let i = 0; i < columns; i++, cubeX += columnWidth) {
-            let d = this.data[i];
-            if (d == null) continue;
-            let catchFigures = this.catchCube[i];
-
-            let height = 20;
-            let barTitle = null;
-            if (catchFigures != null) {
-                barTitle = catchFigures.title;
-                barTitle.parent = null;
-            }
-            if (barTitle == null) {
-                barTitle = new Text();
-                barTitle.addEventListener(Cube.EVENT_AFTER_PREPARE_SELF, function (event) {
-                    let barTitle = event.source;
-                    barTitle.y = y - (barTitle.data - barTitle.parent._originalValue) * perHeight - height;
-                    barTitle.text = Math.floor(barTitle.data) + "k";
-                    // console.log(barTitle.backMapData);
-                    // barTitle.fireDirty();
-                });
-            }
-            barTitle.data = this.data[i][1];
-            barTitle.x = cubeX;
-            barTitle.z = cubeZ;
-            // barTitle.y = y - (this.backMapData[i][1] - this.originalValue) * perHeight - height;
-            barTitle.fontFamily = 'songti';
-            barTitle.color = "green";
-            barTitle.fontStyle = "italic";
-            barTitle.fontSize = height;
-            barTitle.text = this.data[i][1].toString() + "k";
-            barTitle.textAlign = 'center';
-
-            let cube = null;
-            if (catchFigures != null) {
-                cube = catchFigures.cube;
-                cube.parent = null;
-            }
-            if (cube == null) {
-                cube = new Cube();
-                cube.addEventListener(Cube.EVENT_AFTER_PREPARE_SELF, function (event) {
-                    let cube = event.source;
-                    cube.scaleY = (cube.data - cube.parent._originalValue) * perHeight / cubeDefaultHeight;
-                    if (cube.scaleY === 0) {
-                        cube.scaleY = 0.000001;
-                    }
-                });
-            }
-
-            cube.color = 'orange';
-            cube.x = cubeX;
-            cube.y = cubeY;
-            cube.z = cubeZ;
-            cube.width = barWidth;
-            cube.height = cubeDefaultHeight;
-            cube.depth = this.depth;
-            cube.scaleZ = this._depthRate;
-            cube.data = this.data[i][1];
-            cube.scaleY = 0.01;
-            // cube.scaleY = (this.backMapData[i][1] - this.originalValue) * perHeight / cubeDefaultHeight;
-            cube.anchorY = 1;
-
-            let columnText = null;
-            if (catchFigures != null) {
-                columnText = catchFigures.columnText;
-                columnText.parent = null;
-            }
-            if (columnText == null)
-                columnText = new Text({anchorY: 0});
-            columnText.rotateX = 45;
-            columnText.x = cubeX;
-            columnText.z = this.depth / 2;
-            columnText.y = this.height / 2 + this.lal.xz.latExtendLength2 * 2 / 3;
-            columnText.fontFamily = '雅黑';
-            columnText.color = "black";
-            columnText.fontSize = height;
-            columnText.fontWeight = "bold";
-            columnText.maxWidth = barWidth;
-            columnText.text = this.data[i][0].toString() + "年";
-            columnText.textAlign = 'center';
-
-            this.addChild(cube);
-            this.addChild(barTitle);
-            this.addChild(columnText);
-            if (catchFigures == null) {
-                this.catchCube[i] = {cube: cube, title: barTitle, columnText: columnText};
-            }
-        }
+    getXZLATExtendLength() {
+        return this.lal.xz.latExtendLength2;
     }
 
     getColumnWidth() {
@@ -294,35 +279,32 @@ export default class Bar3DChart extends CoordinateSystemFigure {
         return this.height / (this._maxValue - this._minValue);
     }
 
-    _animationComplete(animation) {
-        // let figure = animation.figure;
-        // let p = figure.parent;
-        // if (figure instanceof Bar3DChart) {
-        //     p = figure;
-        // }
-        // p.runningAnimation = false;
-        // if (p != null) {
-        //     if (p.animationCatch.length < p.animationMaxsize) {
-        //         p.animationCatch.push(animation);
-        //         console.log('回收动画对象');
-        //     }
-        // }
-    }
-
-    getDataKey(data, index) {
+    getDataKey(data, index, zIndex) {
+        if (zIndex == null) zIndex = 1;
         if (this.keyColumn != null) {
             return data[this.keyColumn].toString();
         }
         return index.toString();
     }
 
-    getBarData(key, zIndex) {
-        return this[key + 'Data'];
+    getBarColumnIndex(index, columnKey) {
+        return index;
+    }
+
+    getBarData(key, columnKey) {
+        // return this.currentData[key]['data'];
+        return this[key + '#' + columnKey + '@Data'];
     }
 
     getBarIndex(key) {
-        return this[key + 'Index'];
+        // return this.currentData[key]['index'];
+        return this[key + '@Index'];
     }
+
+    getColumnKey(valueIndex) {
+        return valueIndex.toString();
+    }
+
 
     setData(data, useAnimation) {
         if (useAnimation == null) useAnimation = false;
@@ -330,50 +312,105 @@ export default class Bar3DChart extends CoordinateSystemFigure {
             console.warn('上次数据更好动画未结束，不能更改数据');
             return;
         }
-        this.data = data;
-        this.calculateDataProperty(data, useAnimation);
-        // this.initCoordinate();
-        let columns = this._negativeColumn;
         let childrenSize = this.children.length;
-        this.children.clean();
+        if (this._firstDisplay) {
+            this.calculateDataProperty(data, false);
+        } else {
+            this.calculateDataProperty(data, useAnimation);
+        }
+        this.data = data;
+        this.displayChildrenKeys = [];
+        let columns = this._negativeColumn;
+        this.displayChildrenSize = columns;
+        let remainChildren = childrenSize - columns;
         for (let i = 0; i < columns; i++) {
             let barData = data[i];
             if (barData == null) continue;
 
-            let barFigure = this.barFigureArray[i];
+
+            let key = this.getDataKey(barData, i);
+            this.displayChildrenKeys.push(key);
+            let barFigure = this.barFigureArray[key];
             if (barFigure == null) {
                 barFigure = new BarFigure();
-                this.barFigureArray.push(barFigure);
+                this.barFigureArray[key] = barFigure;
+                this.addChild(barFigure);
             }
-            let barColumnData = barData[1];
-            let key = this.getDataKey(barData, i);
+            barFigure.opacity = 1;
             barFigure.key = key;
             barFigure.realIndex = i;
-            this.addChild(barFigure);
+            barFigure.barKeys = [];
+            for (let m = 0; m < this.valueColumns.length; m++) {
+                let columnK = this.getColumnKey(this.valueColumns[m]);
+                if (columnK != null)
+                    barFigure.barKeys.push(columnK);
+            }
 
+            for (let j = 0; j < this.valueColumns.length; j++) {
+                let valueIndex = this.valueColumns[j];
+                let columnKey = valueIndex.toString();
+                let dataKey = key + '#' + columnKey + '@Data';
+                let barColumnData = barData[valueIndex];
+                if (barColumnData == null) {
+                    if (this[dataKey] != null) {
+                        delete this[dataKey];
+                    }
+                    continue;
+                }
 
-            let dataKey = key + 'Data';
-            let indexKey = key + 'Index';
-            if (this[dataKey] == null) this[dataKey] = this.originalValue;
-            if (this[indexKey] == null) this[indexKey] = columns + i;
-            if (useAnimation) {
-                this.animation.propertyChange(barColumnData - this[dataKey], dataKey);
-                this.animation.propertyChange(i - this[indexKey], indexKey);
-            } else {
-                this[dataKey] = barColumnData;
-                this[indexKey] = i;
+                let indexKey = key + '@Index';
+                this[key + '@Column'] = barData[0]; //测试
+                if (this[dataKey] == null) this[dataKey] = this.originalValue;
+                if (this[indexKey] == null) this[indexKey] = columns;
+                if (useAnimation) {
+                    this.animation.propertyChange(barColumnData - this.getBarData(key, columnKey), dataKey);
+                } else {
+                    this[dataKey] = barColumnData;
+
+                }
+                if (useAnimation && !this._firstDisplay) {
+                    this.animation.propertyChange(i - this.getBarIndex(key), indexKey);
+                } else {
+                    this[indexKey] = i;
+                }
             }
         }
-        if (useAnimation) {
+        if (useAnimation && !this._firstDisplay) {
             this.negativeColumn = childrenSize;
             this.animation.propertyChange(columns - this.negativeColumn, 'negativeColumn');
+        }
+
+        if (remainChildren > 0) {
+            if (useAnimation) {
+                //这说明更改的时候有一些barFigure不会显示了，这需要移除对应数据以及做一些动画效果
+                for (let i = 0; i < this.children.size; i++) {
+                    let child = this.getChild(i);
+                    let key = child.key;
+                    if (this.displayChildrenKeys.indexOf(key) == -1) {
+                        let indexKey = key + '@Index';
+                        if (useAnimation && !this._firstDisplay) {
+                            this.animation.propertyChange(childrenSize * 2 - this.getBarIndex(key), indexKey);
+                        } else {
+                            this[indexKey] = childrenSize * 2;
+                        }
+                    }
+                }
+            } else {
+                this._removeUselessBarFigureAndDatas();
+            }
+
+        }
+
+        if (useAnimation) {
             this.animation.start();
         }
+        if (this._firstDisplay) this._firstDisplay = false;
     }
 
     prepareSelf(ctx) {
         super.prepareSelf(ctx);
         this.initCoordinate();
+
     }
 
     calculateDataProperty(data, useAnimation) {
@@ -390,17 +427,20 @@ export default class Bar3DChart extends CoordinateSystemFigure {
         if (this._originalValue < minValue) minValue = this._originalValue;
         // let minValue = this.originalValue;
         for (let i = 0; i < data.length; i++) {
-            let d = data[i][1];
-            if (d === null) continue;
-            if (maxValue == null) {
-                maxValue = d;
-            } else {
-                maxValue = Math.max(d, maxValue);
-            }
-            if (minValue == null) {
-                minValue = d;
-            } else {
-                minValue = Math.min(d, minValue);
+            for (let j = 0; j < this.valueColumns.length; j++) {
+                let valueIndex = this.valueColumns[j];
+                let d = data[i][valueIndex];
+                if (d == null) continue;
+                if (maxValue == null) {
+                    maxValue = d;
+                } else {
+                    maxValue = Math.max(d, maxValue);
+                }
+                if (minValue == null) {
+                    minValue = d;
+                } else {
+                    minValue = Math.min(d, minValue);
+                }
             }
         }
         // let testMin = minValue;
